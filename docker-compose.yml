@@ -1,6 +1,6 @@
-# Beelink-friendly single-node run. No Kafka, no cluster.
+# Beelink / laptop single-node run.
 # Usage:
-#   cp backend/.env.example .env   # then set XAI_API_KEY
+#   copy backend/.env.example to .env and fill keys
 #   docker compose up --build
 
 services:
@@ -18,11 +18,20 @@ services:
       XAI_API_KEY: ${XAI_API_KEY:-}
       XAI_CHAT_MODEL: ${XAI_CHAT_MODEL:-grok-4-1-fast-reasoning}
       XAI_IMAGE_MODEL: ${XAI_IMAGE_MODEL:-grok-imagine-image}
-      DEFAULT_STYLE: ${DEFAULT_STYLE:-picasso-pixel}
+      XAI_IMAGE_SIZE: ${XAI_IMAGE_SIZE:-1792x1024}
+      XAI_IMAGE_ASPECT_RATIO: ${XAI_IMAGE_ASPECT_RATIO:-16:9}
+      DEFAULT_STYLE: ${DEFAULT_STYLE:-data-tunnel}
+      EVENTS_SOURCE: ${EVENTS_SOURCE:-stream}
       EDGE_TEXT: ${EDGE_TEXT:-xai}
       LEMONADE_URL: ${LEMONADE_URL:-http://host.docker.internal:13305}
       SCHEDULE_ENABLED: ${SCHEDULE_ENABLED:-false}
       SCHEDULE_CRON: ${SCHEDULE_CRON:-}
+      AUTO_PUBLISH: ${AUTO_PUBLISH:-false}
+      X_API_KEY: ${X_API_KEY:-}
+      X_API_SECRET: ${X_API_SECRET:-}
+      X_ACCESS_TOKEN: ${X_ACCESS_TOKEN:-}
+      X_ACCESS_TOKEN_SECRET: ${X_ACCESS_TOKEN_SECRET:-}
+      X_ACCOUNT_HANDLE: ${X_ACCOUNT_HANDLE:-@tunastarlink}
     volumes:
       - ./art:/art
     extra_hosts:

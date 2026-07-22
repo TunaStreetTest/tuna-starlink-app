@@ -1,17 +1,15 @@
-.PHONY: help backend frontend install-backend install-frontend dry-run dev build clean
+.PHONY: help backend frontend install-backend install-frontend dry-run build compose-up clean
 
 help:
-	@echo "TunaStarLink (Picasso Starlink) — lightweight Beelink app"
+	@echo "TunaStarLink — Planet Hack"
 	@echo ""
 	@echo "  make install-backend   venv + pip"
 	@echo "  make install-frontend  npm install"
-	@echo "  make backend           FastAPI on :8010 (DRY_RUN from .env.local)"
+	@echo "  make backend           FastAPI on :8010 (env from backend/.env.local)"
 	@echo "  make frontend          Vite on :5174 → proxies /api to :8010"
 	@echo "  make dry-run           one-shot generation with DRY_RUN=1"
 	@echo "  make build             docker build"
 	@echo "  make compose-up        docker compose up --build"
-	@echo ""
-	@echo "No Kafka / EFM / NiFi. Live cso-operator-app is never touched."
 
 install-backend:
 	cd backend && python3 -m venv .venv && . .venv/bin/activate && pip install -q -r requirements.txt

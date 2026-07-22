@@ -168,6 +168,7 @@ DRY_RUN=1 ART_STORAGE_PATH=./art python worker/run_once.py --style data-tunnel
 | [`docs/CREATIVE-BRIEF.md`](docs/CREATIVE-BRIEF.md) | Series look |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Topology |
 | [`docs/DEPLOY-STRIKELIST.md`](docs/DEPLOY-STRIKELIST.md) | Deploy checklist |
+| [`docs/STATS.md`](docs/STATS.md) | LOC + session token/activity tallies |
 | [`GROK.md`](GROK.md) | Agent rules |
 
 ---

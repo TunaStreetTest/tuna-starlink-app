@@ -2,7 +2,7 @@
 """CLI one-shot generator. Run from repo root or backend/:
 
   DRY_RUN=1 python worker/run_once.py
-  python worker/run_once.py --style starlink-glitch
+  python worker/run_once.py --style data-tunnel
 """
 
 from __future__ import annotations

@@ -44,8 +44,7 @@ class Settings(BaseSettings):
     LEMONADE_URL: str = "http://127.0.0.1:13305"
     LEMONADE_MODEL: str = "Qwen3-4B-GGUF"
 
-    # Optional X OAuth 1.0a for later auto-post (@tunastarlink).
-    # v1 is gallery-first; you can download + post by hand.
+    # X OAuth 1.0a — @tunastarlink access tokens
     X_API_KEY: str = ""
     X_API_SECRET: str = ""
     X_ACCESS_TOKEN: str = ""

@@ -6,7 +6,7 @@ Mental model:
   next tap never reuses the same headlines until the stream is exhausted and we
   recycle only as a last resort.
 
-No Kafka required — file-backed stream under ART_STORAGE_PATH.
+File-backed stream under ART_STORAGE_PATH (.news_stream.json).
 """
 
 from __future__ import annotations
