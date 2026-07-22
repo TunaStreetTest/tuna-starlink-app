@@ -159,6 +159,47 @@ DRY_RUN=1 ART_STORAGE_PATH=./art python worker/run_once.py --style data-tunnel
 
 ---
 
+## Build stats (Grok session that created this app)
+
+Greenfield build, **2026-07-21/22**, model **grok-4.5**. Full detail: [`docs/STATS.md`](docs/STATS.md).
+
+### Lines of code (repo)
+
+| Area | Lines |
+|---|---:|
+| Python (`backend/`, `worker/`, `scripts/`) | **1,969** |
+| Frontend (`frontend/src`) | **1,057** |
+| Style seeds + compose YAML | **109** |
+| **Application code** | **~3,135** |
+| Docs (`docs/`, README, GROK) | **735** |
+| Makefile / Dockerfile / `.env.example` / samples | **129** |
+| **All product files** | **~3,999** |
+
+(Excludes `node_modules`, `.venv`, generated `art/`, lockfiles.)
+
+### Session activity
+
+| Metric | Value |
+|---|---:|
+| Duration | **~2.65 hours** (9,548 s) |
+| User turns | **46** |
+| Assistant messages | **164** |
+| Tool calls | **371** |
+| Files touched | **59** |
+| Agent lines added (editor telemetry) | **~4,680** |
+
+### Tokens
+
+| What | Value |
+|---|---:|
+| Context window | **500,000** |
+| Context in use at wrap-up | **~316,480** (~**63%**) |
+| Lifetime billed in/out tokens | **Not exposed** to the agent — check xAI / Grok Build usage dashboard for the invoice total |
+
+`contextTokensUsed` is **window occupancy**, not the sum of every turn over the session.
+
+---
+
 ## Docs
 
 | Doc | |
@@ -168,7 +209,7 @@ DRY_RUN=1 ART_STORAGE_PATH=./art python worker/run_once.py --style data-tunnel
 | [`docs/CREATIVE-BRIEF.md`](docs/CREATIVE-BRIEF.md) | Series look |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Topology |
 | [`docs/DEPLOY-STRIKELIST.md`](docs/DEPLOY-STRIKELIST.md) | Deploy checklist |
-| [`docs/STATS.md`](docs/STATS.md) | LOC + session token/activity tallies |
+| [`docs/STATS.md`](docs/STATS.md) | Full LOC + session tallies |
 | [`GROK.md`](GROK.md) | Agent rules |
 
 ---
@@ -179,7 +220,7 @@ DRY_RUN=1 ART_STORAGE_PATH=./art python worker/run_once.py --style data-tunnel
 backend/     FastAPI + pipeline + news stream + X publish
 frontend/    Studio + Gallery control plane
 worker/      one-shot CLI
-docs/        install, styles, creative
+docs/        install, styles, creative, stats
 art/         generated assets (gitignored content)
 scripts/     X OAuth pin finish helper
 ```
