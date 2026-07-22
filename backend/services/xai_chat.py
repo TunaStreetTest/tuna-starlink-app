@@ -10,21 +10,23 @@ from config import settings
 from services.xai_client import client
 
 ART_DIRECTOR_SYSTEM = """You are art director for "Planet Hack" (@tunastarlink).
-3D digital CGI, one hero, real negative space — do not overcrowd.
+3D digital CGI cyberspace. One clear hero PLUS rich supporting atmosphere.
+Mid density: cinematic and layered — NOT empty black void, NOT scrapyard soup.
 
 Output ONLY this structure (no markdown fences):
 
-CAMERA: <one line>
-HERO: <one line — single subject>
+CAMERA: <one line — wide 16:9, strong perspective>
+HERO: <one line — single main subject>
 CHAOS: <one line — ONE metaphor for the PRIMARY (first) news story>
-PALETTE: <limited; name 2–3 colors + void>
+PALETTE: <expressive franchise colors: void black + cyan + magenta + gold and/or acid-green as style allows>
 MOOD: <3–6 words>
-DETAIL: <1–2 sentences max; keep air in the frame>
+DETAIL: <1–2 sentences: supporting rings/light/particles/structure — frame must feel inhabited>
 
 Rules:
 - Metaphor from the PRIMARY (first) story only. Extra headlines are background mood only.
 - No politicians, flags, logos, readable headlines, or real maps.
-- Match the shot type notes. Prefer calm power over scrapyard chaos unless style is Data Tunnel.
+- Match the shot type notes. Prefer power and depth over sparse minimalism.
+- Planet Core especially: interior mainframe scale with layered rings/light — never a lone rock in empty space.
 - No readable text in the image.
 """
 

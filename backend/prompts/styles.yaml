@@ -1,16 +1,20 @@
 # Planet Hack — digital series for @tunastarlink
-# Session 2: distinct styles, less AI-extra, each paired with a news lane.
+# Session 2 rebalance: dialed back from scrapyard, but NOT sparse void.
+# Target: one clear hero + rich supporting atmosphere + expressive franchise palette.
 # Share / add styles: see docs/STYLE-SEEDS.md
 
 series:
   name: Planet Hack
   tagline: One story from the wire, remixed as 3D digital art.
-  # Keep SHORT — only franchise constants. Per-style seeds own the look.
+  # Franchise constants only — per-style seeds own camera + density.
   shared_lock: >
     HARD RULES: 3D digital CGI only. Wide 16:9 landscape full-bleed frame.
-    One clear hero plus supporting atmosphere — interesting, not empty, not a scrapyard.
+    One clear hero PLUS rich supporting atmosphere (rings, light shafts, particles,
+    secondary structure) — cinematic and layered, never empty black void, never scrapyard soup.
+    Franchise palette MUST include electric cyan AND magenta signal accents on void black;
+    gold and/or acid-green as allowed by the style notes. High contrast, volumetric light.
     No readable text, logos, flags, photoreal people, or real city maps.
-    NOT oil paint. NOT a corporate tech banner.
+    NOT oil paint. NOT a corporate tech banner. NOT a lone object floating in empty space.
 
 default: data-tunnel
 
@@ -19,53 +23,65 @@ styles:
     label: Planet Core
     hashtag: PlanetCore
     lane: geopolitics
-    description: Quiet core — cracked data-Earth, one root spike, dark void.
+    description: Planetary mainframe core — cracked data-Earth, layered rings, root energy.
     art_director_notes: >
-      Geopolitics / global-order story as metaphor only. One hero: a partial data-Earth
-      and a single root node. Sparse rings, little debris. Mood: gravity and pressure,
-      not a fireworks show. Palette dominated by deep void + cool cyan, one gold limb.
+      Geopolitics / global-order story as metaphor only. INTERIOR of a planetary computer core
+      (not a lonely planet in black space). Hero: cracked wireframe/data-Earth OR glowing root
+      node jacked into the core, with layered orbital data rings, volumetric god-rays, and
+      controlled pixel dust / packet rivers as atmosphere. Depth and scale must feel huge.
+      Density: mid-high — interesting architecture, not empty, not junk pile.
+      Palette EXPRESSIVE: void black base + electric cyan + magenta signal + soft gold Earth-limb
+      (acid-green optional spark). Mood: gravity, pressure, hacker-movie climax calm-before-storm.
+      Camera: low-angle or centered deep interior, wide FOV, 16:9 full-bleed.
     prompt_seed: >
-      Wide 16:9 landscape, planetary computer core, cracked wireframe Earth as hero,
-      glowing root spike, a few broken orbital rings, cool cyan and soft gold on deep void,
-      atmospheric depth, calm powerful still, full-bleed horizontal
+      Wide 16:9 cinematic landscape, deep interior of a planetary-scale computer core,
+      cracked holographic wireframe Earth as hero, layered orbital data rings with fractures,
+      glowing root node and energy spike, volumetric cyan and magenta god-rays through data fog,
+      soft gold limb light, controlled voxel dust and packet rivers, atmospheric depth and scale,
+      ArtStation CGI cyberspace, full-bleed horizontal — not empty void, not scrapyard
 
   data-tunnel:
     label: Data Tunnel
     hashtag: DataTunnel
     lane: tech
-    description: Speed tunnel — vanishing-point conduit with clear energy.
+    description: Speed tunnel — vanishing-point conduit with luminous energy walls.
     art_director_notes: >
       Tech / AI / infrastructure story as metaphor. Strong tunnel axis, motion, far glow.
-      Geometric walls with energy — kinetic but readable, not scrapyard junk.
-      Palette: cyan dominant, magenta accents, black.
+      Geometric conduit walls with readable energy structure — kinetic and saturated,
+      not sparse black pipe. Mid density: streaks, wall detail, horizon bloom.
+      Palette EXPRESSIVE: cyan dominant walls + magenta accents + void black + optional acid-green sparks.
     prompt_seed: >
-      Wide 16:9 landscape, high-speed cyberspace tunnel, strong vanishing point,
-      luminous geometric conduit walls, motion streaks, far root-light, cyan and magenta,
-      kinetic depth, extreme FOV, full-bleed horizontal
+      Wide 16:9 landscape, high-speed cyberspace data tunnel, strong vanishing point,
+      luminous geometric conduit walls with cyan energy lines and magenta accents,
+      motion streaks, far root-light bloom, kinetic depth, volumetric haze,
+      extreme FOV, full-bleed horizontal
 
   signal-cathedral:
     label: Signal Cathedral
     hashtag: SignalCathedral
     lane: science
-    description: Beams and dish geometry — airy megastructure with presence.
+    description: Signal megastructure — soaring beams, dishes, stained-glass light.
     art_director_notes: >
-      Science / space / climate / energy story as metaphor. Wide cathedral interior:
-      soaring beams, dish forms, volumetric light, room to breathe but not empty.
-      Vertical architecture in a horizontal frame. Palette: void + cyan + soft gold.
+      Science / space / climate / energy story as metaphor. Wide cathedral interior with
+      soaring signal beams, parabolic dishes, volumetric light panels — airy but PRESENT,
+      stained-glass neon scale. Vertical architecture in a horizontal frame.
+      Palette EXPRESSIVE: void + cyan + magenta + soft gold (acid-green edge allowed).
     prompt_seed: >
-      Wide 16:9 landscape, digital signal cathedral, soaring neon beams and parabolic dishes,
-      volumetric cyan-gold light, deep dark volumes, epic open composition, full-bleed horizontal
+      Wide 16:9 landscape, colossal digital signal cathedral interior, soaring neon beams
+      and parabolic dish geometry, volumetric cyan-magenta-gold light through dark volumes,
+      pixel-stained glass glow, epic open composition with layered depth, full-bleed horizontal
 
   rootkit-city:
     label: Rootkit City
     hashtag: RootkitCity
     lane: markets
-    description: Circuit skyline with a clear infiltration path.
+    description: Circuit metropolis — skyline plus one bright infiltration path.
     art_director_notes: >
-      Markets / power / civic story as metaphor. Circuit tower city with ONE bright
-      rewrite path. Clear skyline, layered depth, intentional detail without noise soup.
-      Palette: acid-green infiltration on dark cyan grid.
+      Markets / power / civic story as metaphor. Circuit-board tower city at night with
+      ONE bright rewrite/infiltration path. Clear skyline, layered depth, grid glow —
+      intentional city detail without noise soup.
+      Palette EXPRESSIVE: acid-green infiltration path + dark cyan grid + magenta signal nodes + void.
     prompt_seed: >
-      Wide 16:9 landscape, circuit-board metropolis skyline, clear tower silhouettes,
-      bright acid-green infiltration path, dark cyan grid, layered night digital city,
-      readable cinematic composition, full-bleed horizontal
+      Wide 16:9 landscape, circuit-board metropolis skyline at night, clear tower silhouettes,
+      bright acid-green infiltration path cutting the city, dark cyan grid and magenta signal nodes,
+      layered depth, readable cinematic digital city, full-bleed horizontal

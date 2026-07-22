@@ -62,11 +62,13 @@ XAI_IMAGE_MODEL=grok-imagine-image
 DEFAULT_STYLE=data-tunnel
 EVENTS_SOURCE=rss
 
-# Overnight / unattended
+# Overnight / unattended — peak 7–10pm Eastern every 21m
 SCHEDULE_ENABLED=true
-SCHEDULE_CRON=0 18-22 * * *
+SCHEDULE_INTERVAL_MINUTES=21
 SCHEDULE_TIMEZONE=America/New_York
+SCHEDULE_CRON=peak 19:00-22:59 every 21m
 AUTO_PUBLISH=true
+EVENTS_SOURCE=stream
 
 # X — @tunastarlink user tokens (same developer app as TunaStreetTest is OK)
 X_API_KEY=...
