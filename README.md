@@ -14,8 +14,8 @@ Home host: **Beelink SER9 (`TunaStarlink`)** on Starlink (also runs fine on a la
 Each run:
 
 1. **Ingest** public RSS into a local news stream (`art/.news_stream.json`)
-2. **Tap** only *unconsumed* headlines (next run always gets a fresh set)
-3. **Art director** (Grok) turns them into a visual brief
+2. **One story** — X search for the style's news lane (RSS stream fallback)
+3. **Art director** (Grok) turns that story into a visual brief
 4. **Imagine** (`grok-imagine-image`, ~$0.02, landscape 16:9)
 5. **Caption** + save `art/<run_id>/art.png` + `meta.json`
 6. **X post** (manual button or `AUTO_PUBLISH`) — image + caption; one reply with news keywords
@@ -88,8 +88,9 @@ LEMONADE_MODEL=Qwen3-4B-GGUF
 
 # --- unattended ---
 SCHEDULE_ENABLED=true
-SCHEDULE_CRON=0 18-22 * * *
+SCHEDULE_INTERVAL_MINUTES=21
 SCHEDULE_TIMEZONE=America/New_York
+SCHEDULE_CRON=peak 19:00-22:59 every 21m
 AUTO_PUBLISH=true
 
 # --- X / @tunastarlink (OAuth 1.0a) ---
@@ -118,8 +119,8 @@ That writes access tokens into `backend/.env.local`. Restart the backend after a
 
 | Step | Content |
 |---|---|
-| Main | Image + wordy caption + `#PlanetHack` |
-| One reply | News headlines/keywords that fueled the piece |
+| Main | Image + caption + `#PlanetHack #DataTunnel` (style camelCase) |
+| One reply | `Generative Stream: … #DataTunnel` |
 
 Stored on each run: `x_url`, `x_post_id`, `x_replies` in `meta.json`.
 
@@ -131,8 +132,9 @@ Stored on each run: `x_url`, `x_post_id`, `x_replies` in `meta.json`.
 
 ```env
 SCHEDULE_ENABLED=true
-SCHEDULE_CRON=0 18-22 * * *
+SCHEDULE_INTERVAL_MINUTES=21
 SCHEDULE_TIMEZONE=America/New_York
+SCHEDULE_CRON=peak 19:00-22:59 every 21m
 AUTO_PUBLISH=true
 EVENTS_SOURCE=stream
 ```

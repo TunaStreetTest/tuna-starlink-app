@@ -1,4 +1,4 @@
-"""Planet Hack generation pipeline — events → art director → Imagine → caption."""
+"""Planet Hack generation pipeline — Session 2."""
 
 from __future__ import annotations
 
@@ -10,7 +10,6 @@ from typing import Any
 from config import settings
 from services import art_store, events as events_svc, styles, xai_chat, xai_imagine
 
-# In-memory job tracker (single-node Beelink app — fine for v1)
 _lock = asyncio.Lock()
 _current: dict[str, Any] | None = None
 _history: list[dict[str, Any]] = []
@@ -25,6 +24,7 @@ def pipeline_status() -> dict[str, Any]:
         "schedule_enabled": settings.SCHEDULE_ENABLED,
         "schedule_cron": settings.SCHEDULE_CRON or None,
         "schedule_timezone": settings.SCHEDULE_TIMEZONE or None,
+        "schedule_interval_minutes": settings.SCHEDULE_INTERVAL_MINUTES,
         "auto_publish": settings.AUTO_PUBLISH,
         "default_style": settings.DEFAULT_STYLE,
         "edge_text": settings.EDGE_TEXT,
@@ -41,6 +41,8 @@ def _push_history(meta: dict[str, Any]) -> None:
             "run_id": meta.get("run_id"),
             "status": meta.get("status"),
             "style": meta.get("style_id"),
+            "lane": meta.get("news_lane"),
+            "events_source": meta.get("events_source"),
             "updated_at": meta.get("updated_at"),
             "error": meta.get("error"),
             "egress_bytes": meta.get("egress_bytes"),
@@ -52,7 +54,6 @@ def _push_history(meta: dict[str, Any]) -> None:
 
 
 async def run_generate(style_id: str | None = None, force: bool = False) -> dict[str, Any]:
-    """One Planet Hack generation. Concurrent calls rejected unless force."""
     global _current
 
     async with _lock:
@@ -62,6 +63,7 @@ async def run_generate(style_id: str | None = None, force: bool = False) -> dict
                 "(pass force=true only if you really mean it)"
             )
         run_id = art_store.new_run_id()
+        styles.reload_styles()
         style = styles.get_style(style_id)
         started = datetime.now(timezone.utc)
         meta: dict[str, Any] = {
@@ -70,6 +72,8 @@ async def run_generate(style_id: str | None = None, force: bool = False) -> dict
             "phase": "events",
             "style_id": style["id"],
             "style_label": style["label"],
+            "style_hashtag": style.get("hashtag"),
+            "news_lane": style.get("lane"),
             "series": style.get("series_name"),
             "dry_run": settings.DRY_RUN,
             "edge_text": settings.EDGE_TEXT,
@@ -78,6 +82,7 @@ async def run_generate(style_id: str | None = None, force: bool = False) -> dict
             "events": None,
             "events_source": None,
             "events_tap": None,
+            "stream_slug": None,
             "art_brief": None,
             "art_prompt": None,
             "caption": None,
@@ -89,12 +94,19 @@ async def run_generate(style_id: str | None = None, force: bool = False) -> dict
         _current = dict(meta)
 
     try:
-        # 1) Events (RSS by default — never paint from a Grok "no news" refusal)
         styles.reload_styles()
         style = styles.get_style(style_id)
         meta["style_id"] = style["id"]
         meta["style_label"] = style["label"]
-        events, events_source, events_tap = await events_svc.get_events(run_id=run_id)
+        meta["style_hashtag"] = style.get("hashtag")
+        meta["news_lane"] = style.get("lane")
+
+        # 1) One story: X search preferred, RSS stream fallback (lane-filtered)
+        events, events_source, events_tap = await events_svc.get_events(
+            run_id=run_id,
+            lane=style.get("lane"),
+            style_id=style["id"],
+        )
         meta["events"] = events
         meta["events_source"] = events_source
         meta["events_tap"] = events_tap
@@ -103,7 +115,7 @@ async def run_generate(style_id: str | None = None, force: bool = False) -> dict
         art_store.save_run(meta)
         _current = dict(meta)
 
-        # 2) Art director (Grok → structured visual brief)
+        # 2) Art director
         art_brief = await xai_chat.craft_art_brief(events, style)
         meta["art_brief"] = art_brief
         meta["phase"] = "compose"
@@ -111,7 +123,7 @@ async def run_generate(style_id: str | None = None, force: bool = False) -> dict
         art_store.save_run(meta)
         _current = dict(meta)
 
-        # 3) Compact Imagine payload: seed + brief + hard anti-stock rules
+        # 3) Imagine prompt
         art_prompt = styles.build_imagine_prompt(art_brief, style)
         meta["art_prompt"] = art_prompt
         meta["phase"] = "imagine"
@@ -119,7 +131,7 @@ async def run_generate(style_id: str | None = None, force: bool = False) -> dict
         art_store.save_run(meta)
         _current = dict(meta)
 
-        # 4) Imagine (cheap model by default)
+        # 4) Image
         image_bytes, img_stats = await asyncio.to_thread(
             xai_imagine.generate_image, art_prompt, run_id, style["label"]
         )
@@ -131,9 +143,11 @@ async def run_generate(style_id: str | None = None, force: bool = False) -> dict
         art_store.save_run(meta, image_bytes=image_bytes)
         _current = dict(meta)
 
-        # 5) Caption for manual post
+        # 5) Caption body + Generative Stream slug
         caption = await xai_chat.craft_caption(events, style["label"], art_brief)
+        stream_slug = await xai_chat.craft_stream_slug(events)
         meta["caption"] = caption
+        meta["stream_slug"] = stream_slug
         meta["phase"] = "done"
         meta["status"] = "complete"
         ended = datetime.now(timezone.utc)
@@ -142,7 +156,6 @@ async def run_generate(style_id: str | None = None, force: bool = False) -> dict
         art_store.save_run(meta)
         _current = dict(meta)
 
-        # Optional auto-post to X (overnight routine / unattended Beelink)
         if settings.AUTO_PUBLISH and not settings.DRY_RUN:
             meta["phase"] = "publish"
             meta["updated_at"] = datetime.now(timezone.utc).isoformat()

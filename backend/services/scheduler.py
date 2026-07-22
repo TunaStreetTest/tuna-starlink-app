@@ -1,13 +1,14 @@
-"""In-process cron scheduler (peak-window friendly, timezone-aware)."""
+"""Peak-window scheduler: 7–10pm America/New_York, every N minutes."""
 
 from __future__ import annotations
 
 import logging
 import random
+from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.interval import IntervalTrigger
 
 from config import settings
 
@@ -15,28 +16,26 @@ log = logging.getLogger("tuna-starlink.scheduler")
 _scheduler: AsyncIOScheduler | None = None
 
 
-def _parse_cron(expr: str) -> CronTrigger:
-    parts = expr.split()
-    if len(parts) != 5:
-        raise ValueError(f"SCHEDULE_CRON must be 5-field cron, got {expr!r}")
-    minute, hour, day, month, day_of_week = parts
-    tz_name = (settings.SCHEDULE_TIMEZONE or "America/New_York").strip()
-    try:
-        tz = ZoneInfo(tz_name)
-    except Exception as e:
-        raise ValueError(f"invalid SCHEDULE_TIMEZONE={tz_name!r}: {e}") from e
-    return CronTrigger(
-        minute=minute,
-        hour=hour,
-        day=day,
-        month=month,
-        day_of_week=day_of_week,
-        timezone=tz,
-    )
+def _tz() -> ZoneInfo:
+    name = (settings.SCHEDULE_TIMEZONE or "America/New_York").strip()
+    return ZoneInfo(name)
+
+
+def in_peak_window(now: datetime | None = None) -> bool:
+    """True if local time is [19:00, 23:00) Eastern — 7pm through 10pm hour."""
+    tz = _tz()
+    now = now or datetime.now(tz)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=tz)
+    else:
+        now = now.astimezone(tz)
+    minutes = now.hour * 60 + now.minute
+    start = 19 * 60  # 7:00pm
+    end = 23 * 60  # exclusive 11:00pm → includes 10:00–10:59
+    return start <= minutes < end
 
 
 def _pick_style_id() -> str | None:
-    """Random style from styles.yaml for scheduled runs (manual UI still picks its own)."""
     from services import styles
 
     styles.reload_styles()
@@ -49,18 +48,30 @@ def _pick_style_id() -> str | None:
 async def _job() -> None:
     from services import pipeline
 
+    now = datetime.now(_tz())
+    if not in_peak_window(now):
+        log.info(
+            "skip scheduled run outside peak window now=%s tz=%s",
+            now.isoformat(),
+            settings.SCHEDULE_TIMEZONE,
+        )
+        return
+
     style_id = _pick_style_id()
     log.info(
-        "scheduled generate starting style=%s tz=%s",
+        "scheduled generate starting style=%s tz=%s interval=%sm",
         style_id or "(default)",
         settings.SCHEDULE_TIMEZONE,
+        settings.SCHEDULE_INTERVAL_MINUTES,
     )
     try:
         meta = await pipeline.run_generate(style_id=style_id, force=False)
         log.info(
-            "scheduled generate complete run=%s style=%s status=%s",
+            "scheduled generate complete run=%s style=%s lane=%s src=%s status=%s",
             meta.get("run_id"),
             meta.get("style_id"),
+            meta.get("news_lane"),
+            meta.get("events_source"),
             meta.get("status"),
         )
     except Exception as e:
@@ -69,19 +80,29 @@ async def _job() -> None:
 
 def start_scheduler() -> AsyncIOScheduler | None:
     global _scheduler
-    if not settings.SCHEDULE_ENABLED or not settings.SCHEDULE_CRON.strip():
+    if not settings.SCHEDULE_ENABLED:
         log.info("scheduler disabled (SCHEDULE_ENABLED=%s)", settings.SCHEDULE_ENABLED)
         return None
     if _scheduler is not None:
         return _scheduler
-    sched = AsyncIOScheduler(timezone=ZoneInfo(settings.SCHEDULE_TIMEZONE or "America/New_York"))
-    trigger = _parse_cron(settings.SCHEDULE_CRON.strip())
-    sched.add_job(_job, trigger=trigger, id="planethack-peak", replace_existing=True)
+
+    minutes = max(1, int(settings.SCHEDULE_INTERVAL_MINUTES or 21))
+    tz = _tz()
+    sched = AsyncIOScheduler(timezone=tz)
+    # Fire every N minutes; job itself no-ops outside 7–10pm Eastern.
+    sched.add_job(
+        _job,
+        trigger=IntervalTrigger(minutes=minutes, timezone=tz),
+        id="planethack-peak",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+    )
     sched.start()
     _scheduler = sched
     log.info(
-        "scheduler started cron=%s tz=%s (peak window)",
-        settings.SCHEDULE_CRON,
+        "scheduler started interval=%sm tz=%s window=19:00-22:59 local (7–10pm Eastern)",
+        minutes,
         settings.SCHEDULE_TIMEZONE,
     )
     return sched

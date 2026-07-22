@@ -258,8 +258,8 @@ export function Gallery({ refreshKey = 0 }: { refreshKey?: number }) {
                   </p>
                 )}
                 <p className="text-xs text-muted">
-                  X: image + caption, then one reply with the news headlines/keywords
-                  that fed the art (for discovery). Full brief stays local.
+                  X: caption + #PlanetHack #StyleTag · reply{" "}
+                  <code className="text-[10px]">Generative Stream: … #StyleTag</code>
                 </p>
 
                 {detail?.art_brief != null && (

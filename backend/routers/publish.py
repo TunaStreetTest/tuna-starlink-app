@@ -17,8 +17,8 @@ async def publish_status():
         "credentials_ready": x_publish.x_credentials_ready(),
         "handle": __import__("config", fromlist=["settings"]).settings.X_ACCOUNT_HANDLE,
         "flow": {
-            "main": "image + wordy caption (+ #PlanetHack)",
-            "comment_1": "news headlines/keywords that fueled this piece",
+            "main": "image + caption + #PlanetHack #StyleCamel",
+            "comment_1": "Generative Stream: <slug> #StyleCamel",
         },
     }
 

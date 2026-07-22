@@ -32,6 +32,7 @@ export type PipelineStatus = {
   schedule_enabled: boolean;
   schedule_cron: string | null;
   schedule_timezone?: string | null;
+  schedule_interval_minutes?: number;
   auto_publish?: boolean;
   default_style: string;
   edge_text: string;

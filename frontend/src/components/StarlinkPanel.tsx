@@ -53,7 +53,7 @@ export function StarlinkPanel() {
         <dt className="text-muted">Schedule</dt>
         <dd>
           {p?.schedule_enabled
-            ? `${p.schedule_cron ?? "on"}${p.schedule_timezone ? ` (${p.schedule_timezone})` : ""}`
+            ? `7–10pm${p.schedule_timezone ? ` ${String(p.schedule_timezone).replace("America/", "")}` : ""} · every ${p.schedule_interval_minutes ?? 21}m`
             : "off (manual generate only)"}
         </dd>
         <dt className="text-muted">Auto publish</dt>

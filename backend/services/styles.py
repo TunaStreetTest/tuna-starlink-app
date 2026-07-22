@@ -12,6 +12,10 @@ from config import settings
 
 _STYLES_FILE = Path(__file__).resolve().parent.parent / "prompts" / "styles.yaml"
 
+# Fallback if yaml missing fields
+_LANE_DEFAULT = "geopolitics"
+_HASHTAG_DEFAULT = "PlanetHack"
+
 
 @lru_cache(maxsize=1)
 def _raw() -> dict[str, Any]:
@@ -43,9 +47,18 @@ def list_styles() -> list[dict[str, str]]:
                 "id": key,
                 "label": val.get("label", key),
                 "description": val.get("description", ""),
+                "hashtag": val.get("hashtag") or _camel(val.get("label") or key),
+                "lane": val.get("lane") or _LANE_DEFAULT,
             }
         )
     return out
+
+
+def _camel(label: str) -> str:
+    import re
+
+    parts = re.split(r"[\s_\-]+", (label or "").strip())
+    return "".join(p[:1].upper() + p[1:] for p in parts if p)
 
 
 def get_style(style_id: str | None = None) -> dict[str, Any]:
@@ -56,10 +69,14 @@ def get_style(style_id: str | None = None) -> dict[str, Any]:
         raise ValueError(f"unknown style {key!r}; known: {list(styles)}")
     val = styles[key]
     series = series_info()
+    label = val.get("label", key)
+    hashtag = val.get("hashtag") or _camel(label)
     return {
         "id": key,
-        "label": val.get("label", key),
+        "label": label,
         "description": val.get("description", ""),
+        "hashtag": hashtag,
+        "lane": (val.get("lane") or _LANE_DEFAULT).strip().lower(),
         "art_director_notes": (val.get("art_director_notes") or "").strip(),
         "prompt_seed": (val.get("prompt_seed") or "").strip(),
         "series_name": series["name"],
@@ -69,20 +86,7 @@ def get_style(style_id: str | None = None) -> dict[str, Any]:
 
 
 def build_imagine_prompt(art_brief: str, style: dict[str, Any]) -> str:
-    """
-    Compact Imagine payload. Order matters:
-      1) concrete visual seed (strong prior)
-      2) structured art-director brief
-      3) short hard rules / anti-stock
-    """
     seed = (style.get("prompt_seed") or "").strip()
     brief = art_brief.strip()
     lock = (style.get("shared_lock") or "").strip()
-    parts = [
-        seed,
-        "",
-        brief,
-        "",
-        lock,
-    ]
-    return "\n".join(parts).strip()
+    return "\n\n".join(p for p in (seed, brief, lock) if p)
