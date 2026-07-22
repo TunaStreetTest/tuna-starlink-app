@@ -8,9 +8,9 @@ series:
   # Keep SHORT — only franchise constants. Per-style seeds own the look.
   shared_lock: >
     HARD RULES: 3D digital CGI only. Wide 16:9 landscape full-bleed frame.
-    One clear hero subject, real negative space (do not fill every corner).
+    One clear hero plus supporting atmosphere — interesting, not empty, not a scrapyard.
     No readable text, logos, flags, photoreal people, or real city maps.
-    NOT oil paint. NOT a corporate tech banner. NOT the same neon scrapyard every time.
+    NOT oil paint. NOT a corporate tech banner.
 
 default: data-tunnel
 
@@ -25,48 +25,47 @@ styles:
       and a single root node. Sparse rings, little debris. Mood: gravity and pressure,
       not a fireworks show. Palette dominated by deep void + cool cyan, one gold limb.
     prompt_seed: >
-      Wide 16:9 landscape, sparse planetary computer core, single cracked wireframe Earth,
-      one glowing root spike, thin broken ring, vast black void, cool cyan and soft gold only,
-      minimal debris, calm powerful still, full-bleed horizontal
+      Wide 16:9 landscape, planetary computer core, cracked wireframe Earth as hero,
+      glowing root spike, a few broken orbital rings, cool cyan and soft gold on deep void,
+      atmospheric depth, calm powerful still, full-bleed horizontal
 
   data-tunnel:
     label: Data Tunnel
     hashtag: DataTunnel
     lane: tech
-    description: Speed tunnel — one vanishing-point conduit (kinetic, not scrapyard).
+    description: Speed tunnel — vanishing-point conduit with clear energy.
     art_director_notes: >
-      Tech / AI / infrastructure story as metaphor. One tunnel axis, motion streaks,
-      far terminus glow. Keep walls clean-ish geometric; avoid filling the frame with junk.
+      Tech / AI / infrastructure story as metaphor. Strong tunnel axis, motion, far glow.
+      Geometric walls with energy — kinetic but readable, not scrapyard junk.
       Palette: cyan dominant, magenta accents, black.
     prompt_seed: >
-      Wide 16:9 landscape, high-speed cyberspace tunnel, single vanishing point,
-      luminous conduit walls, motion streaks, far root-light, cyan with magenta accents,
-      moderate particles only, extreme FOV, full-bleed horizontal
+      Wide 16:9 landscape, high-speed cyberspace tunnel, strong vanishing point,
+      luminous geometric conduit walls, motion streaks, far root-light, cyan and magenta,
+      kinetic depth, extreme FOV, full-bleed horizontal
 
   signal-cathedral:
     label: Signal Cathedral
     hashtag: SignalCathedral
     lane: science
-    description: Tall beams and dish geometry — airy megastructure, not clutter.
+    description: Beams and dish geometry — airy megastructure with presence.
     art_director_notes: >
-      Science / space / climate / energy story as metaphor. Wide shot of airy digital
-      cathedral: few soaring beams, pure dish forms, lots of dark air. Vertical architecture
-      in a horizontal frame. Palette: void + cyan + soft gold, less magenta.
+      Science / space / climate / energy story as metaphor. Wide cathedral interior:
+      soaring beams, dish forms, volumetric light, room to breathe but not empty.
+      Vertical architecture in a horizontal frame. Palette: void + cyan + soft gold.
     prompt_seed: >
-      Wide 16:9 landscape, airy digital signal cathedral, few soaring neon beams,
-      pure parabolic dish silhouettes, large dark volumes of space, cyan and gold light,
-      minimal particle clutter, epic but open composition, full-bleed horizontal
+      Wide 16:9 landscape, digital signal cathedral, soaring neon beams and parabolic dishes,
+      volumetric cyan-gold light, deep dark volumes, epic open composition, full-bleed horizontal
 
   rootkit-city:
     label: Rootkit City
     hashtag: RootkitCity
     lane: markets
-    description: Circuit skyline with one infiltration path — readable silhouette.
+    description: Circuit skyline with a clear infiltration path.
     art_director_notes: >
-      Markets / power / civic story as metaphor. City of circuit towers with ONE bright
-      rewrite path cutting through. Clear skyline silhouette, not a wall of noise.
+      Markets / power / civic story as metaphor. Circuit tower city with ONE bright
+      rewrite path. Clear skyline, layered depth, intentional detail without noise soup.
       Palette: acid-green infiltration on dark cyan grid.
     prompt_seed: >
       Wide 16:9 landscape, circuit-board metropolis skyline, clear tower silhouettes,
-      one bright acid-green infiltration path, dark cyan grid ground, sparse floating blocks,
-      readable composition, night digital, full-bleed horizontal
+      bright acid-green infiltration path, dark cyan grid, layered night digital city,
+      readable cinematic composition, full-bleed horizontal

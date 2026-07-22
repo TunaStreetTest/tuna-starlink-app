@@ -1,32 +1,151 @@
-"""X recent search for Planet Hack news lanes (Session 2)."""
+"""X recent search for Planet Hack — real headlines over viral junk.
+
+Session 2 fix: Free-tier keyword search returns study logs, crypto promos, and
+meme "Breaking" posts. We prefer (1) known news accounts, (2) has:links newsy
+queries, then rank with strict junk filters + headline-likeness.
+"""
 
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+import re
 from typing import Any
 
 from config import settings
 
 log = logging.getLogger("tuna-starlink.x_search")
 
-# Lane → recent-search query (English, no retweets). Keep simple for Free/Basic tiers.
-_LANE_QUERIES: dict[str, str] = {
+# Per lane: list of queries tried in order until we have enough keepers.
+# Outlet accounts first (high signal), then keyword + has:links.
+_LANE_QUERIES: dict[str, list[str]] = {
+    "geopolitics": [
+        (
+            "(from:Reuters OR from:AP OR from:BBCWorld OR from:AJEnglish OR from:NPR "
+            "OR from:guardian OR from:SkyNews OR from:dwnews) "
+            "-is:retweet -is:reply lang:en"
+        ),
+        (
+            "(breaking OR war OR ceasefire OR sanctions OR election OR NATO OR Iran "
+            "OR Ukraine OR Gaza OR China OR Russia) has:links "
+            "-is:retweet -is:reply lang:en"
+        ),
+    ],
+    "tech": [
+        (
+            "(from:Reuters OR from:BBCTech OR from:verge OR from:WIRED OR from:TechCrunch "
+            "OR from:arstechnica OR from:TheRegister) "
+            "-is:retweet -is:reply lang:en"
+        ),
+        (
+            "(OpenAI OR NVIDIA OR Apple OR Google OR Microsoft OR semiconductor OR cyber "
+            "OR \"artificial intelligence\") (announces OR announced OR reports OR reported "
+            "OR launches OR launched OR breach OR lawsuit) has:links "
+            "-is:retweet -is:reply lang:en"
+        ),
+    ],
+    "science": [
+        (
+            "(from:NASA OR from:Nature OR from:ScienceMagazine OR from:BBCScienceNews "
+            "OR from:Space_Station OR from:ESA OR from:ReutersScience) "
+            "-is:retweet -is:reply lang:en"
+        ),
+        (
+            "(NASA OR climate OR fusion OR quantum OR wildfire OR earthquake OR vaccine "
+            "OR telescope OR mars OR scientists) (reports OR discovered OR announces "
+            "OR study OR research) has:links -is:retweet -is:reply lang:en"
+        ),
+    ],
+    "markets": [
+        (
+            "(from:ReutersBiz OR from:WSJ OR from:FT OR from:Bloomberg OR from:CNBC "
+            "OR from:markets OR from:TheEconomist) "
+            "-is:retweet -is:reply lang:en"
+        ),
+        (
+            "(tariff OR Fed OR inflation OR stocks OR \"interest rate\" OR GDP OR recession "
+            "OR earnings OR \"oil price\") (rises OR falls OR announces OR reports OR beats "
+            "OR misses) has:links -is:retweet -is:reply lang:en"
+        ),
+    ],
+}
+
+_JUNK_RE = re.compile(
+    r"("
+    r"day\s*[:#]?\s*\d+\s+of\b|"
+    r"\b(learnt|learned|potd|leetcode|cp-31|grind|becoming better)\b|"
+    r"\b(follow\s+me|link\s+in\s+bio|subscribe|giveaway|dm\s+me)\b|"
+    r"\b(paid\s+discord|enroll|clinical\s+research|compensation\s+for)\b|"
+    r"\b(newest\s+course|course\s+is\s+built|sign\s+up)\b|"
+    r"\b(investing\s+vs\s+trading|pick\s+yours\s+and\s+commit)\b|"
+    r"\b(top\s+5\s+gainers|rsi\s+\d|low\s+cap|real\s+gems)\b|"
+    r"\b(robinhoodapp|seed phrase|no app\. no seed)\b|"
+    r"\b(tokenized|perp\b|memes?|\$[A-Z]{2,5}\b.*\$[A-Z]{2,5})\b|"
+    r"\b(launch your own|in 60 seconds|hold the token)\b|"
+    r"\b(2nd half|offense|wnba|nba|mlb|nfl|goalie|touchdown|transfer window)\b|"
+    r"\b(aivideo|ai\s*video)\b|"
+    r"(✅|💯|✨|😄|🏆|🚀){2,}|"
+    r"\b(i\s+just\s+finished|my\s+progress|daily\s+update)\b|"
+    # viral junk that scored high previously
+    r"\b(jimothy|frog-like|spotting this morning|watch until the end)\b|"
+    r"\b(tug of war with taffy|i fear ai more)\b|"
+    r"\b(please join us|register here|technical working group)\b|"
+    r"\b(episode\s+\d+|is\s+live!|topics for today)\b|"
+    r"\b(i thought i knew|i'm shocked by|beyond disgusting)\b|"
+    r"\b(bullish news for|i expect big up move)\b"
+    r")",
+    re.I,
+)
+
+_NEWSY_RE = re.compile(
+    r"\b(breaking|announces|announced|reports|reported|says|said|"
+    r"official|war|tariff|sanctions|launch|launched|breach|attack|"
+    r"climate|storm|wildfire|election|ceasefire|inflation|fed|"
+    r"killed|dies|dead|strike|deal|court|indict|resign|"
+    r"discovered|study|researchers?|earnings|revenue|gdp)\b",
+    re.I,
+)
+
+# First-person diary / opinion fluff (not a wire headline)
+_OPINION_RE = re.compile(
+    r"^(i |i'm |im |we |my |our |you |this is beyond|i thought|i fear|"
+    r"please |avoiding war is not|it makes you)",
+    re.I,
+)
+
+_MIN_TEXT = 50
+_MIN_SCORE = 35  # raise bar so "Breaking Jimothy" style trash drops out
+_MAX_KEEP_PER_SEARCH = 8
+
+# Post-filter outlet results so geopolitics doesn't lead with Alphabet earnings.
+_LANE_MATCH: dict[str, tuple[str, ...]] = {
     "geopolitics": (
-        "(war OR ceasefire OR sanctions OR diplomacy OR election OR treaty OR NATO OR UN) "
-        "-is:retweet -is:reply lang:en"
+        "war", "ceasefire", "sanction", "diplomat", "election", "nato", "military",
+        "invasion", "treaty", "president", "minister", "border", "missile", "ukraine",
+        "israel", "gaza", "iran", "china", "russia", "congress", "senate", "un ",
+        "security council", "troops", "strike", "hostage", "summit", "protest",
+        "refugee", "ice ", "immigration", "governor", "prime minister", "pentagon",
+        "white house", "state department", "foreign", "embassy", "coup", "ballot",
     ),
     "tech": (
-        "(AI OR artificial intelligence OR chip OR semiconductor OR cyber OR hack OR GPU OR launch) "
-        "-is:retweet -is:reply lang:en"
+        "ai ", "artificial intelligence", "chip", "semiconductor", "cyber", "hack",
+        "software", "openai", "google", "apple", "microsoft", "nvidia", "gpu",
+        "startup", "internet", "crypto", "bitcoin", "robot", "cloud", "alphabet",
+        "meta ", "amazon", "iphone", "android", "data center", "model", "llm",
+        "tech", "app ", "smartphone", "quantum computing",
     ),
     "science": (
-        "(NASA OR space OR climate OR energy OR fusion OR quantum OR research OR storm OR wildfire) "
-        "-is:retweet -is:reply lang:en"
+        "nasa", "space", "climate", "energy", "fusion", "quantum", "research",
+        "scientist", "storm", "wildfire", "earthquake", "virus", "vaccine",
+        "telescope", "mars", "ocean", "species", "physics", "ebola", "nuclear",
+        "heatwave", "hurricane", "earth", "biology", "genome", "cancer", "study",
+        "astronaut", "orbit", "reef", "emissions", "temperature",
     ),
     "markets": (
-        "(markets OR stocks OR tariff OR Fed OR inflation OR bank OR trade OR protest OR strike) "
-        "-is:retweet -is:reply lang:en"
+        "market", "stock", "tariff", "fed ", "inflation", "bank", "trade",
+        "gdp", "recession", "bond", "dollar", "oil", "layoff", "earnings",
+        "wall street", "economy", "revenue", "shares", "nasdaq", "dow ",
+        "s&p", "interest rate", "jobs report", "unemployment", "price",
+        "ipo", "merger", "acquisition", "quarterly",
     ),
 }
 
@@ -52,17 +171,85 @@ def _client():
     )
 
 
-def search_lane(lane: str, max_results: int = 15) -> list[dict[str, Any]]:
-    """
-    Recent search for a news lane. Returns list of {id, text, metrics, url, score}.
-    Empty list on failure / no results (caller falls back to RSS stream).
-    """
-    lane = (lane or "geopolitics").lower().strip()
-    query = _LANE_QUERIES.get(lane) or _LANE_QUERIES["geopolitics"]
-    max_results = max(10, min(int(max_results), 20))  # API: 10–100 for recent search
+def _clean_line(text: str) -> str:
+    t = (text or "").replace("\n", " ").strip()
+    t = t.replace("&gt;", ">").replace("&amp;", "&").replace("&lt;", "<")
+    t = re.sub(r"https?://\S+", "", t)
+    t = re.sub(r"\s+", " ", t).strip()
+    # strip trailing media-only residue
+    t = re.sub(r"\s*[|•]\s*$", "", t)
+    return t
 
+
+def _matches_lane(text: str, lane: str) -> bool:
+    """Outlet feeds mix topics — drop off-lane posts (e.g. Alphabet in geopolitics)."""
+    blob = f" {((text or '').lower())} "
+    kws = _LANE_MATCH.get(lane) or ()
+    if not kws:
+        return True
+    return any(kw in blob for kw in kws)
+
+
+def _is_junk(text: str) -> bool:
+    t = text or ""
+    if len(t) < _MIN_TEXT:
+        return True
+    if _JUNK_RE.search(t):
+        return True
+    if _OPINION_RE.search(t.strip()):
+        return True
+    if t.count("->") + t.count("→") + t.count("-&gt;") >= 3:
+        return True
+    # pure stock ticker spam
+    if len(re.findall(r"\$[A-Z]{1,5}", t)) >= 3 and not _NEWSY_RE.search(t):
+        return True
+    # emoji-heavy hype
+    emojiish = len(re.findall(r"[\U0001F300-\U0001FAFF]", t))
+    if emojiish >= 4:
+        return True
+    # too many @ mentions = not a headline
+    if t.count("@") >= 3:
+        return True
+    return False
+
+
+def _headline_bonus(text: str) -> int:
+    """Reward posts that read like wire headlines, not threads or ads."""
+    t = (text or "").strip()
+    score = 0
+    if _NEWSY_RE.search(t):
+        score += 20
+    if re.search(r"\b(BREAKING|Breaking)\b", t):
+        # only if also newsy body — bare "BREAKING:" can be meme bait
+        if _NEWSY_RE.search(t) and not re.search(r"spotting|frog|watch until", t, re.I):
+            score += 12
+    n = len(t)
+    if 55 <= n <= 220:
+        score += 12
+    elif 40 <= n < 55 or 220 < n <= 280:
+        score += 6
+    # declarative title shape: starts with capital letter/word, few first-person
+    if re.match(r"^[A-Z\"“']", t) and not re.search(r"\bI\b", t[:40]):
+        score += 8
+    # has numbers / proper-noun density hint (earnings, deaths, etc.)
+    if re.search(r"\b\d{1,4}([.,]\d+)?%?\b", t):
+        score += 5
+    # penalize question-only engagement bait
+    if t.count("?") >= 2:
+        score -= 10
+    if t.count("#") >= 4:
+        score -= 10
+    return score
+
+
+def _quality_score(text: str, likes: int, rts: int, replies: int, quotes: int) -> int:
+    eng = likes + 2 * rts + quotes + replies
+    # engagement is nice but Free tier often returns 0 — don't rely on it alone
+    return min(eng * 2, 40) + _headline_bonus(text)
+
+
+def _run_query(client: Any, query: str, max_results: int) -> list[dict[str, Any]]:
     try:
-        client = _client()
         resp = client.search_recent_tweets(
             query=query,
             max_results=max_results,
@@ -70,7 +257,7 @@ def search_lane(lane: str, max_results: int = 15) -> list[dict[str, Any]]:
             user_auth=True,
         )
     except Exception as e:
-        log.warning("X search failed lane=%s: %s", lane, e)
+        log.warning("X search query failed: %s — %s", query[:60], e)
         return []
 
     data = getattr(resp, "data", None) or []
@@ -84,38 +271,95 @@ def search_lane(lane: str, max_results: int = 15) -> list[dict[str, Any]]:
             quotes = int(metrics.get("quote_count") or 0)
         else:
             likes = rts = replies = quotes = 0
-        # Engagement score — prefer viral over empty
-        score = likes + 2 * rts + quotes + replies
-        text = (getattr(tw, "text", None) or "").replace("\n", " ").strip()
-        if len(text) < 20:
+        text = _clean_line(getattr(tw, "text", None) or "")
+        if _is_junk(text):
+            continue
+        score = _quality_score(text, likes, rts, replies, quotes)
+        if score < _MIN_SCORE:
             continue
         tid = str(getattr(tw, "id", "") or "")
         out.append(
             {
                 "id": tid,
                 "text": text,
-                "line": text[:200],
+                "line": text[:220],
+                "title": text[:160],
                 "score": score,
                 "likes": likes,
                 "retweets": rts,
                 "url": f"https://x.com/i/web/status/{tid}" if tid else "",
-                "lane": lane,
                 "source": "x-search",
                 "created_at": str(getattr(tw, "created_at", "") or ""),
             }
         )
-
-    out.sort(key=lambda x: x["score"], reverse=True)
     return out
 
 
+def search_lane(lane: str, max_results: int = 15) -> list[dict[str, Any]]:
+    """Search a lane via outlet + keyword queries; return ranked keepers."""
+    lane = (lane or "geopolitics").lower().strip()
+    queries = _LANE_QUERIES.get(lane) or _LANE_QUERIES["geopolitics"]
+    max_results = max(10, min(int(max_results), 25))
+
+    try:
+        client = _client()
+    except Exception as e:
+        log.warning("X client unavailable: %s", e)
+        return []
+
+    by_id: dict[str, dict[str, Any]] = {}
+    for i, query in enumerate(queries):
+        batch = _run_query(client, query, max_results=max_results)
+        for hit in batch:
+            text = hit.get("text") or hit.get("line") or ""
+            # Outlet timelines mix topics — keep only on-lane headlines
+            if not _matches_lane(text, lane):
+                continue
+            hit["lane"] = lane
+            hit["query_rank"] = i  # 0 = preferred outlet query
+            if i == 0:
+                hit["score"] = int(hit.get("score") or 0) + 15
+            tid = hit.get("id") or ""
+            if not tid:
+                continue
+            prev = by_id.get(tid)
+            if not prev or hit["score"] > prev["score"]:
+                by_id[tid] = hit
+        if len(by_id) >= _MAX_KEEP_PER_SEARCH:
+            break
+
+    out = sorted(by_id.values(), key=lambda x: x["score"], reverse=True)
+    log.info(
+        "X search lane=%s queries=%s kept=%s top_score=%s",
+        lane,
+        len(queries),
+        len(out),
+        out[0]["score"] if out else 0,
+    )
+    return out[:_MAX_KEEP_PER_SEARCH]
+
+
 def pick_best_story(lane: str) -> dict[str, Any] | None:
-    """Single best story for this lane, or None."""
     hits = search_lane(lane, max_results=15)
     if not hits:
         return None
-    # Prefer some engagement if any post has it; else take top text
-    engaged = [h for h in hits if h["score"] >= 5]
-    pool = engaged or hits
-    best = pool[0]
-    return best
+    return hits[0]
+
+
+def pick_top_stories(lane: str, n: int = 2) -> list[dict[str, Any]]:
+    """Top N distinct X headlines for multi-source packs."""
+    hits = search_lane(lane, max_results=15)
+    if not hits:
+        return []
+    # light de-dupe by first 48 chars
+    seen: set[str] = set()
+    out: list[dict[str, Any]] = []
+    for h in hits:
+        key = re.sub(r"\W+", "", (h.get("line") or "")[:48].lower())
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(h)
+        if len(out) >= n:
+            break
+    return out

@@ -14,8 +14,12 @@ export type GalleryRun = {
   status: string;
   style_id?: string;
   style_label?: string;
+  style_hashtag?: string;
+  news_lane?: string;
   caption?: string;
+  stream_slug?: string;
   events?: string;
+  events_source?: string;
   created_at?: string;
   updated_at?: string;
   dry_run?: boolean;

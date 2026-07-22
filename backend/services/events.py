@@ -1,10 +1,15 @@
-"""News as a stream + X search (Session 2).
+"""News as a multi-source wire pack (Session 2 fix).
 
-Flow per run:
+Session 1 quality: 6 real RSS headlines → interesting Generative Stream.
+Session 2 regression: single weak X promo (Jimothy / PerpGame / LeetCode).
+
+New flow per run:
   1) style → news lane
-  2) try X recent search for that lane → pick ONE story
-  3) else RSS stream: inject feeds, tap ONE unconsumed item in that lane
-  4) last resort: any unconsumed / recycle
+  2) ingest RSS feeds always
+  3) X search (news outlets + has:links) for that lane — 0–2 keepers
+  4) RSS lane unconsumed headlines — fill to PACK_SIZE (3)
+  5) return multi-bullet wire pack; primary story is first bullet
+  6) last resort: any unconsumed / recycle / static
 """
 
 from __future__ import annotations
@@ -54,18 +59,20 @@ _LANE_KEYWORDS: dict[str, tuple[str, ...]] = {
     "science": (
         "nasa", "space", "climate", "energy", "fusion", "quantum", "research",
         "scientist", "storm", "wildfire", "earthquake", "virus", "vaccine",
-        "telescope", "mars", "ocean", "species", "physics",
+        "telescope", "mars", "ocean", "species", "physics", "ebola", "nuclear",
     ),
     "markets": (
         "market", "stock", "tariff", "fed ", "inflation", "bank", "trade",
         "protest", "strike", "gdp", "recession", "bond", "dollar", "oil price",
-        "layoff", "earnings", "wall street", "economy",
+        "layoff", "earnings", "wall street", "economy", "price",
     ),
 }
 
 _STREAM_NAME = ".news_stream.json"
 _STREAM_MAX_ITEMS = 800
-_TAP_SIZE = 1  # Session 2: single story
+_PACK_SIZE = 3  # multi-source wire pack (Session 1 energy, Session 2 X+RSS)
+_X_SLOTS = 1  # at most one X headline in the pack (rest RSS for wire quality)
+_X_MIN_SCORE = 40
 
 
 def _now() -> str:
@@ -228,7 +235,6 @@ async def ingest_feeds() -> dict[str, int]:
                         by_id[item["id"]] = item
                         new_count += 1
                     else:
-                        # backfill lane if missing
                         if not by_id[item["id"]].get("lane"):
                             by_id[item["id"]]["lane"] = item["lane"]
             except Exception:
@@ -260,8 +266,13 @@ def _tap_unconsumed(
 
 
 def _mark_consumed(chosen: list[dict[str, Any]], run_id: str) -> None:
+    """Mark RSS stream items consumed. X-only items are skipped (no stream id)."""
     stream = _load_stream()
-    ids = {c["id"] for c in chosen}
+    ids = {c["id"] for c in chosen if c.get("id") and c.get("source") != "x-search"}
+    if not ids:
+        stream["taps"] = int(stream.get("taps") or 0) + 1
+        _save_stream(stream)
+        return
     now = _now()
     for item in stream.get("items") or []:
         if item.get("id") in ids:
@@ -272,7 +283,7 @@ def _mark_consumed(chosen: list[dict[str, Any]], run_id: str) -> None:
 
 
 def format_bullets(lines: Iterable[str]) -> str:
-    return "\n".join(f"- {line}" for line in lines)
+    return "\n".join(f"- {line}" for line in lines if line)
 
 
 def stream_stats() -> dict[str, Any]:
@@ -292,8 +303,115 @@ def stream_stats() -> dict[str, Any]:
         "updated_at": stream.get("updated_at"),
         "unconsumed_by_lane": by_lane,
         "path": str(_stream_path()),
-        "tap_size": _TAP_SIZE,
+        "pack_size": _PACK_SIZE,
+        "tap_size": _PACK_SIZE,
     }
+
+
+def _dedupe_key(text: str) -> str:
+    return re.sub(r"\W+", "", (text or "")[:56].lower())
+
+
+def _pack_line(item: dict[str, Any]) -> str:
+    """Prefer clean title; fall back to line without URL noise."""
+    title = (item.get("title") or "").strip()
+    line = (item.get("line") or item.get("text") or "").strip()
+    line = re.sub(r"https?://\S+", "", line).strip()
+    line = re.sub(r"\s+", " ", line)
+    if title and len(title) >= 20:
+        # if line has a longer useful body, keep title — snippet form
+        if line and " — " in line and line.split(" — ", 1)[0].strip() == title:
+            return line[:240]
+        return title
+    return (line or title)[:240]
+
+
+_PRIMARY_BOOST = re.compile(
+    r"\b(hack|rogue|breach|war|ceasefire|sanction|missile|nuclear|"
+    r"launch|openai|nvidia|election|storm|wildfire|ebola|vaccine|"
+    r"tariff|inflation|earnings|indict)\b",
+    re.I,
+)
+
+
+def _primary_rank(item: dict[str, Any]) -> int:
+    """Higher = better primary for Generative Stream / art metaphor."""
+    title = item.get("title") or item.get("line") or ""
+    score = int(item.get("score") or 0)
+    if item.get("source") == "x-search":
+        score += 8  # slight live-X preference when scores are close
+    if _PRIMARY_BOOST.search(title):
+        score += 25
+    # clean title length sweet spot
+    n = len(title)
+    if 40 <= n <= 140:
+        score += 10
+    elif n > 180:
+        score -= 8
+    return score
+
+
+def _build_wire_pack(
+    x_hits: list[dict[str, Any]],
+    rss_hits: list[dict[str, Any]],
+    pack_size: int = _PACK_SIZE,
+) -> list[dict[str, Any]]:
+    """
+    Merge X + RSS into a Session-1-style multi-headline pack.
+
+    Policy:
+      - Include at most _X_SLOTS high-score on-lane X posts
+      - Fill remaining slots with RSS wire headlines
+      - Re-rank so primary is the punchiest story (not always X)
+    """
+    candidates: list[dict[str, Any]] = []
+    seen: set[str] = set()
+
+    x_kept = 0
+    for h in x_hits:
+        if x_kept >= _X_SLOTS:
+            break
+        if (h.get("score") or 0) < _X_MIN_SCORE:
+            continue
+        key = _dedupe_key(h.get("title") or h.get("line") or h.get("text") or "")
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        candidates.append(
+            {
+                "id": h.get("id"),
+                "title": h.get("title") or (h.get("line") or "")[:160],
+                "line": _pack_line(h),
+                "source": "x-search",
+                "lane": h.get("lane"),
+                "url": h.get("url"),
+                "score": h.get("score"),
+                "likes": h.get("likes"),
+            }
+        )
+        x_kept += 1
+
+    for h in rss_hits:
+        if len(candidates) >= pack_size + 2:
+            break
+        key = _dedupe_key(h.get("title") or h.get("line") or "")
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        candidates.append(
+            {
+                "id": h.get("id"),
+                "title": h.get("title") or (h.get("line") or "")[:160],
+                "line": _pack_line(h),
+                "source": h.get("source") or "rss",
+                "lane": h.get("lane"),
+                "link": h.get("link"),
+                "score": 50,  # solid RSS wire baseline
+            }
+        )
+
+    candidates.sort(key=_primary_rank, reverse=True)
+    return candidates[:pack_size]
 
 
 async def get_events(
@@ -303,98 +421,127 @@ async def get_events(
     style_id: str | None = None,
 ) -> tuple[str, str, dict[str, Any]]:
     """
-    Return (events_text, source_label, tap_meta) for ONE story.
-    Prefers X search for the style's lane; falls back to RSS stream.
+    Return (events_text, source_label, tap_meta) for a multi-source wire pack.
+
+    Primary story is bullet #1 (best for Generative Stream). Full pack mirrors
+    Session 1 multi-headline energy so slugs and art context stay interesting.
     """
     if settings.DRY_RUN:
         stamp = datetime.now(timezone.utc).strftime("%H%M%S")
+        lines = [
+            f"Dry-run primary story {stamp}: markets and power grids shift overnight",
+            "Dry-run secondary: chipmakers race for energy contracts",
+            "Dry-run tertiary: climate satellites map a new storm corridor",
+        ]
         return (
-            format_bullets([f"Dry-run single story {stamp}: markets and power grids shift overnight"]),
+            format_bullets(lines),
             "dry-run-stream",
-            {"tap_size": 1, "fresh": True, "lane": lane, "style_id": style_id},
+            {"tap_size": len(lines), "fresh": True, "lane": lane, "style_id": style_id},
         )
 
     rid = run_id or f"tap-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
     lane = (lane or "geopolitics").lower().strip()
     mode = (settings.EVENTS_SOURCE or "stream").lower().strip()
 
-    # --- 1) X search (required path when credentials present) ---
+    # --- always refresh RSS first ---
+    stats = await ingest_feeds()
+    stream = _load_stream()
+    items = stream.get("items") or []
+
+    # --- X search (optional high-signal slot) ---
+    x_hits: list[dict[str, Any]] = []
+    x_err: str | None = None
     if mode in ("stream", "rss", "hybrid", "x", "x-search") and not settings.DRY_RUN:
         try:
             from services import x_search
 
-            best = x_search.pick_best_story(lane)
+            x_hits = x_search.pick_top_stories(lane, n=_X_SLOTS + 1)
         except Exception as e:
-            best = None
             x_err = str(e)
-        else:
-            x_err = None
+            x_hits = []
 
-        if best:
-            line = best.get("line") or best.get("text") or ""
-            tap_meta = {
-                "tap_size": 1,
-                "fresh": True,
-                "lane": lane,
-                "style_id": style_id,
-                "item_ids": [best.get("id")],
-                "sources": ["x-search"],
-                "x_post_url": best.get("url"),
-                "x_score": best.get("score"),
-                "x_likes": best.get("likes"),
-            }
-            return format_bullets([line]), "x-search", tap_meta
-
-    # --- 2) RSS stream lane-filtered tap ---
-    stats = await ingest_feeds()
-    stream = _load_stream()
-    items = stream.get("items") or []
-    chosen = _tap_unconsumed(items, _TAP_SIZE, lane)
-
-    if not chosen:
-        stats = await ingest_feeds()
-        stream = _load_stream()
-        items = stream.get("items") or []
-        chosen = _tap_unconsumed(items, _TAP_SIZE, lane)
+    # --- RSS lane pool ---
+    rss_pool = _tap_unconsumed(items, _PACK_SIZE + 4, lane)
+    if len(rss_pool) < _PACK_SIZE:
+        # broaden: any unconsumed
+        more = _tap_unconsumed(items, _PACK_SIZE + 4, None)
+        seen_ids = {r["id"] for r in rss_pool}
+        for m in more:
+            if m["id"] not in seen_ids:
+                rss_pool.append(m)
+                seen_ids.add(m["id"])
 
     recycled = False
-    if not chosen:
-        # any unconsumed
-        chosen = _tap_unconsumed(items, _TAP_SIZE, None)
-    if not chosen:
+    if not rss_pool and not x_hits:
         recycled_pool = [i for i in items if i.get("consumed_at")]
         recycled_pool = [i for i in recycled_pool if (i.get("lane") or "") == lane] or recycled_pool
         recycled_pool.sort(key=lambda x: x.get("consumed_at") or "")
-        chosen = recycled_pool[:_TAP_SIZE]
-        recycled = bool(chosen)
-        for c in chosen:
+        rss_pool = recycled_pool[:_PACK_SIZE]
+        recycled = bool(rss_pool)
+        for c in rss_pool:
             c["consumed_at"] = None
             c["consumed_by_run"] = None
 
-    if chosen:
-        _mark_consumed(chosen, rid)
-        lines = [c.get("line") or c.get("title") or "" for c in chosen if c.get("line") or c.get("title")]
-        tap_meta = {
-            "tap_size": len(chosen),
-            "item_ids": [c["id"] for c in chosen],
-            "sources": sorted({c.get("source") for c in chosen if c.get("source")}),
-            "lanes": sorted({c.get("lane") for c in chosen if c.get("lane")}),
+    pack = _build_wire_pack(x_hits, rss_pool, _PACK_SIZE)
+
+    if pack:
+        # only mark RSS members consumed
+        _mark_consumed(pack, rid)
+        lines = [_pack_line(c) for c in pack]
+        sources = sorted({c.get("source") for c in pack if c.get("source")})
+        has_x = any(c.get("source") == "x-search" for c in pack)
+        has_rss = any(c.get("source") != "x-search" for c in pack)
+        if has_x and has_rss:
+            src = "x+rss"
+        elif has_x:
+            src = "x-search"
+        elif recycled:
+            src = "news-stream-recycle"
+        else:
+            src = "news-stream"
+
+        primary = pack[0]
+        tap_meta: dict[str, Any] = {
+            "tap_size": len(pack),
+            "pack_size": _PACK_SIZE,
+            "item_ids": [c.get("id") for c in pack if c.get("id")],
+            "sources": sources,
+            "lanes": sorted({c.get("lane") for c in pack if c.get("lane")}),
             "fresh": not recycled,
             "recycled": recycled,
             "lane": lane,
             "style_id": style_id,
+            "primary_title": primary.get("title") or primary.get("line"),
+            "primary_source": primary.get("source"),
+            "headlines": [
+                {
+                    "title": c.get("title"),
+                    "source": c.get("source"),
+                    "url": c.get("url") or c.get("link"),
+                }
+                for c in pack
+            ],
             "ingest": stats,
             "stream": stream_stats(),
-            "x_search_fallback": True,
         }
-        src = "news-stream" if not recycled else "news-stream-recycle"
+        if has_x:
+            x_item = next(c for c in pack if c.get("source") == "x-search")
+            tap_meta["x_post_url"] = x_item.get("url")
+            tap_meta["x_score"] = x_item.get("score")
+            tap_meta["x_likes"] = x_item.get("likes")
+        if x_err:
+            tap_meta["x_search_error"] = x_err
         return format_bullets(lines), src, tap_meta
 
-    # --- 3) static fallback ---
+    # --- static fallback ---
     return (
         format_bullets(
-            ["Global markets and power systems shift under pressure from competing headlines"]
+            [
+                "Global markets and power systems shift under pressure from competing headlines",
+                "Chip supply and energy grids tighten as demand spikes",
+                "Climate and security desks trade the same overnight wire",
+            ]
         ),
         "fallback-static",
-        {"fresh": False, "lane": lane, "style_id": style_id},
+        {"fresh": False, "lane": lane, "style_id": style_id, "tap_size": 3},
     )

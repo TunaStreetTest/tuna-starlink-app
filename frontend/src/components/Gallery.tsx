@@ -144,6 +144,9 @@ export function Gallery({ refreshKey = 0 }: { refreshKey?: number }) {
                   </span>
                   {r.dry_run && <Badge tone="warn">dry</Badge>}
                 </div>
+                <div className="text-[9px] text-white/60 font-mono truncate mt-0.5">
+                  {r.run_id}
+                </div>
               </div>
             </button>
           ))}
@@ -169,7 +172,15 @@ export function Gallery({ refreshKey = 0 }: { refreshKey?: number }) {
                     runs.find((r) => r.run_id === modalId)?.style_label ||
                     "Piece"}
                 </div>
-                <div className="text-[10px] text-muted font-mono">{modalId}</div>
+                <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                  <span className="text-[10px] text-muted">Run ID</span>
+                  <code className="text-[10px] text-accent font-mono">{modalId}</code>
+                  {detail?.events_source != null && (
+                    <span className="text-[10px] text-muted">
+                      · {String(detail.events_source)}
+                    </span>
+                  )}
+                </div>
               </div>
               <Button variant="ghost" onClick={() => setModalId(null)}>
                 Close
@@ -196,10 +207,39 @@ export function Gallery({ refreshKey = 0 }: { refreshKey?: number }) {
               <div className="space-y-3">
                 {caption && (
                   <div>
-                    <div className="text-xs text-muted mb-1">Caption</div>
+                    <div className="text-xs text-muted mb-1">Caption (main post body)</div>
                     <p className="text-sm border border-border rounded p-3 bg-bg leading-relaxed">
                       {caption}
                     </p>
+                  </div>
+                )}
+
+                {(detail?.stream_slug != null || detail?.events != null) && (
+                  <div>
+                    <div className="text-xs text-muted mb-1">Generative Stream (reply)</div>
+                    <p className="text-sm border border-border rounded p-3 bg-bg leading-relaxed">
+                      Generative Stream:{" "}
+                      {String(
+                        detail?.stream_slug ||
+                          String(detail?.events || "")
+                            .split("\n")[0]
+                            ?.replace(/^[-•]\s*/, "")
+                            .split(" — ")[0] ||
+                          "…",
+                      )}{" "}
+                      {detail?.style_hashtag
+                        ? `#${String(detail.style_hashtag)}`
+                        : ""}
+                    </p>
+                  </div>
+                )}
+
+                {detail?.events != null && (
+                  <div>
+                    <div className="text-xs text-muted mb-1">Source (single story)</div>
+                    <pre className="text-xs border border-border rounded p-2 bg-bg whitespace-pre-wrap max-h-24 overflow-y-auto">
+                      {String(detail.events)}
+                    </pre>
                   </div>
                 )}
 

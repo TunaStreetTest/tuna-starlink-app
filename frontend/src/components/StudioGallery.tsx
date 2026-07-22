@@ -118,6 +118,22 @@ export function StudioGallery({ refreshKey = 0 }: { refreshKey?: number }) {
         {!selected && <p className="text-xs text-muted">Select a run.</p>}
         {selected && (
           <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="text-muted">Run ID</span>
+              <code className="px-2 py-0.5 rounded border border-border bg-bg text-accent">
+                {selected}
+              </code>
+              {detail?.style_label != null && (
+                <Badge tone="accent">{String(detail.style_label)}</Badge>
+              )}
+              {detail?.events_source != null && (
+                <span className="text-muted">source {String(detail.events_source)}</span>
+              )}
+              {detail?.news_lane != null && (
+                <span className="text-muted">lane {String(detail.news_lane)}</span>
+              )}
+            </div>
+
             {hasImage ? (
               <a href={api.imageUrl(selected)} target="_blank" rel="noreferrer">
                 <img
@@ -144,40 +160,63 @@ export function StudioGallery({ refreshKey = 0 }: { refreshKey?: number }) {
                 {copied ? "Caption copied" : "Copy caption"}
               </Button>
               <span className="text-xs text-muted">
-                Post to @tunastarlink when it looks cool enough.
+                Download as planethack_{selected}.png
               </span>
             </div>
 
             {caption && (
               <div>
-                <div className="text-xs text-muted mb-1">Caption</div>
+                <div className="text-xs text-muted mb-1">Caption (main post body)</div>
                 <p className="text-sm border border-border rounded p-2 bg-bg leading-relaxed">
                   {caption}
                 </p>
               </div>
             )}
 
-            {detail?.art_brief != null && (
+            {(detail?.stream_slug != null || detail?.events != null) && (
               <div>
-                <div className="text-xs text-muted mb-1">Art director brief</div>
-                <pre className="text-xs border border-border rounded p-2 bg-bg whitespace-pre-wrap max-h-40 overflow-y-auto">
-                  {String(detail.art_brief)}
-                </pre>
+                <div className="text-xs text-muted mb-1">Generative Stream (reply preview)</div>
+                <p className="text-sm border border-border rounded p-2 bg-bg leading-relaxed">
+                  Generative Stream:{" "}
+                  {String(
+                    detail?.stream_slug ||
+                      String(detail?.events || "")
+                        .split("\n")[0]
+                        ?.replace(/^[-•]\s*/, "")
+                        .split(" — ")[0] ||
+                      "…",
+                  )}{" "}
+                  {detail?.style_hashtag
+                    ? `#${String(detail.style_hashtag)}`
+                    : detail?.style_label
+                      ? `#${String(detail.style_label).replace(/\s+/g, "")}`
+                      : ""}
+                </p>
               </div>
             )}
 
             {detail?.events != null && (
+              <div>
+                <div className="text-xs text-muted mb-1">Source (single story)</div>
+                <pre className="text-xs border border-border rounded p-2 bg-bg whitespace-pre-wrap max-h-28 overflow-y-auto">
+                  {String(detail.events)}
+                </pre>
+              </div>
+            )}
+
+            {detail?.art_brief != null && (
               <details>
                 <summary className="text-xs text-muted cursor-pointer">
-                  Source events
+                  Art director brief
                 </summary>
-                <pre className="text-xs border border-border rounded p-2 bg-bg whitespace-pre-wrap mt-1 max-h-32 overflow-y-auto">
-                  {String(detail.events)}
+                <pre className="text-xs border border-border rounded p-2 bg-bg whitespace-pre-wrap mt-1 max-h-40 overflow-y-auto">
+                  {String(detail.art_brief)}
                 </pre>
               </details>
             )}
 
             <div className="text-xs text-muted flex flex-wrap gap-3">
+              <span>run {selected}</span>
               {detail?.latency_ms != null && <span>{String(detail.latency_ms)} ms</span>}
               {detail?.egress_bytes != null && (
                 <span>egress {formatBytes(Number(detail.egress_bytes))}</span>

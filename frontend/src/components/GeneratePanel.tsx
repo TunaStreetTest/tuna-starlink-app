@@ -105,9 +105,11 @@ export function GeneratePanel({ onStarted }: { onStarted?: () => void }) {
 
       {cur && (
         <div className="text-xs space-y-1 border-t border-border pt-3 mt-2">
-          <div className="flex gap-2 flex-wrap">
-            <span className="text-muted">last:</span>
-            <code>{String(cur.run_id ?? "—")}</code>
+          <div className="flex gap-2 flex-wrap items-center">
+            <span className="text-muted">Run ID</span>
+            <code className="px-1.5 py-0.5 rounded border border-border bg-bg text-accent">
+              {String(cur.run_id ?? "—")}
+            </code>
             <Badge
               tone={
                 cur.status === "complete"
@@ -121,6 +123,9 @@ export function GeneratePanel({ onStarted }: { onStarted?: () => void }) {
             >
               {String(cur.status)}
             </Badge>
+            {cur.phase != null && cur.status === "running" && (
+              <span className="text-muted">phase {String(cur.phase)}</span>
+            )}
           </div>
           {cur.latency_ms != null && (
             <div className="text-muted">latency {String(cur.latency_ms)} ms</div>

@@ -101,7 +101,7 @@ async def run_generate(style_id: str | None = None, force: bool = False) -> dict
         meta["style_hashtag"] = style.get("hashtag")
         meta["news_lane"] = style.get("lane")
 
-        # 1) One story: X search preferred, RSS stream fallback (lane-filtered)
+        # 1) Multi-source wire pack: X (outlets/headlines) + RSS fill (lane-filtered)
         events, events_source, events_tap = await events_svc.get_events(
             run_id=run_id,
             lane=style.get("lane"),
