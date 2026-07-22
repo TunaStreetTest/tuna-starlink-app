@@ -1,0 +1,63 @@
+# Planet Hack — digital series for @tunastarlink
+# Hacker-movie 3D "inside the computer / hacking the planet"
+# Prompt stack is SHORT on purpose — Imagine ignores long essays.
+
+series:
+  name: Planet Hack
+  tagline: World events as 3D digital infiltration of the planetary mainframe.
+  # Hard constraints — keep under ~80 words. Goes at the END of Imagine prompt.
+  shared_lock: >
+    HARD RULES: 3D CGI cyberspace only (voxels, neon, pixel debris). Camera INSIDE the machine,
+    extreme perspective, kinetic hacker-movie climax. Palette MUST include cyan AND magenta AND
+    acid-green accents on void black — not blue-only. Broken/incomplete geometry, packet storms,
+    unreadable UI shards. FORBIDDEN: corporate tech banner look, clean perfect rings, LinkedIn AI
+    illustration, stock "network globe" poster, oil paint, cubism, photoreal people, readable text,
+    logos, flags, maps of real cities.
+
+default: planet-core
+
+styles:
+  planet-core:
+    label: Planet Core
+    description: Hero — jacked into planetary mainframe core (series default).
+    art_director_notes: >
+      Interior of a spherical planetary computer. Camera deep inside looking toward a glowing
+      root node. Wireframe/data-Earth is partial and glitching, not a clean stock globe.
+      Rings are fractured and shedding voxels. Events = data weather (storms, dark channels, hot
+      new beams) — abstract only.
+    # First line of Imagine payload after the structured brief
+    prompt_seed: >
+      Extreme low-angle interior of a planetary digital core, cracked data-Earth half-dissolved
+      into voxels, shattered orbital rings leaking pixel dust, torrents of cyan magenta acid-green
+      packets slamming into a white-hot root spike, volumetric fog, Dutch angle, ArtStation CGI,
+      dense foreground debris, not a clean diagram
+
+  data-tunnel:
+    label: Data Tunnel
+    description: Speed-rush packet tunnel — pure hacking-movie flythrough.
+    art_director_notes: >
+      Vanishing-point tunnel of unreadable code columns and voxel walls. Far light is root-access
+      / planetary glow. Events = turbulence, side-branches, choke points — abstract only.
+    prompt_seed: >
+      High-speed 3D cyberspace tunnel, walls of luminous pixel columns, motion streaks, far-end
+      planetary root glow, cyan magenta acid-green neon, debris particles, extreme FOV, dense detail
+
+  signal-cathedral:
+    label: Signal Cathedral
+    description: Vertical megastructure of beams and pure-form dishes.
+    art_director_notes: >
+      Looking up a cathedral-scale digital interior. Beams as stained-glass signal light. Dish
+      forms as pure geometry. Events = beams igniting or lattice rewiring — abstract only.
+    prompt_seed: >
+      Looking up inside a colossal digital signal cathedral, vertical neon beams, pure parabolic
+      geometry, pixel-stained light, void black, cyan magenta green gold, epic scale, CGI matte
+
+  rootkit-city:
+    label: Rootkit City
+    description: Circuit metropolis mid-infiltration.
+    art_director_notes: >
+      Wide shot of a city built from circuitry and floating voxel blocks. Infiltration = spreading
+      luminous rewrite pattern. Not real skylines or landmarks.
+    prompt_seed: >
+      3D circuit-board metropolis skyline, floating voxel districts, bright infiltration pattern
+      rewriting the grid, neon night, planetary data-horizon, cyan magenta acid-green, cinematic wide
