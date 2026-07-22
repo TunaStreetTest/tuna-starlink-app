@@ -14,11 +14,11 @@ Home host: **Beelink SER9 (`TunaStarlink`)** on Starlink (also runs fine on a la
 Each run:
 
 1. **Ingest** public RSS into a local news stream (`art/.news_stream.json`)
-2. **One story** — X search for the style's news lane (RSS stream fallback)
-3. **Art director** (Grok) turns that story into a visual brief
+2. **Wire pack** — X search (news outlets / headlines) + RSS for the style's news lane → ~3 headlines
+3. **Art director** (Grok) metaphors the **primary** story into a visual brief
 4. **Imagine** (`grok-imagine-image`, ~$0.02, landscape 16:9)
 5. **Caption** + save `art/<run_id>/art.png` + `meta.json`
-6. **X post** (manual button or `AUTO_PUBLISH`) — image + caption; one reply with news keywords
+6. **X post** (manual or `AUTO_PUBLISH`) — mood caption on main; **Generative Stream** reply carries the wire (full ~280)
 
 Downloads: `planethack_<run_id>.png`.
 
@@ -31,7 +31,7 @@ Downloads: `planethack_<run_id>.png`.
 | `signal-cathedral` | Signal megastructure (wide landscape) |
 | `rootkit-city` | Circuit metropolis mid-infiltration |
 
-Hourly schedule **picks a style at random**. Studio dropdown for manual runs.  
+Peak schedule (**7–10pm ET**, every **21m**) picks a style at random. Studio dropdown for manual runs.  
 Share new styles: [`docs/STYLE-SEEDS.md`](docs/STYLE-SEEDS.md).
 
 ---
@@ -119,12 +119,12 @@ That writes access tokens into `backend/.env.local`. Restart the backend after a
 
 | Step | Content |
 |---|---|
-| Main | Image + caption + `#PlanetHack #DataTunnel` (style camelCase) |
-| One reply | `Generative Stream: … #DataTunnel` |
+| Main | Image + atmospheric caption + `#PlanetHack #DataTunnel` (style camelCase) |
+| One reply | `Generative Stream: <wire headlines> #DataTunnel` — real news payload, uses most of 280 |
 
-Stored on each run: `x_url`, `x_post_id`, `x_replies` in `meta.json`.
+Stored on each run: `x_url`, `x_post_id`, `x_replies`, `stream_slug`, `events_source` in `meta.json`.
 
-**Gallery** tab → tile → modal → **Post to X**, or enable `AUTO_PUBLISH=true` for hourly auto-post.
+**Gallery** tab → tile → modal → **Post to X**, or enable `AUTO_PUBLISH=true` for peak auto-post.
 
 ---
 
@@ -139,7 +139,7 @@ AUTO_PUBLISH=true
 EVENTS_SOURCE=stream
 ```
 
-Leave backend or Docker running. ~$0.02–0.04 xAI per hourly run.
+Leave backend or Docker running. ~$0.02–0.04 xAI per fire (~9–12 fires if the full peak window runs).
 
 ---
 
@@ -163,44 +163,55 @@ DRY_RUN=1 ART_STORAGE_PATH=./art python worker/run_once.py --style data-tunnel
 
 ---
 
-## Build stats (Grok session that created this app)
+## Build stats (whole repo)
 
-Greenfield build, **2026-07-21/22**, model **grok-4.5**. Full detail: [`docs/STATS.md`](docs/STATS.md).
+Two Grok Build sessions (same conversation continued), model **grok-4.5**.  
+Index + method: [`docs/STATS.md`](docs/STATS.md) · Session 1: [`docs/STATS-SESSION-1.md`](docs/STATS-SESSION-1.md) · Session 2: [`docs/STATS-SESSION-2.md`](docs/STATS-SESSION-2.md).
 
-### Lines of code (repo)
+### Lines of code (current repo)
 
 | Area | Lines |
 |---|---:|
-| Python (`backend/`, `worker/`, `scripts/`) | **1,969** |
-| Frontend (`frontend/src`) | **1,057** |
-| Style seeds + compose YAML | **109** |
-| **Application code** | **~3,135** |
-| Docs (`docs/`, README, GROK) | **735** |
-| Makefile / Dockerfile / `.env.example` / samples | **129** |
-| **All product files** | **~3,999** |
+| Python (`backend/`, `worker/`, `scripts/`) | **2,675** |
+| Frontend (`frontend/src`) | **1,147** |
+| Style seeds + compose YAML | **112** |
+| **Application code** | **~3,934** |
+| Docs (`docs/`, README, GROK) | **1,277** |
+| Makefile / Dockerfile / `.env.example` / samples | **119** |
+| **All product files** | **~5,330** |
 
-(Excludes `node_modules`, `.venv`, generated `art/`, lockfiles.)
+(Excludes `node_modules`, `.venv`, generated `art/`, lockfiles.) Session 1 ended ~3.1k app / ~4.0k product; Session 2 added ~**+800** app / ~**+1.3k** product.
 
-### Session activity
+### Combined session activity (S1 + S2)
 
 | Metric | Value |
 |---|---:|
-| Duration | **~2.65 hours** (9,548 s) |
-| User turns | **46** |
-| Assistant messages | **164** |
-| Tool calls | **371** |
-| Files touched | **59** |
-| Agent lines added (editor telemetry) | **~4,680** |
+| Wall duration | **~12.6 hours** (45,195 s; includes overnight idle) |
+| User turns | **60** |
+| Assistant messages | **249** |
+| Tool calls | **533** |
+| Compactions | **2** |
+| Files touched | **77** |
+| Agent lines added | **~6,138** |
+| Agent lines removed | **~306** |
 
 ### Tokens
 
 | What | Value |
 |---|---:|
 | Context window | **500,000** |
-| Context in use at wrap-up | **~316,480** (~**63%**) |
-| Lifetime billed in/out tokens | **Not exposed** to the agent — check xAI / Grok Build usage dashboard for the invoice total |
+| Context in use at Session 2 wrap | **~89,546** (~**18%**, after compaction) |
+| Lifetime billed in/out tokens | **Not exposed** to the agent — check xAI / Grok Build usage dashboard |
 
-`contextTokensUsed` is **window occupancy**, not the sum of every turn over the session.
+`contextTokensUsed` is **window occupancy**, not the sum of every turn.
+
+### Product API spend (art, cumulative)
+
+| Item | Estimate |
+|---|---:|
+| Live Imagine images | **22** × ~$0.02 ≈ **~$0.44** |
+| X posts recorded | **~16** |
+| Peak night (if full window) | ~9–12 fires ≈ **~$0.18–0.48** Imagine |
 
 ---
 
@@ -213,7 +224,10 @@ Greenfield build, **2026-07-21/22**, model **grok-4.5**. Full detail: [`docs/STA
 | [`docs/CREATIVE-BRIEF.md`](docs/CREATIVE-BRIEF.md) | Series look |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Topology |
 | [`docs/DEPLOY-STRIKELIST.md`](docs/DEPLOY-STRIKELIST.md) | Deploy checklist |
-| [`docs/STATS.md`](docs/STATS.md) | Full LOC + session tallies |
+| [`docs/SESSION-2-PLAN.md`](docs/SESSION-2-PLAN.md) | Session 2 decisions |
+| [`docs/STATS.md`](docs/STATS.md) | Whole-repo LOC + spend index |
+| [`docs/STATS-SESSION-1.md`](docs/STATS-SESSION-1.md) | Session 1 tallies |
+| [`docs/STATS-SESSION-2.md`](docs/STATS-SESSION-2.md) | Session 2 tallies |
 | [`GROK.md`](GROK.md) | Agent rules |
 
 ---

@@ -56,29 +56,48 @@ def _normalize_caption(caption: str, meta: dict[str, Any] | None = None) -> str:
 
 
 def build_generative_stream_reply(meta: dict[str, Any] | None = None) -> str:
-    """Generative Stream: <slug>. #StyleCamel  — no #PlanetHack in reply."""
+    """Generative Stream: <wire pack>. #StyleCamel
+
+    This reply is the real news payload — main caption is mood/art only.
+    Fill up to 280 with primary + secondary headlines when stream_slug is short.
+    """
     meta = meta or {}
     style_tag = style_hashtag(meta)
-    slug = (meta.get("stream_slug") or "").strip()
-    if not slug:
-        # fallback from events first line
-        events = meta.get("events") or ""
-        for line in events.splitlines():
-            line = line.strip().lstrip("-• ").strip()
-            if line:
-                slug = line.split(" — ")[0].strip()[:160]
-                break
-        if not slug:
-            slug = "One live story from the wire"
-    slug = re.sub(r"#\w+", "", slug).strip()
-    # ensure ends with period for readability
-    if slug and slug[-1] not in ".!?":
-        slug = slug + "."
     prefix = "Generative Stream: "
     suffix = f" #{style_tag}"
     budget = _TWEET_MAX - len(prefix) - len(suffix)
+
+    slug = (meta.get("stream_slug") or "").strip()
+    slug = re.sub(r"#\w+", "", slug).strip()
+
+    # Prefer full wire pack at publish time — stream_slug may be an older short draft
+    try:
+        from services.xai_chat import pack_stream_slug
+
+        titles: list[str] = []
+        for line in (meta.get("events") or "").splitlines():
+            line = line.strip().lstrip("-• ").strip()
+            if not line:
+                continue
+            titles.append(line.split(" — ")[0].strip())
+        if titles:
+            packed = pack_stream_slug(titles, max_chars=budget)
+            # Use packed when missing, short, or clearly denser with secondaries
+            if not slug or len(packed) > len(slug) + 15 or " · " in packed and " · " not in slug:
+                slug = packed
+    except Exception:
+        pass
+
+    if not slug:
+        slug = "One live story from the wire."
+
     if len(slug) > budget:
-        slug = slug[: budget - 1].rsplit(" ", 1)[0] + "…"
+        slug = slug[: budget - 1].rsplit(" ", 1)[0].rstrip(",;:·-–—") + "…"
+    # single-line period only when not a multi-headline pack
+    if " · " not in slug and slug and slug[-1] not in ".!?…":
+        if len(slug) + 1 <= budget:
+            slug = slug + "."
+
     return _clip(prefix + slug + suffix)
 
 

@@ -1,90 +1,108 @@
-# Planet Hack — build stats (this session)
+# Planet Hack — build stats (whole repo)
 
-Measured at wrap-up of the Grok Build session that created `tuna-starlink-app` from scratch (2026-07-21/22).
+Rolling tallies for **tuna-starlink-app**. Per-session write-ups:
+
+| Session | File | When | Focus |
+|---|---|---|---|
+| **1** | [`STATS-SESSION-1.md`](STATS-SESSION-1.md) | 2026-07-21/22 | Greenfield: RSS → Imagine → gallery → X |
+| **2** | [`STATS-SESSION-2.md`](STATS-SESSION-2.md) | 2026-07-22 | Lanes, X search, peak schedule, wire pack, Generative Stream |
 
 **Repo:** https://github.com/TunaStreetTest/tuna-starlink-app  
-**Model:** grok-4.5  
+**Model (both sessions):** grok-4.5  
 
 ---
 
-## Lines of code (repository)
+## Whole-repo lines of code (current)
 
-Counted with `wc -l` on tracked product sources (excludes `node_modules`, `.venv`, `art/` outputs, `package-lock.json`, `frontend/dist`).
+Counted at Session 2 wrap (**2026-07-22**). Excludes `node_modules`, `.venv`, `art/` outputs, `package-lock.json`, `frontend/dist`.
 
 | Area | Lines |
 |---|---:|
-| Python (`backend/`, `worker/`, `scripts/`) | **1,969** |
-| Frontend (`frontend/src` — ts/tsx/css) | **1,057** |
-| Style seeds + compose (`styles.yaml`, `docker-compose.yml`) | **109** |
-| **Application code subtotal** | **~3,135** |
-| Docs (`docs/*.md`, `README.md`, `GROK.md`) | **735** |
-| Makefile, Dockerfile, `.env.example`, samples | **129** |
-| **All product files** | **~3,999** |
+| Python (`backend/`, `worker/`, `scripts/`) | **2,675** |
+| Frontend (`frontend/src` — ts/tsx/css) | **1,147** |
+| Style seeds + compose (`styles.yaml`, `docker-compose.yml`) | **112** |
+| **Application code subtotal** | **~3,934** |
+| Docs (`docs/*.md`, `README.md`, `GROK.md`) | **1,277** |
+| Makefile, Dockerfile, `.env.example`, samples | **119** |
+| **All product files** | **~5,330** |
 
-Rough shape: **~3.1k app lines**, **~4.0k with docs**.
+### Growth across sessions
 
-### By language (product tree)
+| | Session 1 wrap | Session 2 wrap (now) | Δ |
+|---|---:|---:|---:|
+| Application code | ~3,135 | **~3,934** | **+799** |
+| All product files | ~3,999 | **~5,330** | **+1,331** |
+
+### By language (product tree, current)
 
 | Ext | Lines |
 |---|---:|
-| `.py` | 1,969 |
-| `.tsx` | 936 |
-| `.md` | 735 |
-| `.ts` | 148 |
-| `.yaml` / `.yml` | 109 |
-| other (Makefile, Dockerfile, env.example, …) | ~102 |
+| `.py` | 2,675 |
+| `.md` | 1,277 |
+| `.tsx` | 1,020 |
+| `.ts` | 154 |
+| `.yaml` / `.yml` | 112 |
+| other (Makefile, Dockerfile, env.example, …) | ~119 |
 
 ---
 
-## Session activity (Grok Build signals)
+## Combined Grok session activity (S1 + S2)
 
-From session telemetry (`signals.json`) at wrap-up:
+One continuous Grok Build session; numbers from final `signals.json`.
 
 | Metric | Value |
 |---|---:|
-| Session duration | **~9,548 s** (~2.65 hours) |
-| User messages / turns | **46** |
-| Assistant messages | **164** |
-| Tool calls | **371** (4 failures) |
-| Files touched by agent | **59** |
-| Agent lines added (editor telemetry) | **4,680** |
-| Agent lines removed | **1** |
-| Compactions | **0** |
-| Git commits this session (signal counter) | **1+** (more may follow) |
+| Wall duration | **~45,195 s** (~12.6 h, includes overnight idle) |
+| User messages | **60** |
+| Assistant messages | **249** |
+| Tool calls | **533** |
+| Compactions | **2** |
+| Files touched (agent) | **77** |
+| Agent lines added | **6,138** |
+| Agent lines removed | **306** |
+| Git commits (signal) | **6** |
+| Context window | **500,000** |
+| Context in use at wrap | **~89,546** (~18%) |
 
-Tools used: `run_terminal_command`, `read_file`, `write`, `search_replace`, `grep`, `list_dir`, `web_fetch`, `todo_write`, `enter_plan_mode` / `exit_plan_mode`, `ask_user_question`, …
-
----
-
-## Tokens
-
-| What | Value | Notes |
-|---|---:|---|
-| **Context window size** | **500,000** | Session model window |
-| **Context tokens in use (snapshot)** | **~316,480** | ~**63%** of window at wrap-up — *occupancy, not lifetime bill* |
-| **Lifetime prompt + completion tokens billed** | **Not exposed** | Runtime does not publish a cumulative in/out meter to the agent |
-
-**How to read this:** `contextTokensUsed` is how full the active window was near the end of the session. Lifetime billed tokens (sum of every turn’s input/output over ~46 turns) is **higher** and only available from your xAI / Grok Build usage dashboard if you need the exact invoice number.
-
-Rough transcript size of stored chat history: ~4.0M characters of JSONL (includes tool payloads) — **not** a reliable billable-token figure.
+Session-level detail and deltas: Session 1 / Session 2 files above.
 
 ---
 
-## Product shipped (checklist)
+## Spend (product APIs, cumulative art)
 
-- News stream (RSS inject → tap unconsumed)
-- Grok art director + Imagine (16:9)
-- Studio + tiled Gallery + modal
-- X post to @tunastarlink (caption + news-keyword reply)
-- Hourly schedule, random style, optional auto-publish
-- Beelink install + style-seed sharing docs
-- `planethack_<run_id>.png` downloads
+| Item | Estimate |
+|---|---:|
+| Live Imagine images on disk | **22** × ~$0.02 ≈ **~$0.44** |
+| Image payload total | **~9.6 MB** |
+| X posts recorded on runs | **~16** |
+| xAI chat (director / caption / slug) | Not metered in-repo |
+| Grok Build agent tokens (invoice) | **Not exposed** to the agent — use xAI / Grok Build dashboard |
+
+Practice: re-measure LOC + session signals at each session wrap; keep product API spend (Imagine count × unit price) in the same note so overnight ops stay predictable.
 
 ---
 
-*Regenerate tallies anytime:*
+## Product shape (current)
+
+```
+style → news lane
+  → X search (outlets / has:links) + RSS stream
+  → multi-headline wire pack (primary first)
+  → Grok art director (primary metaphor)
+  → xAI Imagine 16:9
+  → main: mood caption + #PlanetHack #StyleCamel
+  → reply: Generative Stream (full ~280, multi-headline)
+```
+
+Peak schedule: **7–10pm America/New_York**, every **21 minutes**, `AUTO_PUBLISH` optional.
+
+---
+
+*Regenerate LOC anytime:*
 
 ```bash
 find backend worker scripts -name '*.py' ! -path '*/.venv/*' | xargs wc -l
 find frontend/src -type f \( -name '*.tsx' -o -name '*.ts' -o -name '*.css' \) | xargs wc -l
+wc -l backend/prompts/styles.yaml docker-compose.yml
+find docs -name '*.md' | xargs wc -l; wc -l README.md GROK.md
 ```

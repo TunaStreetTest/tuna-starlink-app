@@ -1,7 +1,7 @@
 # Planet Hack — Session 2 plan
 
-**Status:** Implementation started 2026-07-22 — Session 2 building.  
-**Session 1 baseline:** RSS news stream, four styles, Imagine 16:9, X post + news reply, schedule 6–10pm ET hourly (live until Session 2 ships).
+**Status:** Shipped 2026-07-22 — Session 2 live (wire pack + peak schedule). Stats: [`STATS-SESSION-2.md`](STATS-SESSION-2.md).  
+**Session 1 baseline:** RSS news stream, four styles, Imagine 16:9, X post + news reply, schedule 6–10pm ET hourly.
 
 ---
 
