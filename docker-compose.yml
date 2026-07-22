@@ -25,7 +25,8 @@ services:
       EDGE_TEXT: ${EDGE_TEXT:-xai}
       LEMONADE_URL: ${LEMONADE_URL:-http://host.docker.internal:13305}
       SCHEDULE_ENABLED: ${SCHEDULE_ENABLED:-false}
-      SCHEDULE_CRON: ${SCHEDULE_CRON:-}
+      SCHEDULE_CRON: ${SCHEDULE_CRON:-0 18-22 * * *}
+      SCHEDULE_TIMEZONE: ${SCHEDULE_TIMEZONE:-America/New_York}
       AUTO_PUBLISH: ${AUTO_PUBLISH:-false}
       X_API_KEY: ${X_API_KEY:-}
       X_API_SECRET: ${X_API_SECRET:-}

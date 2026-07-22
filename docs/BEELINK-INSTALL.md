@@ -64,7 +64,8 @@ EVENTS_SOURCE=rss
 
 # Overnight / unattended
 SCHEDULE_ENABLED=true
-SCHEDULE_CRON=0 * * * *
+SCHEDULE_CRON=0 18-22 * * *
+SCHEDULE_TIMEZONE=America/New_York
 AUTO_PUBLISH=true
 
 # X — @tunastarlink user tokens (same developer app as TunaStreetTest is OK)
@@ -144,7 +145,8 @@ Starlink tip: each run downloads **one image** (~0.5 MB). No model weights over 
 | Env | Meaning |
 |---|---|
 | `SCHEDULE_ENABLED=true` | In-process cron on |
-| `SCHEDULE_CRON=0 * * * *` | Top of every hour |
+| `SCHEDULE_CRON=0 18-22 * * *
+SCHEDULE_TIMEZONE=America/New_York` | Top of every hour |
 | `AUTO_PUBLISH=true` | After each success → X post + comment thread |
 
 **Cost ballpark (cheap Imagine model):**

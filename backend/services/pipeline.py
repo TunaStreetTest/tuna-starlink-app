@@ -24,6 +24,7 @@ def pipeline_status() -> dict[str, Any]:
         "dry_run": settings.DRY_RUN,
         "schedule_enabled": settings.SCHEDULE_ENABLED,
         "schedule_cron": settings.SCHEDULE_CRON or None,
+        "schedule_timezone": settings.SCHEDULE_TIMEZONE or None,
         "auto_publish": settings.AUTO_PUBLISH,
         "default_style": settings.DEFAULT_STYLE,
         "edge_text": settings.EDGE_TEXT,

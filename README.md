@@ -88,7 +88,8 @@ LEMONADE_MODEL=Qwen3-4B-GGUF
 
 # --- unattended ---
 SCHEDULE_ENABLED=true
-SCHEDULE_CRON=0 * * * *
+SCHEDULE_CRON=0 18-22 * * *
+SCHEDULE_TIMEZONE=America/New_York
 AUTO_PUBLISH=true
 
 # --- X / @tunastarlink (OAuth 1.0a) ---
@@ -130,7 +131,8 @@ Stored on each run: `x_url`, `x_post_id`, `x_replies` in `meta.json`.
 
 ```env
 SCHEDULE_ENABLED=true
-SCHEDULE_CRON=0 * * * *
+SCHEDULE_CRON=0 18-22 * * *
+SCHEDULE_TIMEZONE=America/New_York
 AUTO_PUBLISH=true
 EVENTS_SOURCE=stream
 ```

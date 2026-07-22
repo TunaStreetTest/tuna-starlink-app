@@ -22,9 +22,11 @@ class Settings(BaseSettings):
     # Dry run: fake events + placeholder PNG, zero API spend
     DRY_RUN: bool = False
 
-    # Scheduler (in-process). Empty = disabled until you turn it on.
-    # Example hourly: "0 * * * *"
-    SCHEDULE_CRON: str = ""
+    # Scheduler (in-process). Empty cron = disabled until you turn it on.
+    # Peak US evenings (Eastern): "0 18-22 * * *" + America/New_York
+    # = 6pm, 7pm, 8pm, 9pm, 10pm Eastern (handles EST/EDT).
+    SCHEDULE_CRON: str = "0 18-22 * * *"
+    SCHEDULE_TIMEZONE: str = "America/New_York"
     SCHEDULE_ENABLED: bool = False
 
     # After a successful generate (manual or scheduled), post to X automatically.
