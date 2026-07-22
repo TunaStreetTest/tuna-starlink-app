@@ -12,7 +12,7 @@
 - 3D CGI cyberspace — voxels, pixel shards, neon edge light, volumetric data fog
 - References in spirit (not copies): Tron / Hackers / Matrix construct / GiTS data layers / modern ArtStation digital
 - Palette: void black, electric cyan, magenta, acid green, gold Earth-limb accents
-- **Not:** Picasso, cubism, oil paint, watercolor, photoreal politicians, readable UI text
+- **Not:** oil paint, watercolor, photoreal politicians, readable UI text
 
 ## Pipeline (cheap model for now)
 

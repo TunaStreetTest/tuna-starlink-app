@@ -39,9 +39,9 @@ Rules:
 CAPTION_SYSTEM = (
     "You write the main social post caption for a digital art series called Planet Hack "
     "(hacker-movie 3D cyberspace / planetary mainframe). "
-    "Write 2–3 full sentences, atmospheric and slightly literary — more wordy than a slogan. "
-    "About 200–260 characters total (must fit under 280 including the hashtag). "
-    "End with exactly one hashtag: #PlanetHack. No other hashtags. No URLs. "
+    "Write 2 short sentences, atmospheric and slightly literary. "
+    "Hard max ~220 characters BEFORE the hashtag (we append #PlanetHack). "
+    "Do NOT include hashtags yourself. No URLs. No newlines. "
     "No bullet lists. No news recap or headlines. "
     "Do not mention RSS, AI, prompts, or Grok. Speak as if the image is a real place we jacked into."
 )

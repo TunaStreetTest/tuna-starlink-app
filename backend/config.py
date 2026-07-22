@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     XAI_BASE_URL: str = "https://api.x.ai/v1"
     XAI_CHAT_MODEL: str = "grok-4-1-fast-reasoning"
     XAI_IMAGE_MODEL: str = "grok-imagine-image"
+    # Keep series posts landscape (16:9). Portrait (e.g. 9:16) shows as a thin
+    # middle bar in the gallery. OpenAI-compat size or xAI aspect_ratio.
+    XAI_IMAGE_SIZE: str = "1792x1024"
+    XAI_IMAGE_ASPECT_RATIO: str = "16:9"
 
     # Dry run: fake events + placeholder PNG, zero API spend
     DRY_RUN: bool = False
@@ -29,11 +33,11 @@ class Settings(BaseSettings):
     # Default art style key from prompts/styles.yaml (Planet Hack series)
     DEFAULT_STYLE: str = "data-tunnel"
 
-    # Where world events come from for the art director:
-    #   rss    — live public news feeds (default, reliable)
-    #   xai    — ask Grok (often no live news → refusal)
-    #   hybrid — RSS first, Grok if RSS fails
-    EVENTS_SOURCE: str = "rss"
+    # News intake for the art director:
+    #   rss|stream — local news stream (RSS feeds inject; each run taps unused items)
+    #   xai        — ask Grok (often no live news → refusal)
+    #   hybrid     — stream first, Grok if stream empty
+    EVENTS_SOURCE: str = "stream"
 
     # Optional local Lemonade on Beelink (text only — not image gen)
     EDGE_TEXT: str = "xai"  # xai | lemonade

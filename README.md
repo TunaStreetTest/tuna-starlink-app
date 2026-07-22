@@ -1,89 +1,184 @@
 # TunaStarLink App — Planet Hack
 
-World events → **Grok art director** → **xAI Imagine** (cheap model) → local gallery.
+World headlines → **news stream tap** → **Grok art director** → **xAI Imagine** → gallery → **@tunastarlink** on X.
 
-Series look: hacker-movie **3D digital cyberspace / hacking the planet** — not Picasso.
-Built for the **Beelink SER9 (`TunaStarlink`)** over Starlink. No Kafka / EFM / NiFi required.
+Series look: hacker-movie **3D digital cyberspace / hacking the planet**.  
+Home host: **Beelink SER9 (`TunaStarlink`)** on Starlink (also runs fine on a laptop).
 
-> Sibling of [`cso-operator-app`](https://github.com/cldr-steven-matison/cso-operator-app) by pattern only — **separate repo, separate process, zero shared PVCs**. Live streamers app is never touched.
+**Repo:** https://github.com/TunaStreetTest/tuna-starlink-app
+
+---
 
 ## Product
 
-Every run:
+Each run:
 
-1. News desk — top world events (Grok)
-2. **Art director** — Grok turns events into a visual brief (metaphors only)
-3. Compose — brief + series lock + shot preset
-4. Imagine — `grok-imagine-image` (~$0.02)
-5. Caption + save under `art/<run_id>/` — **you post to @tunastarlink by hand**
+1. **Ingest** public RSS into a local news stream (`art/.news_stream.json`)
+2. **Tap** only *unconsumed* headlines (next run always gets a fresh set)
+3. **Art director** (Grok) turns them into a visual brief
+4. **Imagine** (`grok-imagine-image`, ~$0.02, landscape 16:9)
+5. **Caption** + save `art/<run_id>/art.png` + `meta.json`
+6. **X post** (manual button or `AUTO_PUBLISH`) — image + caption; one reply with news keywords
 
-Shot presets: `planet-core` (default), `data-tunnel`, `signal-cathedral`, `rootkit-city`.
+Downloads: `planethack_<run_id>.png`.
 
-## Quick start (this machine / any laptop)
+### Styles
+
+| id | Shot |
+|---|---|
+| `planet-core` | Planetary mainframe core |
+| `data-tunnel` | Packet tunnel flythrough |
+| `signal-cathedral` | Signal megastructure (wide landscape) |
+| `rootkit-city` | Circuit metropolis mid-infiltration |
+
+Hourly schedule **picks a style at random**. Studio dropdown for manual runs.  
+Share new styles: [`docs/STYLE-SEEDS.md`](docs/STYLE-SEEDS.md).
+
+---
+
+## Quick start
 
 ```bash
 cd ~/tuna-starlink-app
-
-# zero-cost smoke test
-make dry-run
-
-# control plane
 cp backend/.env.example backend/.env.local
-# edit: DRY_RUN=true for free, or set XAI_API_KEY and DRY_RUN=false
+# fill keys — see .env section below
 
-make backend     # terminal 1 → http://127.0.0.1:8010/api/health
-make frontend    # terminal 2 → http://127.0.0.1:5174
+make backend     # http://127.0.0.1:8010
+make frontend    # http://127.0.0.1:5174  (proxies /api → :8010)
 ```
 
-Docker (Beelink-friendly):
+Zero-cost plumbing test:
 
 ```bash
-export XAI_API_KEY=...
-export DRY_RUN=false
-docker compose up --build
-# UI/API: http://127.0.0.1:8091
+make dry-run
 ```
 
-## Styles
+Docker:
 
-See `backend/prompts/styles.yaml` and `docs/CREATIVE-BRIEF.md`.
+```bash
+# put the same vars in .env next to docker-compose.yml
+docker compose up --build
+# http://127.0.0.1:8091
+```
+
+Beelink install: [`docs/BEELINK-INSTALL.md`](docs/BEELINK-INSTALL.md).
+
+---
+
+## Full `.env` / `backend/.env.local`
+
+```env
+# --- generation ---
+DRY_RUN=false
+ART_STORAGE_PATH=../art
+
+XAI_API_KEY=xai-...
+XAI_CHAT_MODEL=grok-4-1-fast-reasoning
+XAI_IMAGE_MODEL=grok-imagine-image
+XAI_IMAGE_SIZE=1792x1024
+XAI_IMAGE_ASPECT_RATIO=16:9
+
+DEFAULT_STYLE=data-tunnel
+EVENTS_SOURCE=stream
+
+# optional local text model on Beelink
+EDGE_TEXT=xai
+LEMONADE_URL=http://127.0.0.1:13305
+LEMONADE_MODEL=Qwen3-4B-GGUF
+
+# --- unattended ---
+SCHEDULE_ENABLED=true
+SCHEDULE_CRON=0 * * * *
+AUTO_PUBLISH=true
+
+# --- X / @tunastarlink (OAuth 1.0a) ---
+# API key/secret = developer app (can be the same project as other bots).
+# Access token/secret MUST be for @tunastarlink (not another account).
+X_API_KEY=
+X_API_SECRET=
+X_ACCESS_TOKEN=
+X_ACCESS_TOKEN_SECRET=
+X_ACCOUNT_HANDLE=@tunastarlink
+```
+
+OAuth pin helper (authorize @tunastarlink under your developer app):
+
+```bash
+# start flow prints a URL — log into X as @tunastarlink, authorize, get PIN
+# then:
+python scripts/x-oauth-finish.py <PIN>
+```
+
+That writes access tokens into `backend/.env.local`. Restart the backend after any env change.
+
+---
+
+## X (@tunastarlink)
+
+| Step | Content |
+|---|---|
+| Main | Image + wordy caption + `#PlanetHack` |
+| One reply | News headlines/keywords that fueled the piece |
+
+Stored on each run: `x_url`, `x_post_id`, `x_replies` in `meta.json`.
+
+**Gallery** tab → tile → modal → **Post to X**, or enable `AUTO_PUBLISH=true` for hourly auto-post.
+
+---
+
+## Overnight
+
+```env
+SCHEDULE_ENABLED=true
+SCHEDULE_CRON=0 * * * *
+AUTO_PUBLISH=true
+EVENTS_SOURCE=stream
+```
+
+Leave backend or Docker running. ~$0.02–0.04 xAI per hourly run.
+
+---
 
 ## API
 
 | Method | Path | |
 |---|---|---|
-| GET | `/api/health` | disk + xAI key + optional Lemonade |
-| GET | `/api/styles` | style presets |
-| POST | `/api/generate` | `{ "style": "picasso-pixel", "wait": false }` |
-| GET | `/api/pipeline` | current + recent runs |
-| GET | `/api/gallery` | list |
-| GET | `/api/gallery/{id}/image` | PNG |
-
-CLI:
+| GET | `/api/health` | disk, xAI, X |
+| GET | `/api/styles` | style list |
+| POST | `/api/generate` | `{ "style": "data-tunnel", "wait": false }` |
+| GET | `/api/pipeline` | current run + news stream stats |
+| GET | `/api/gallery` | runs |
+| GET | `/api/gallery/{id}/image` | PNG (`planethack_<id>.png`) |
+| GET | `/api/publish/status` | X credentials ready? |
+| POST | `/api/publish/x` | `{ "run_id": "…", "with_comments": true }` |
+| POST | `/api/publish/x/reply` | repair news comment |
 
 ```bash
-DRY_RUN=1 ART_STORAGE_PATH=./art python worker/run_once.py --style starlink-glitch
+DRY_RUN=1 ART_STORAGE_PATH=./art python worker/run_once.py --style data-tunnel
 ```
 
-## What we deliberately left out
-
-Kafka topics, EFM agent wiring, NiFi process groups, Minikube lab manifests, local image models, auto-tweet. Those can come later if the art is worth it — see `docs/DEPLOY-STRIKELIST.md`.
-
-## Overnight schedule
-
-```env
-SCHEDULE_ENABLED=true
-SCHEDULE_CRON=0 * * * *    # top of every hour
-AUTO_PUBLISH=true          # post to @tunastarlink after each success
-DEFAULT_STYLE=data-tunnel
-```
-
-Leave `make backend` (or Docker) running. Each hour: RSS events → art director → Imagine → X thread.
+---
 
 ## Docs
 
-- **`docs/BEELINK-INSTALL.md`** — full Beelink / Starlink install (copy this with the repo)
-- `docs/DEPLOY-STRIKELIST.md` — deploy checklist
-- `docs/CREATIVE-BRIEF.md` — series look
-- `docs/ARCHITECTURE.md` — lean topology
-- DesktopShare: `tuna-starlink-app.md`, `beelink-starlink-efm-ai.md`
+| Doc | |
+|---|---|
+| [`docs/BEELINK-INSTALL.md`](docs/BEELINK-INSTALL.md) | Beelink / Starlink install |
+| [`docs/STYLE-SEEDS.md`](docs/STYLE-SEEDS.md) | Add / share style seeds |
+| [`docs/CREATIVE-BRIEF.md`](docs/CREATIVE-BRIEF.md) | Series look |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Topology |
+| [`docs/DEPLOY-STRIKELIST.md`](docs/DEPLOY-STRIKELIST.md) | Deploy checklist |
+| [`GROK.md`](GROK.md) | Agent rules |
+
+---
+
+## Layout
+
+```text
+backend/     FastAPI + pipeline + news stream + X publish
+frontend/    Studio + Gallery control plane
+worker/      one-shot CLI
+docs/        install, styles, creative
+art/         generated assets (gitignored content)
+scripts/     X OAuth pin finish helper
+```

@@ -38,6 +38,20 @@ def _clip(text: str, limit: int = _TWEET_MAX) -> str:
     return text[: limit - 1].rstrip() + "…"
 
 
+def _normalize_caption(caption: str, run_id: str = "") -> str:
+    """Single-line caption, under 280, unique enough to avoid X 403 duplicates."""
+    # Collapse newlines / weird whitespace (Grok sometimes does "…\n#PlanetHack")
+    text = re.sub(r"\s+", " ", (caption or "").strip())
+    # Ensure hashtag once at end
+    text = re.sub(r"(#PlanetHack\s*)+$", "", text, flags=re.I).strip()
+    tag = f" · {run_id[-6:]}" if run_id else ""
+    suffix = f" #PlanetHack{tag}"
+    body_limit = _TWEET_MAX - len(suffix)
+    if len(text) > body_limit:
+        text = text[: body_limit - 1].rsplit(" ", 1)[0] + "…"
+    return (text + suffix).strip()
+
+
 def _headline_bits(events: str, max_items: int = 6) -> list[str]:
     bits: list[str] = []
     for raw in (events or "").splitlines():
@@ -61,19 +75,14 @@ def _headline_bits(events: str, max_items: int = 6) -> list[str]:
 
 
 def build_news_comment(meta: dict[str, Any] | None = None, *, unique_tag: str = "") -> str:
-    """
-    Single reply: news headlines that generated the art.
-    unique_tag: short run_id/time salt so X doesn't 403 as duplicate content.
-    """
     meta = meta or {}
     events = (meta.get("events") or "").strip()
     style = (meta.get("style_label") or meta.get("style_id") or "").strip()
     bits = _headline_bits(events)
 
-    tag = f" · #{unique_tag}" if unique_tag else ""
-    # keep tag short; X allows one extra short hash of run id
-    if unique_tag and len(tag) > 16:
-        tag = f" · {unique_tag[-8:]}"
+    tag = ""
+    if unique_tag:
+        tag = f" · {unique_tag[-8:]}" if len(unique_tag) > 8 else f" · {unique_tag}"
 
     if not bits:
         return _clip(
@@ -136,12 +145,16 @@ def _client_pair():
     return api_v1, client
 
 
+def _is_forbidden(err: BaseException) -> bool:
+    name = type(err).__name__
+    msg = str(err)
+    return "403" in msg or "Forbidden" in name or "not permitted" in msg.lower()
+
+
 def _create_reply(client, text: str, in_reply_to: str) -> str:
-    """Post a reply; return tweet id. Raises on failure."""
     r = client.create_tweet(
         text=text,
         in_reply_to_tweet_id=in_reply_to,
-        # auto-join conversation / notify author of parent
         user_auth=True,
     )
     if not r or not r.data or "id" not in r.data:
@@ -150,26 +163,17 @@ def _create_reply(client, text: str, in_reply_to: str) -> str:
 
 
 def _post_news_reply(client, meta: dict[str, Any], post_id: str) -> dict[str, Any]:
-    """
-    Try news-context reply with retries.
-    X often returns 403 Forbidden for:
-      - duplicate content
-      - posting reply too fast after parent
-      - intermittent automation filters
-    """
     handle = settings.X_ACCOUNT_HANDLE.lstrip("@")
     run_id = meta.get("run_id") or ""
     attempts: list[str] = [
         build_news_comment(meta, unique_tag=run_id[-6:]),
-        # simpler / unique fallback
         _clip(
             f"Headlines behind this Planet Hack ({run_id[-6:]}): "
             + " · ".join(_headline_bits(meta.get("events") or "", max_items=3))
         ),
-        # minimal unique last resort
         _clip(
-            f"Planet Hack source wires for {run_id}: "
-            + (meta.get("events") or "today's news")[:180]
+            f"Planet Hack source wires · {run_id} · "
+            + (meta.get("events") or "today's news").replace("\n", " ")[:160]
         ),
     ]
 
@@ -178,7 +182,6 @@ def _post_news_reply(client, meta: dict[str, Any], post_id: str) -> dict[str, An
         if not text or len(text) < 5:
             continue
         try:
-            # Brief pause — immediate reply after create_tweet often 403s
             time.sleep(2.0 + i * 1.5)
             rid = _create_reply(client, text, post_id)
             return {
@@ -199,6 +202,47 @@ def _post_news_reply(client, meta: dict[str, Any], post_id: str) -> dict[str, An
         "ok": False,
         "error": f"{type(last_err).__name__}: {last_err}" if last_err else "unknown",
     }
+
+
+def _create_main_tweet(client, api_v1, img_path: str, caption: str, run_id: str) -> tuple[str, str]:
+    """Upload media + create main tweet. Retries on 403 with unique caption variants."""
+    media = api_v1.media_upload(img_path)
+    media_id = media.media_id
+
+    candidates = [
+        _normalize_caption(caption, run_id),
+        _normalize_caption(caption, run_id + "-b"),
+        _clip(
+            f"Planet Hack · {run_id} · Grok + xAI Imagine · "
+            f"{(caption or '')[:120].replace(chr(10), ' ')} #PlanetHack"
+        ),
+    ]
+
+    last_err: BaseException | None = None
+    for i, text in enumerate(candidates):
+        try:
+            if i:
+                time.sleep(1.5 * i)
+            root = client.create_tweet(
+                text=text,
+                media_ids=[media_id],
+                user_auth=True,
+            )
+            post_id = str(root.data["id"])
+            handle = settings.X_ACCOUNT_HANDLE.lstrip("@")
+            return post_id, f"https://x.com/{handle}/status/{post_id}"
+        except Exception as e:
+            last_err = e
+            log.warning("X main tweet attempt %s failed: %s", i + 1, e)
+            if not _is_forbidden(e) and i == 0:
+                # Non-403 on first try — still retry once with unique text
+                continue
+            continue
+
+    raise RuntimeError(
+        f"X main post failed after retries: {type(last_err).__name__}: {last_err}. "
+        "Often rate-limit, duplicate, or Free-tier write cap — wait a few minutes and retry."
+    )
 
 
 def publish_run(run_id: str, with_comments: bool = True) -> dict[str, Any]:
@@ -229,24 +273,23 @@ def publish_run(run_id: str, with_comments: bool = True) -> dict[str, Any]:
         }
 
     api_v1, client = _client_pair()
-    media = api_v1.media_upload(str(img))
-    media_id = media.media_id
+    post_id, x_url = _create_main_tweet(
+        client, api_v1, str(img), caption, run_id
+    )
 
-    root = client.create_tweet(text=_clip(caption), media_ids=[media_id], user_auth=True)
-    post_id = str(root.data["id"])
-    handle = settings.X_ACCOUNT_HANDLE.lstrip("@")
-    x_url = f"https://x.com/{handle}/status/{post_id}"
+    # Persist main post immediately so a reply failure still leaves a URL
+    meta["x_post_id"] = post_id
+    meta["x_url"] = x_url
+    meta["x_handle"] = settings.X_ACCOUNT_HANDLE
+    meta["x_posted_at"] = datetime.now(timezone.utc).isoformat()
+    meta["x_caption_posted"] = _normalize_caption(caption, run_id)
+    art_store.save_run(meta)
 
     replies: list[dict[str, Any]] = []
     if with_comments:
         replies.append(_post_news_reply(client, meta, post_id))
-
-    meta["x_post_id"] = post_id
-    meta["x_url"] = x_url
-    meta["x_handle"] = settings.X_ACCOUNT_HANDLE
-    meta["x_replies"] = replies
-    meta["x_posted_at"] = datetime.now(timezone.utc).isoformat()
-    art_store.save_run(meta)
+        meta["x_replies"] = replies
+        art_store.save_run(meta)
 
     reply_ok = sum(1 for r in replies if r.get("ok"))
     return {
@@ -256,7 +299,7 @@ def publish_run(run_id: str, with_comments: bool = True) -> dict[str, Any]:
         "x_post_id": post_id,
         "x_url": x_url,
         "handle": settings.X_ACCOUNT_HANDLE,
-        "caption": caption,
+        "caption": meta.get("x_caption_posted") or caption,
         "replies": replies,
         "reply_count": reply_ok,
         "reply_failed": reply_ok == 0 and with_comments,
@@ -272,7 +315,6 @@ def reply_to_existing(run_id: str) -> dict[str, Any]:
     if not post_id:
         raise RuntimeError("run has no x_post_id — post the main image first")
 
-    # Already have a successful news reply?
     for r in meta.get("x_replies") or []:
         if r.get("ok") and r.get("kind") == "news_context":
             return {
@@ -305,6 +347,7 @@ def preview_post(run_id: str) -> dict[str, Any]:
         raise FileNotFoundError(f"run not found: {run_id}")
     caption = (meta.get("caption") or "").strip()
     comments = build_comment_thread(meta)
+    posted = _normalize_caption(caption, meta.get("run_id") or "")
     return {
         "run_id": run_id,
         "handle": settings.X_ACCOUNT_HANDLE,
@@ -312,12 +355,12 @@ def preview_post(run_id: str) -> dict[str, Any]:
         "has_image": art_store.image_path(run_id).is_file(),
         "already_posted": bool(meta.get("x_post_id")),
         "x_url": meta.get("x_url"),
-        "main_post": _clip(caption),
-        "main_chars": len(_clip(caption)),
+        "main_post": posted,
+        "main_chars": len(posted),
         "comments": comments,
         "comment_count": len(comments),
         "limits": {
             "chars_per_tweet": _TWEET_MAX,
-            "note": "One news-context reply; retries on X 403 duplicate/timing errors.",
+            "note": "Caption sanitized to one line ≤280; reply is news keywords.",
         },
     }

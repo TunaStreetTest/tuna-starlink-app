@@ -2,8 +2,6 @@
 
 Primary home for this app: **Windows host `TunaStarlink` (Beelink SER9 MAX) on Starlink**.
 
-No Minikube, Kafka, EFM, or NiFi required for the happy path.
-
 ---
 
 ## What runs on the Beelink
@@ -172,16 +170,8 @@ Starlink tip: each run downloads **one image** (~0.5 MB). No model weights over 
 
 ---
 
-## 9. What not to install on Beelink for this app
-
-- Full CSO Minikube stack  
-- Local Stable Diffusion  
-- Sharing streamers PVC / cso-operator-app credentials  
-
----
-
 ## Related
 
 - `docs/CREATIVE-BRIEF.md` — Planet Hack series lock  
-- `docs/DEPLOY-STRIKELIST.md` — cluster vs Beelink checklist  
-- `DesktopShare/beelink-starlink-efm-ai.md` — hardware / Lemonade / Tailscale history  
+- `docs/DEPLOY-STRIKELIST.md` — deploy checklist  
+- `docs/STYLE-SEEDS.md` — share a style seed  

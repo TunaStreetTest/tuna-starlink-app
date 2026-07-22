@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -14,23 +14,34 @@ export function GeneratePanel({ onStarted }: { onStarted?: () => void }) {
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     try {
       const [s, p] = await Promise.all([api.styles(), api.pipeline()]);
       setStyles(s.styles);
       setPipe(p);
-      if (!style && s.styles.length) setStyle(p.default_style || s.styles[0].id);
+      // Functional update — poll must not stomp a user style selection.
+      setStyle((prev) => {
+        if (prev && s.styles.some((x) => x.id === prev)) return prev;
+        return p.default_style || s.styles[0]?.id || "";
+      });
     } catch (e) {
       setErr(String(e));
     }
-  };
+  }, []);
 
   useEffect(() => {
-    refresh();
-    const id = setInterval(refresh, 2500);
-    return () => clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    let alive = true;
+    const tick = async () => {
+      if (!alive) return;
+      await refresh();
+    };
+    tick();
+    const id = setInterval(tick, 2500);
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, [refresh]);
 
   const running = pipe?.current?.status === "running";
 

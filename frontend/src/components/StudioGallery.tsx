@@ -123,7 +123,7 @@ export function StudioGallery({ refreshKey = 0 }: { refreshKey?: number }) {
                 <img
                   src={api.imageUrl(selected)}
                   alt={`Planet Hack ${selected}`}
-                  className="w-full max-h-[28rem] object-contain rounded border border-border bg-bg"
+                  className="w-full max-h-[28rem] object-contain object-center rounded border border-border bg-bg"
                 />
               </a>
             ) : (

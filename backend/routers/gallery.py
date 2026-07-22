@@ -48,4 +48,4 @@ async def get_image(run_id: str):
     path = art_store.image_path(run_id)
     if not path.is_file():
         raise HTTPException(status_code=404, detail="image not found")
-    return FileResponse(path, media_type="image/png", filename=f"picasso_{run_id}.png")
+    return FileResponse(path, media_type="image/png", filename=f"planethack_{run_id}.png")

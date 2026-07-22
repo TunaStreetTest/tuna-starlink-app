@@ -38,8 +38,18 @@ async def publish_to_x(body: PublishBody):
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except RuntimeError as e:
+        # Includes our cleaned "X main post failed after retries…" messages
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        msg = str(e)
+        if "403" in msg or "Forbidden" in type(e).__name__:
+            raise HTTPException(
+                status_code=429,
+                detail=(
+                    "X returned 403 Forbidden (often rate-limit, duplicate, or Free-tier "
+                    f"write cap). Wait a few minutes and retry. Raw: {msg}"
+                ),
+            )
         raise HTTPException(status_code=502, detail=f"{type(e).__name__}: {e}")
 
 

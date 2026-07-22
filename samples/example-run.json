@@ -1,11 +1,15 @@
 {
-  "run_id": "20260721_000000",
+  "run_id": "20260722_000000",
   "status": "complete",
-  "style_id": "picasso-pixel",
-  "style_label": "Picasso Pixel",
-  "dry_run": true,
-  "caption": "News, deconstructed. (Picasso Pixel) #PicassoStarlink",
-  "events": "- Example event one\n- Example event two",
+  "style_id": "data-tunnel",
+  "style_label": "Data Tunnel",
+  "series": "Planet Hack",
+  "dry_run": false,
+  "caption": "Example atmospheric caption. #PlanetHack",
+  "events": "- Example headline one\n- Example headline two",
+  "events_source": "news-stream",
   "egress_bytes": 0,
-  "note": "Illustrative only — real runs live under art/<run_id>/meta.json"
+  "x_url": "https://x.com/tunastarlink/status/example",
+  "note": "Illustrative only — real runs live under art/<run_id>/meta.json; downloads as planethack_<run_id>.png"
 }
+

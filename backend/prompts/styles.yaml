@@ -1,6 +1,9 @@
 # Planet Hack — digital series for @tunastarlink
 # Hacker-movie 3D "inside the computer / hacking the planet"
 # Prompt stack is SHORT on purpose — Imagine ignores long essays.
+#
+# Share / add styles: see docs/STYLE-SEEDS.md
+# Each style under `styles:` needs: label, description, art_director_notes, prompt_seed
 
 series:
   name: Planet Hack
@@ -44,13 +47,17 @@ styles:
 
   signal-cathedral:
     label: Signal Cathedral
-    description: Vertical megastructure of beams and pure-form dishes.
+    description: Megastructure of beams and pure-form dishes (wide landscape frame).
     art_director_notes: >
-      Looking up a cathedral-scale digital interior. Beams as stained-glass signal light. Dish
-      forms as pure geometry. Events = beams igniting or lattice rewiring — abstract only.
+      Wide cinematic interior of a cathedral-scale digital megastructure. Tall beams and dish
+      geometry still read vertical, but the CAMERA is a wide 16:9 landscape establishing shot
+      (not a phone portrait). Beams as stained-glass signal light. Events = beams igniting or
+      lattice rewiring — abstract only. Fill the entire horizontal frame; no letterbox bars.
     prompt_seed: >
-      Looking up inside a colossal digital signal cathedral, vertical neon beams, pure parabolic
-      geometry, pixel-stained light, void black, cyan magenta green gold, epic scale, CGI matte
+      Wide 16:9 cinematic landscape frame filling the entire image, colossal digital signal
+      cathedral interior, soaring neon beams and pure parabolic dish geometry, pixel-stained
+      volumetric light, void black, cyan magenta green gold, epic scale, CGI matte painting,
+      full-bleed horizontal composition, not portrait, not square
 
   rootkit-city:
     label: Rootkit City

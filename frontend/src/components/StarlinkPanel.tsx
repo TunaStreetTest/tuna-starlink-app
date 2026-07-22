@@ -25,6 +25,7 @@ export function StarlinkPanel() {
 
   const disk = h?.services?.disk;
   const recent = p?.recent ?? [];
+  const news = (p as { news_stream?: Record<string, unknown> } | null)?.news_stream;
   const totalEgress = recent.reduce(
     (acc, r) => acc + (typeof r.egress_bytes === "number" ? r.egress_bytes : 0),
     0,
@@ -59,6 +60,12 @@ export function StarlinkPanel() {
         <dd>{p?.auto_publish ? "on → X after each run" : "off"}</dd>
         <dt className="text-muted">X account</dt>
         <dd>{p?.x_account ?? "@tunastarlink"}</dd>
+        <dt className="text-muted">News stream</dt>
+        <dd>
+          {news
+            ? `${String(news.unconsumed ?? "?")} fresh / ${String(news.total ?? "?")} total · ${String(news.taps ?? 0)} taps`
+            : "—"}
+        </dd>
       </dl>
     </Card>
   );

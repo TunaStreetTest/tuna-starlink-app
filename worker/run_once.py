@@ -22,7 +22,7 @@ os.chdir(BACKEND)
 
 
 async def main() -> int:
-    parser = argparse.ArgumentParser(description="Picasso Starlink one-shot generator")
+    parser = argparse.ArgumentParser(description="Planet Hack one-shot generator")
     parser.add_argument("--style", default=None, help="style id from styles.yaml")
     parser.add_argument("--force", action="store_true")
     args = parser.parse_args()

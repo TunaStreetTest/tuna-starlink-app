@@ -4,6 +4,9 @@ import { Dot } from "@/components/ui/Badge";
 import { api, type Health } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
+const X_PROFILE = "https://x.com/tunastarlink";
+const X_AVATAR = "/tunastarlink.jpg";
+
 export function HealthBar() {
   const [h, setH] = useState<Health | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -57,6 +60,25 @@ export function HealthBar() {
           {h.services.xai.dry_run ? "DRY_RUN" : "LIVE xAI"}
         </span>
       )}
+
+      <a
+        href={X_PROFILE}
+        target="_blank"
+        rel="noreferrer"
+        title="@tunastarlink on X"
+        className="ml-auto flex items-center gap-2 shrink-0 rounded-full border border-border pl-2 pr-1 py-0.5 hover:border-accent/50 transition group"
+      >
+        <span className="text-xs text-muted group-hover:text-text hidden sm:inline">
+          @tunastarlink
+        </span>
+        <img
+          src={X_AVATAR}
+          alt="@tunastarlink"
+          width={36}
+          height={36}
+          className="h-9 w-9 rounded-full object-cover ring-1 ring-border group-hover:ring-accent/60"
+        />
+      </a>
     </header>
   );
 }

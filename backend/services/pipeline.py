@@ -30,6 +30,7 @@ def pipeline_status() -> dict[str, Any]:
         "x_account": settings.X_ACCOUNT_HANDLE,
         "series": series["name"],
         "image_model": settings.XAI_IMAGE_MODEL,
+        "news_stream": events_svc.stream_stats(),
     }
 
 
@@ -75,6 +76,7 @@ async def run_generate(style_id: str | None = None, force: bool = False) -> dict
             "updated_at": started.isoformat(),
             "events": None,
             "events_source": None,
+            "events_tap": None,
             "art_brief": None,
             "art_prompt": None,
             "caption": None,
@@ -91,9 +93,10 @@ async def run_generate(style_id: str | None = None, force: bool = False) -> dict
         style = styles.get_style(style_id)
         meta["style_id"] = style["id"]
         meta["style_label"] = style["label"]
-        events, events_source = await events_svc.get_events()
+        events, events_source, events_tap = await events_svc.get_events(run_id=run_id)
         meta["events"] = events
         meta["events_source"] = events_source
+        meta["events_tap"] = events_tap
         meta["phase"] = "art_director"
         meta["updated_at"] = datetime.now(timezone.utc).isoformat()
         art_store.save_run(meta)

@@ -75,11 +75,30 @@ def generate_image(prompt: str, run_id: str, style_label: str) -> tuple[bytes, d
         }
 
     c = client()
-    resp = c.images.generate(
-        model=settings.XAI_IMAGE_MODEL,
-        prompt=prompt,
-        n=1,
-    )
+    # Force landscape — without this, "looking up cathedral" prompts often return
+    # 9:16 portrait and render as a thin middle bar in the UI / on X.
+    kwargs: dict[str, Any] = {
+        "model": settings.XAI_IMAGE_MODEL,
+        "prompt": prompt,
+        "n": 1,
+    }
+    size = (settings.XAI_IMAGE_SIZE or "").strip()
+    aspect = (settings.XAI_IMAGE_ASPECT_RATIO or "").strip()
+    if size:
+        kwargs["size"] = size
+    if aspect:
+        # xAI-style aspect; ignored harmlessly if unsupported when sent as extra_body
+        kwargs["extra_body"] = {"aspect_ratio": aspect}
+
+    try:
+        resp = c.images.generate(**kwargs)
+    except Exception:
+        # Retry without size/aspect if the account rejects those fields
+        resp = c.images.generate(
+            model=settings.XAI_IMAGE_MODEL,
+            prompt=prompt + "\n\nAspect: wide cinematic 16:9 landscape, full-frame horizontal composition.",
+            n=1,
+        )
     item = resp.data[0]
     url = getattr(item, "url", None)
     b64 = getattr(item, "b64_json", None)

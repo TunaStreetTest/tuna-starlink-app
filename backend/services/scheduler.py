@@ -65,7 +65,7 @@ def start_scheduler() -> AsyncIOScheduler | None:
         return _scheduler
     sched = AsyncIOScheduler()
     trigger = _parse_cron(settings.SCHEDULE_CRON.strip())
-    sched.add_job(_job, trigger=trigger, id="picasso-hourly", replace_existing=True)
+    sched.add_job(_job, trigger=trigger, id="planethack-hourly", replace_existing=True)
     sched.start()
     _scheduler = sched
     log.info("scheduler started cron=%s", settings.SCHEDULE_CRON)
