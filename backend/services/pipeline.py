@@ -17,6 +17,8 @@ _history: list[dict[str, Any]] = []
 
 def pipeline_status() -> dict[str, Any]:
     series = styles.series_info()
+    from services import scheduler as sched_svc
+
     return {
         "current": _current,
         "recent": list(reversed(_history[-20:])),
@@ -25,13 +27,21 @@ def pipeline_status() -> dict[str, Any]:
         "schedule_cron": settings.SCHEDULE_CRON or None,
         "schedule_timezone": settings.SCHEDULE_TIMEZONE or None,
         "schedule_interval_minutes": settings.SCHEDULE_INTERVAL_MINUTES,
+        "schedule_peak_start_hour": settings.SCHEDULE_PEAK_START_HOUR,
+        "schedule_peak_end_hour": settings.SCHEDULE_PEAK_END_HOUR,
+        "schedule_max_runs_per_day": settings.SCHEDULE_MAX_RUNS_PER_DAY,
+        "schedule_day": sched_svc.schedule_day_stats(),
         "auto_publish": settings.AUTO_PUBLISH,
         "default_style": settings.DEFAULT_STYLE,
         "edge_text": settings.EDGE_TEXT,
         "x_account": settings.X_ACCOUNT_HANDLE,
         "series": series["name"],
         "image_model": settings.XAI_IMAGE_MODEL,
+        "chat_model": settings.XAI_CHAT_MODEL,
         "news_stream": events_svc.stream_stats(),
+        "x_search_enabled": settings.X_SEARCH_ENABLED,
+        "x_search_ttl_minutes": settings.X_SEARCH_TTL_MINUTES,
+        "rss_ingest_ttl_minutes": settings.RSS_INGEST_TTL_MINUTES,
     }
 
 

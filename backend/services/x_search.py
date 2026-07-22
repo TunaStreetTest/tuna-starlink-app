@@ -3,17 +3,26 @@
 Session 2 fix: Free-tier keyword search returns study logs, crypto promos, and
 meme "Breaking" posts. We prefer (1) known news accounts, (2) has:links newsy
 queries, then rank with strict junk filters + headline-likeness.
+
+Cost guard (2026-07): X Recent Search is paid. Defaults:
+  - X_SEARCH_ENABLED=false (kill switch)
+  - per-lane TTL cache so peak-window runs share one lookup
+  - stop after first query that fills keepers (outlet query first)
 """
 
 from __future__ import annotations
 
 import logging
 import re
+import time
 from typing import Any
 
 from config import settings
 
 log = logging.getLogger("tuna-starlink.x_search")
+
+# lane -> (expires_monotonic, hits)
+_CACHE: dict[str, tuple[float, list[dict[str, Any]]]] = {}
 
 # Per lane: list of queries tried in order until we have enough keepers.
 # Outlet accounts first (high signal), then keyword + has:links.
@@ -295,10 +304,71 @@ def _run_query(client: Any, query: str, max_results: int) -> list[dict[str, Any]
     return out
 
 
-def search_lane(lane: str, max_results: int = 15) -> list[dict[str, Any]]:
-    """Search a lane via outlet + keyword queries; return ranked keepers."""
+def search_enabled() -> bool:
+    return bool(settings.X_SEARCH_ENABLED) and not settings.DRY_RUN
+
+
+def cache_stats() -> dict[str, Any]:
+    now = time.monotonic()
+    live = {k: len(v[1]) for k, v in _CACHE.items() if v[0] > now}
+    return {
+        "enabled": search_enabled(),
+        "ttl_minutes": int(settings.X_SEARCH_TTL_MINUTES or 0),
+        "max_results": int(settings.X_SEARCH_MAX_RESULTS or 10),
+        "lanes_cached": list(live.keys()),
+        "hits_by_lane": live,
+    }
+
+
+def _cache_get(lane: str) -> list[dict[str, Any]] | None:
+    ttl = max(0, int(settings.X_SEARCH_TTL_MINUTES or 0))
+    if ttl <= 0:
+        return None
+    entry = _CACHE.get(lane)
+    if not entry:
+        return None
+    expires, hits = entry
+    if time.monotonic() >= expires:
+        _CACHE.pop(lane, None)
+        return None
+    # return shallow copies so callers can't mutate the cache
+    return [dict(h) for h in hits]
+
+
+def _cache_set(lane: str, hits: list[dict[str, Any]]) -> None:
+    ttl = max(0, int(settings.X_SEARCH_TTL_MINUTES or 0))
+    if ttl <= 0:
+        return
+    _CACHE[lane] = (time.monotonic() + ttl * 60, [dict(h) for h in hits])
+
+
+def search_lane(
+    lane: str, max_results: int | None = None, *, bypass_cache: bool = False
+) -> list[dict[str, Any]]:
+    """Search a lane via outlet + keyword queries; return ranked keepers.
+
+    No-ops when X_SEARCH_ENABLED=false. Uses per-lane TTL cache unless
+    bypass_cache=True.
+    """
+    if not search_enabled():
+        log.info("X search skipped (X_SEARCH_ENABLED=false)")
+        return []
+
     lane = (lane or "geopolitics").lower().strip()
+    if not bypass_cache:
+        cached = _cache_get(lane)
+        if cached is not None:
+            log.info(
+                "X search cache hit lane=%s kept=%s",
+                lane,
+                len(cached),
+            )
+            return cached[:_MAX_KEEP_PER_SEARCH]
+
     queries = _LANE_QUERIES.get(lane) or _LANE_QUERIES["geopolitics"]
+    if max_results is None:
+        max_results = int(settings.X_SEARCH_MAX_RESULTS or 10)
+    # X API min for recent search is 10
     max_results = max(10, min(int(max_results), 25))
 
     try:
@@ -308,8 +378,10 @@ def search_lane(lane: str, max_results: int = 15) -> list[dict[str, Any]]:
         return []
 
     by_id: dict[str, dict[str, Any]] = {}
+    queries_run = 0
     for i, query in enumerate(queries):
         batch = _run_query(client, query, max_results=max_results)
+        queries_run += 1
         for hit in batch:
             text = hit.get("text") or hit.get("line") or ""
             # Outlet timelines mix topics — keep only on-lane headlines
@@ -325,22 +397,27 @@ def search_lane(lane: str, max_results: int = 15) -> list[dict[str, Any]]:
             prev = by_id.get(tid)
             if not prev or hit["score"] > prev["score"]:
                 by_id[tid] = hit
-        if len(by_id) >= _MAX_KEEP_PER_SEARCH:
+        # Cost: one billable search is enough when outlet query yields keepers.
+        # Keyword fallback only runs if query 0 produced nothing on-lane.
+        if len(by_id) >= 1:
             break
 
     out = sorted(by_id.values(), key=lambda x: x["score"], reverse=True)
+    out = out[:_MAX_KEEP_PER_SEARCH]
+    _cache_set(lane, out)
     log.info(
-        "X search lane=%s queries=%s kept=%s top_score=%s",
+        "X search lane=%s queries_run=%s kept=%s top_score=%s ttl_m=%s",
         lane,
-        len(queries),
+        queries_run,
         len(out),
         out[0]["score"] if out else 0,
+        settings.X_SEARCH_TTL_MINUTES,
     )
-    return out[:_MAX_KEEP_PER_SEARCH]
+    return out
 
 
 def pick_best_story(lane: str) -> dict[str, Any] | None:
-    hits = search_lane(lane, max_results=15)
+    hits = search_lane(lane)
     if not hits:
         return None
     return hits[0]
@@ -348,7 +425,7 @@ def pick_best_story(lane: str) -> dict[str, Any] | None:
 
 def pick_top_stories(lane: str, n: int = 2) -> list[dict[str, Any]]:
     """Top N distinct X headlines for multi-source packs."""
-    hits = search_lane(lane, max_results=15)
+    hits = search_lane(lane)
     if not hits:
         return []
     # light de-dupe by first 48 chars

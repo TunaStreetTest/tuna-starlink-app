@@ -1,21 +1,17 @@
-"""News as a multi-source wire pack (Session 2 fix).
+"""Lean news wire for Planet Hack — few free RSS streams, short peak evening.
 
-Session 1 quality: 6 real RSS headlines → interesting Generative Stream.
-Session 2 regression: single weak X promo (Jimothy / PerpGame / LeetCode).
-
-New flow per run:
-  1) style → news lane
-  2) ingest RSS feeds always
-  3) X search (news outlets + has:links) for that lane — 0–2 keepers
-  4) RSS lane unconsumed headlines — fill to PACK_SIZE (3)
-  5) return multi-bullet wire pack; primary story is first bullet
-  6) last resort: any unconsumed / recycle / static
+Cost rules:
+  - RSS only by default (free). X Recent Search is opt-in + gated (see x_search).
+  - Four feeds max (one primary per lane). No NYT/Guardian/NPR fan-out.
+  - Ingest is TTL-cached so back-to-back generates do not re-hit every feed.
+  - Small stream file; small pack. Campaign is a few posts, not a news desk.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import re
 import tempfile
 import xml.etree.ElementTree as ET
@@ -28,21 +24,15 @@ import httpx
 from config import settings
 from services import art_store
 
+log = logging.getLogger("tuna-starlink.events")
+
+# One solid free feed per style lane. Do not grow this list casually.
 _RSS_FEEDS: tuple[tuple[str, str, str], ...] = (
     # source_id, url, default_lane
     ("bbc-world", "https://feeds.bbci.co.uk/news/world/rss.xml", "geopolitics"),
     ("bbc-tech", "https://feeds.bbci.co.uk/news/technology/rss.xml", "tech"),
-    ("bbc-business", "https://feeds.bbci.co.uk/news/business/rss.xml", "markets"),
     ("bbc-science", "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml", "science"),
-    ("nyt-world", "https://rss.nytimes.com/services/xml/rss/nyt/World.xml", "geopolitics"),
-    ("nyt-tech", "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml", "tech"),
-    ("nyt-science", "https://rss.nytimes.com/services/xml/rss/nyt/Science.xml", "science"),
-    ("nyt-business", "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml", "markets"),
-    ("guardian-world", "https://www.theguardian.com/world/rss", "geopolitics"),
-    ("guardian-tech", "https://www.theguardian.com/uk/technology/rss", "tech"),
-    ("aljazeera", "https://www.aljazeera.com/xml/rss/all.xml", "geopolitics"),
-    ("npr-world", "https://feeds.npr.org/1004/rss.xml", "geopolitics"),
-    ("npr-news", "https://feeds.npr.org/1001/rss.xml", "geopolitics"),
+    ("bbc-business", "https://feeds.bbci.co.uk/news/business/rss.xml", "markets"),
 )
 
 _LANE_KEYWORDS: dict[str, tuple[str, ...]] = {
@@ -63,15 +53,16 @@ _LANE_KEYWORDS: dict[str, tuple[str, ...]] = {
     ),
     "markets": (
         "market", "stock", "tariff", "fed ", "inflation", "bank", "trade",
-        "protest", "strike", "gdp", "recession", "bond", "dollar", "oil price",
-        "layoff", "earnings", "wall street", "economy", "price",
+        "gdp", "recession", "bond", "dollar", "oil price", "layoff", "earnings",
+        "wall street", "economy", "price",
     ),
 }
 
 _STREAM_NAME = ".news_stream.json"
-_STREAM_MAX_ITEMS = 800
-_PACK_SIZE = 3  # multi-source wire pack (Session 1 energy, Session 2 X+RSS)
-_X_SLOTS = 1  # at most one X headline in the pack (rest RSS for wire quality)
+_STREAM_MAX_ITEMS = 120
+_ITEMS_PER_FEED = 12
+_PACK_SIZE = 2  # primary + one secondary is enough for Generative Stream
+_X_SLOTS = 1
 _X_MIN_SCORE = 40
 
 
@@ -114,7 +105,7 @@ def _infer_lane(title: str, summary: str, default: str) -> str:
 
 
 def _parse_rss_items(
-    xml_bytes: bytes, source: str, default_lane: str, limit: int = 40
+    xml_bytes: bytes, source: str, default_lane: str, limit: int = _ITEMS_PER_FEED
 ) -> list[dict[str, Any]]:
     root = ET.fromstring(xml_bytes)
     items: list[dict[str, Any]] = []
@@ -212,23 +203,68 @@ def _trim_stream(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return keep
 
 
-async def ingest_feeds() -> dict[str, int]:
+def _stream_age_minutes(stream: dict[str, Any]) -> float | None:
+    raw = stream.get("updated_at") or stream.get("ingested_at")
+    if not raw:
+        return None
+    try:
+        ts = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=timezone.utc)
+        return (datetime.now(timezone.utc) - ts.astimezone(timezone.utc)).total_seconds() / 60.0
+    except ValueError:
+        return None
+
+
+async def ingest_feeds(*, force: bool = False) -> dict[str, Any]:
+    """Pull lean RSS set. Skips network when stream is fresher than TTL."""
     stream = _load_stream()
-    by_id = {i["id"]: i for i in stream.get("items") or [] if i.get("id")}
+    items_existing = stream.get("items") or []
+    ttl = max(0, int(settings.RSS_INGEST_TTL_MINUTES or 0))
+    age = _stream_age_minutes(stream)
+
+    if (
+        not force
+        and ttl > 0
+        and items_existing
+        and age is not None
+        and age < ttl
+    ):
+        log.info(
+            "RSS ingest skipped (cache age=%.0fm ttl=%sm items=%s)",
+            age,
+            ttl,
+            len(items_existing),
+        )
+        return {
+            "new": 0,
+            "total": len(items_existing),
+            "unconsumed": sum(1 for i in items_existing if not i.get("consumed_at")),
+            "feeds_ok": 0,
+            "feeds_fail": 0,
+            "feeds_configured": len(_RSS_FEEDS),
+            "cached": True,
+            "age_minutes": round(age, 1),
+            "ttl_minutes": ttl,
+        }
+
+    by_id = {i["id"]: i for i in items_existing if i.get("id")}
     new_count = 0
     feed_ok = 0
     feed_fail = 0
 
     async with httpx.AsyncClient(
-        timeout=12.0,
+        timeout=10.0,
         follow_redirects=True,
-        headers={"User-Agent": "tuna-starlink-app/0.2 (PlanetHack news-stream)"},
+        headers={"User-Agent": "tuna-starlink-app/0.3 (PlanetHack lean-wire)"},
     ) as http:
         for source, url, default_lane in _RSS_FEEDS:
             try:
                 r = await http.get(url)
                 r.raise_for_status()
-                batch = _parse_rss_items(r.content, source, default_lane, limit=40)
+                batch = _parse_rss_items(
+                    r.content, source, default_lane, limit=_ITEMS_PER_FEED
+                )
                 feed_ok += 1
                 for item in batch:
                     if item["id"] not in by_id:
@@ -237,19 +273,31 @@ async def ingest_feeds() -> dict[str, int]:
                     else:
                         if not by_id[item["id"]].get("lane"):
                             by_id[item["id"]]["lane"] = item["lane"]
-            except Exception:
+            except Exception as e:
                 feed_fail += 1
+                log.warning("RSS feed failed source=%s: %s", source, e)
                 continue
 
     items = _trim_stream(list(by_id.values()))
     stream["items"] = items
+    stream["feeds"] = [f[0] for f in _RSS_FEEDS]
     _save_stream(stream)
+    log.info(
+        "RSS ingest done new=%s total=%s feeds_ok=%s/%s",
+        new_count,
+        len(items),
+        feed_ok,
+        len(_RSS_FEEDS),
+    )
     return {
         "new": new_count,
         "total": len(items),
         "unconsumed": sum(1 for i in items if not i.get("consumed_at")),
         "feeds_ok": feed_ok,
         "feeds_fail": feed_fail,
+        "feeds_configured": len(_RSS_FEEDS),
+        "cached": False,
+        "ttl_minutes": ttl,
     }
 
 
@@ -305,6 +353,10 @@ def stream_stats() -> dict[str, Any]:
         "path": str(_stream_path()),
         "pack_size": _PACK_SIZE,
         "tap_size": _PACK_SIZE,
+        "feeds": [f[0] for f in _RSS_FEEDS],
+        "feeds_count": len(_RSS_FEEDS),
+        "rss_ttl_minutes": int(settings.RSS_INGEST_TTL_MINUTES or 0),
+        "x_search_enabled": bool(settings.X_SEARCH_ENABLED),
     }
 
 
@@ -319,7 +371,6 @@ def _pack_line(item: dict[str, Any]) -> str:
     line = re.sub(r"https?://\S+", "", line).strip()
     line = re.sub(r"\s+", " ", line)
     if title and len(title) >= 20:
-        # if line has a longer useful body, keep title — snippet form
         if line and " — " in line and line.split(" — ", 1)[0].strip() == title:
             return line[:240]
         return title
@@ -339,10 +390,9 @@ def _primary_rank(item: dict[str, Any]) -> int:
     title = item.get("title") or item.get("line") or ""
     score = int(item.get("score") or 0)
     if item.get("source") == "x-search":
-        score += 8  # slight live-X preference when scores are close
+        score += 8
     if _PRIMARY_BOOST.search(title):
         score += 25
-    # clean title length sweet spot
     n = len(title)
     if 40 <= n <= 140:
         score += 10
@@ -356,14 +406,7 @@ def _build_wire_pack(
     rss_hits: list[dict[str, Any]],
     pack_size: int = _PACK_SIZE,
 ) -> list[dict[str, Any]]:
-    """
-    Merge X + RSS into a Session-1-style multi-headline pack.
-
-    Policy:
-      - Include at most _X_SLOTS high-score on-lane X posts
-      - Fill remaining slots with RSS wire headlines
-      - Re-rank so primary is the punchiest story (not always X)
-    """
+    """Merge optional X + RSS into a small multi-headline pack."""
     candidates: list[dict[str, Any]] = []
     seen: set[str] = set()
 
@@ -406,7 +449,7 @@ def _build_wire_pack(
                 "source": h.get("source") or "rss",
                 "lane": h.get("lane"),
                 "link": h.get("link"),
-                "score": 50,  # solid RSS wire baseline
+                "score": 50,
             }
         )
 
@@ -421,17 +464,15 @@ async def get_events(
     style_id: str | None = None,
 ) -> tuple[str, str, dict[str, Any]]:
     """
-    Return (events_text, source_label, tap_meta) for a multi-source wire pack.
+    Return (events_text, source_label, tap_meta) for a lean wire pack.
 
-    Primary story is bullet #1 (best for Generative Stream). Full pack mirrors
-    Session 1 multi-headline energy so slugs and art context stay interesting.
+    Primary story is bullet #1 (art metaphor + Generative Stream lead).
     """
     if settings.DRY_RUN:
         stamp = datetime.now(timezone.utc).strftime("%H%M%S")
         lines = [
             f"Dry-run primary story {stamp}: markets and power grids shift overnight",
             "Dry-run secondary: chipmakers race for energy contracts",
-            "Dry-run tertiary: climate satellites map a new storm corridor",
         ]
         return (
             format_bullets(lines),
@@ -443,27 +484,13 @@ async def get_events(
     lane = (lane or "geopolitics").lower().strip()
     mode = (settings.EVENTS_SOURCE or "stream").lower().strip()
 
-    # --- always refresh RSS first ---
+    # --- lean RSS (TTL-cached) ---
     stats = await ingest_feeds()
     stream = _load_stream()
     items = stream.get("items") or []
 
-    # --- X search (optional high-signal slot) ---
-    x_hits: list[dict[str, Any]] = []
-    x_err: str | None = None
-    if mode in ("stream", "rss", "hybrid", "x", "x-search") and not settings.DRY_RUN:
-        try:
-            from services import x_search
-
-            x_hits = x_search.pick_top_stories(lane, n=_X_SLOTS + 1)
-        except Exception as e:
-            x_err = str(e)
-            x_hits = []
-
-    # --- RSS lane pool ---
     rss_pool = _tap_unconsumed(items, _PACK_SIZE + 4, lane)
     if len(rss_pool) < _PACK_SIZE:
-        # broaden: any unconsumed
         more = _tap_unconsumed(items, _PACK_SIZE + 4, None)
         seen_ids = {r["id"] for r in rss_pool}
         for m in more:
@@ -471,10 +498,39 @@ async def get_events(
                 rss_pool.append(m)
                 seen_ids.add(m["id"])
 
+    # --- X search (paid; hard gated) ---
+    x_hits: list[dict[str, Any]] = []
+    x_err: str | None = None
+    x_skipped: str | None = None
+    force_x_mode = mode in ("x", "x-search")
+    rss_thin = len(rss_pool) < _PACK_SIZE
+
+    from services import x_search
+
+    if settings.DRY_RUN:
+        x_skipped = "dry_run"
+    elif not x_search.search_enabled():
+        x_skipped = "x_search_disabled"
+    elif force_x_mode or rss_thin:
+        try:
+            x_hits = x_search.pick_top_stories(lane, n=_X_SLOTS + 1)
+        except Exception as e:
+            x_err = str(e)
+            x_hits = []
+    else:
+        x_skipped = "rss_sufficient"
+        log.info(
+            "X search skipped (RSS has %s items, pack=%s)",
+            len(rss_pool),
+            _PACK_SIZE,
+        )
+
     recycled = False
     if not rss_pool and not x_hits:
         recycled_pool = [i for i in items if i.get("consumed_at")]
-        recycled_pool = [i for i in recycled_pool if (i.get("lane") or "") == lane] or recycled_pool
+        recycled_pool = [
+            i for i in recycled_pool if (i.get("lane") or "") == lane
+        ] or recycled_pool
         recycled_pool.sort(key=lambda x: x.get("consumed_at") or "")
         rss_pool = recycled_pool[:_PACK_SIZE]
         recycled = bool(rss_pool)
@@ -485,7 +541,6 @@ async def get_events(
     pack = _build_wire_pack(x_hits, rss_pool, _PACK_SIZE)
 
     if pack:
-        # only mark RSS members consumed
         _mark_consumed(pack, rid)
         lines = [_pack_line(c) for c in pack]
         sources = sorted({c.get("source") for c in pack if c.get("source")})
@@ -531,17 +586,17 @@ async def get_events(
             tap_meta["x_likes"] = x_item.get("likes")
         if x_err:
             tap_meta["x_search_error"] = x_err
+        if x_skipped:
+            tap_meta["x_search_skipped"] = x_skipped
         return format_bullets(lines), src, tap_meta
 
-    # --- static fallback ---
     return (
         format_bullets(
             [
                 "Global markets and power systems shift under pressure from competing headlines",
                 "Chip supply and energy grids tighten as demand spikes",
-                "Climate and security desks trade the same overnight wire",
             ]
         ),
         "fallback-static",
-        {"fresh": False, "lane": lane, "style_id": style_id, "tap_size": 3},
+        {"fresh": False, "lane": lane, "style_id": style_id, "tap_size": 2},
     )

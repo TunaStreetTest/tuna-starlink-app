@@ -92,8 +92,15 @@ def generate_image(prompt: str, run_id: str, style_label: str) -> tuple[bytes, d
 
     try:
         resp = c.images.generate(**kwargs)
-    except Exception:
-        # Retry without size/aspect if the account rejects those fields
+    except Exception as e:
+        # Retry once without size/aspect — this is a second billable image call.
+        # Only fire when the first request was rejected (bad params), not on timeout mid-gen.
+        import logging
+
+        logging.getLogger("tuna-starlink.imagine").warning(
+            "Imagine first attempt failed (%s); one retry without size/aspect",
+            type(e).__name__,
+        )
         resp = c.images.generate(
             model=settings.XAI_IMAGE_MODEL,
             prompt=prompt + "\n\nAspect: wide cinematic 16:9 landscape, full-frame horizontal composition.",
