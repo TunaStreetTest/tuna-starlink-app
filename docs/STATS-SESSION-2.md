@@ -38,9 +38,10 @@ Same underlying Grok session (`019f873b-…`). Session 1 snapshot → current `s
 | Agent lines removed | 1 | 306 | **+305** |
 | Compactions | 0 | 2 | **+2** |
 | Git commits (signal) | 1+ | 6 | **~+5** |
-| Wall duration | ~9,548 s (~2.65 h) | ~45,195 s (~12.6 h) | includes **overnight idle** |
+| **Active engineering time** | **~2.65 h** | — | **~2.5 h** (S2 only) |
 
-Active Session 2 engineering time is a slice of that wall clock (plan → implement → wire-pack fix → live post), not the full ~12.6 h.
+**Active time only** — plan → implement → wire-pack → live post → style rebalance.  
+Grok `sessionDurationSeconds` wall clocks include overnight idle while the host stayed open; **do not use wall duration as effort.**
 
 **Tools used (session):** `enter_plan_mode`, `list_dir`, `run_terminal_command`, `read_file`, `grep`, `ask_user_question`, `write`, `exit_plan_mode`, `todo_write`, `search_replace`, `get_command_or_subagent_output`, `web_fetch`.
 

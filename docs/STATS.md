@@ -52,7 +52,7 @@ One continuous Grok Build session; numbers from final `signals.json`.
 
 | Metric | Value |
 |---|---:|
-| Wall duration | **~45,195 s** (~12.6 h, includes overnight idle) |
+| **Active engineering time (S1 + S2)** | **~5.2 h** (~2.65 h + ~2.5 h) |
 | User messages | **60** |
 | Assistant messages | **249** |
 | Tool calls | **533** |
@@ -63,6 +63,8 @@ One continuous Grok Build session; numbers from final `signals.json`.
 | Git commits (signal) | **6** |
 | Context window | **500,000** |
 | Context in use at wrap | **~89,546** (~18%) |
+
+**Note:** Raw Grok wall-clock duration includes overnight idle with the session left open — **excluded** from effort totals. Use active engineering time only.
 
 Session-level detail and deltas: Session 1 / Session 2 files above.
 

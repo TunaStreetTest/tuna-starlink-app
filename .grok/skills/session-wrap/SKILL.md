@@ -54,8 +54,9 @@ Record:
 
 From the **current** session directory (typically under `~/.grok/sessions/…`):
 
-- Read `signals.json` for: `userMessageCount`, `assistantMessageCount`, `toolCallCount`, `toolFailureCount`, `sessionDurationSeconds`, `agentLinesAdded`, `agentLinesRemoved`, `agentFilesTouched`, `compactionCount`, `gitCommitCount`, `contextTokensUsed`, `contextWindowTokens`, `totalTokensBeforeCompaction`, `toolsUsed`, `primaryModelId`.
+- Read `signals.json` for: `userMessageCount`, `assistantMessageCount`, `toolCallCount`, `toolFailureCount`, `agentLinesAdded`, `agentLinesRemoved`, `agentFilesTouched`, `compactionCount`, `gitCommitCount`, `contextTokensUsed`, `contextWindowTokens`, `totalTokensBeforeCompaction`, `toolsUsed`, `primaryModelId`.
 - Read `summary.json` for session id / timestamps if useful.
+- **`sessionDurationSeconds` is wall clock** — it includes overnight / lunch / idle while the session stays open. **Never report it as effort.** Estimate **active engineering time** from real work windows (or Δ vs prior wrap’s active estimate), and label it clearly as active-only.
 
 **Token rules (always state clearly):**
 

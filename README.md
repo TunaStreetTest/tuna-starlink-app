@@ -186,7 +186,7 @@ Index + method: [`docs/STATS.md`](docs/STATS.md) · Session 1: [`docs/STATS-SESS
 
 | Metric | Value |
 |---|---:|
-| Wall duration | **~12.6 hours** (45,195 s; includes overnight idle) |
+| Active engineering time (S1 + S2) | **~5.2 hours** (excludes overnight idle) |
 | User turns | **60** |
 | Assistant messages | **249** |
 | Tool calls | **533** |
