@@ -57,13 +57,19 @@ export function StudioGallery({ refreshKey = 0 }: { refreshKey?: number }) {
     };
   }, [selected]);
 
-  const caption = (detail?.caption as string) || "";
+  const postBody =
+    String(detail?.stream_slug || detail?.caption || "").trim() ||
+    String(detail?.events || "")
+      .split("\n")[0]
+      ?.replace(/^[-•]\s*/, "")
+      .trim() ||
+    "";
   const hasImage =
     !!detail?.has_image || !!runs.find((r) => r.run_id === selected)?.has_image;
 
-  const copyCaption = async () => {
-    if (!caption) return;
-    await navigator.clipboard.writeText(caption);
+  const copyPost = async () => {
+    if (!postBody) return;
+    await navigator.clipboard.writeText(postBody);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
@@ -156,58 +162,58 @@ export function StudioGallery({ refreshKey = 0 }: { refreshKey?: number }) {
               >
                 Open / download PNG
               </Button>
-              <Button variant="ghost" onClick={copyCaption} disabled={!caption}>
-                {copied ? "Caption copied" : "Copy caption"}
+              <Button variant="ghost" onClick={copyPost} disabled={!postBody}>
+                {copied ? "Copied" : "Copy post"}
               </Button>
               <span className="text-xs text-muted">
                 Download as planethack_{selected}.png
               </span>
             </div>
 
-            {caption && (
+            {postBody && (
               <div>
-                <div className="text-xs text-muted mb-1">Caption (main post body)</div>
+                <div className="text-xs text-muted mb-1">
+                  Generative Stream (X post · {postBody.length}/280)
+                </div>
                 <p className="text-sm border border-border rounded p-2 bg-bg leading-relaxed">
-                  {caption}
-                </p>
-              </div>
-            )}
-
-            {(detail?.stream_slug != null || detail?.events != null) && (
-              <div>
-                <div className="text-xs text-muted mb-1">Generative Stream (reply preview)</div>
-                <p className="text-sm border border-border rounded p-2 bg-bg leading-relaxed">
-                  Generative Stream:{" "}
-                  {String(
-                    detail?.stream_slug ||
-                      String(detail?.events || "")
-                        .split("\n")[0]
-                        ?.replace(/^[-•]\s*/, "")
-                        .split(" — ")[0] ||
-                      "…",
-                  )}{" "}
-                  {detail?.style_hashtag
-                    ? `#${String(detail.style_hashtag)}`
-                    : detail?.style_label
-                      ? `#${String(detail.style_label).replace(/\s+/g, "")}`
-                      : ""}
+                  {postBody}
                 </p>
               </div>
             )}
 
             {detail?.events != null && (
               <div>
-                <div className="text-xs text-muted mb-1">Source (single story)</div>
+                <div className="text-xs text-muted mb-1">Wire pack (local)</div>
                 <pre className="text-xs border border-border rounded p-2 bg-bg whitespace-pre-wrap max-h-28 overflow-y-auto">
                   {String(detail.events)}
                 </pre>
               </div>
             )}
 
+            {!!detail?.has_field && selected && (
+              <details>
+                <summary className="text-xs text-muted cursor-pointer">
+                  Kaleidoscope field (stream DNA)
+                </summary>
+                <a
+                  href={api.fieldUrl(selected)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block mt-1"
+                >
+                  <img
+                    src={api.fieldUrl(selected)}
+                    alt={`Ring field ${selected}`}
+                    className="w-full max-h-40 object-contain rounded border border-border bg-bg"
+                  />
+                </a>
+              </details>
+            )}
+
             {detail?.art_brief != null && (
               <details>
                 <summary className="text-xs text-muted cursor-pointer">
-                  Art director brief
+                  Raster program
                 </summary>
                 <pre className="text-xs border border-border rounded p-2 bg-bg whitespace-pre-wrap mt-1 max-h-40 overflow-y-auto">
                   {String(detail.art_brief)}

@@ -26,6 +26,8 @@ export type GalleryRun = {
   egress_bytes?: number;
   latency_ms?: number;
   has_image?: boolean;
+  has_field?: boolean;
+  raster_mode?: string;
   error?: string;
 };
 
@@ -89,8 +91,9 @@ export const api = {
       wait: false,
     }),
   imageUrl: (runId: string) => `/api/gallery/${runId}/image`,
+  fieldUrl: (runId: string) => `/api/gallery/${runId}/field`,
   publishStatus: () => get<PublishStatus>("/api/publish/status"),
   publishPreview: (runId: string) => get<Record<string, unknown>>(`/api/publish/preview/${runId}`),
-  publishX: (runId: string, withComments = true) =>
+  publishX: (runId: string, withComments = false) =>
     post<PublishResult>("/api/publish/x", { run_id: runId, with_comments: withComments }),
 };

@@ -1,4 +1,4 @@
-"""X publish — main caption + #PlanetHack #StyleCamel; reply Generative Stream."""
+"""X publish — image + single-headline Generative Stream body (no hashtags, no reply)."""
 
 from __future__ import annotations
 
@@ -30,79 +30,39 @@ def _clip(text: str, limit: int = _TWEET_MAX) -> str:
     text = (text or "").strip()
     if len(text) <= limit:
         return text
-    return text[: limit - 1].rstrip() + "…"
+    cut = text[: max(limit - 1, 1)].rsplit(" ", 1)[0].rstrip(",;:·-–—")
+    if not cut:
+        cut = text[: max(limit - 1, 1)]
+    return cut + "…"
 
 
-def style_hashtag(meta: dict[str, Any] | None) -> str:
+def build_main_post(meta: dict[str, Any] | None = None) -> str:
+    """Main X body: Generative Stream text, full 280 budget, no hashtags."""
     meta = meta or {}
-    tag = (meta.get("style_hashtag") or "").strip().lstrip("#")
-    if tag:
-        return tag
-    label = (meta.get("style_label") or meta.get("style_id") or "PlanetHack").strip()
-    parts = re.split(r"[\s_\-]+", label)
-    return "".join(p[:1].upper() + p[1:] for p in parts if p) or "PlanetHack"
+    from services.xai_chat import _clean_headline_piece
 
-
-def _normalize_caption(caption: str, meta: dict[str, Any] | None = None) -> str:
-    """Body + #PlanetHack #StyleCamel (no run-id salt)."""
-    text = re.sub(r"\s+", " ", (caption or "").strip())
-    text = re.sub(r"#\w+", "", text).strip()  # strip any model hashtags
-    style_tag = style_hashtag(meta)
-    suffix = f" #PlanetHack #{style_tag}"
-    body_limit = _TWEET_MAX - len(suffix)
-    if len(text) > body_limit:
-        text = text[: body_limit - 1].rsplit(" ", 1)[0] + "…"
-    return (text + suffix).strip()
-
-
-def build_generative_stream_reply(meta: dict[str, Any] | None = None) -> str:
-    """Generative Stream: <wire pack>. #StyleCamel
-
-    This reply is the real news payload — main caption is mood/art only.
-    Fill up to 280 with primary + secondary headlines when stream_slug is short.
-    """
-    meta = meta or {}
-    style_tag = style_hashtag(meta)
-    prefix = "Generative Stream: "
-    suffix = f" #{style_tag}"
-    budget = _TWEET_MAX - len(prefix) - len(suffix)
-
-    slug = (meta.get("stream_slug") or "").strip()
-    slug = re.sub(r"#\w+", "", slug).strip()
-
-    # Prefer full wire pack at publish time — stream_slug may be an older short draft
-    try:
-        from services.xai_chat import pack_stream_slug
-
-        titles: list[str] = []
+    # Prefer stream_slug (already filled toward 280 at generate time)
+    body = (meta.get("stream_slug") or meta.get("caption") or "").strip()
+    if not body:
         for line in (meta.get("events") or "").splitlines():
             line = line.strip().lstrip("-• ").strip()
-            if not line:
-                continue
-            titles.append(line.split(" — ")[0].strip())
-        if titles:
-            packed = pack_stream_slug(titles, max_chars=budget)
-            # Use packed when missing, short, or clearly denser with secondaries
-            if not slug or len(packed) > len(slug) + 15 or " · " in packed and " · " not in slug:
-                slug = packed
-    except Exception:
-        pass
-
-    if not slug:
-        slug = "One live story from the wire."
-
-    if len(slug) > budget:
-        slug = slug[: budget - 1].rsplit(" ", 1)[0].rstrip(",;:·-–—") + "…"
-    # single-line period only when not a multi-headline pack
-    if " · " not in slug and slug and slug[-1] not in ".!?…":
-        if len(slug) + 1 <= budget:
-            slug = slug + "."
-
-    return _clip(prefix + slug + suffix)
-
-
-def build_comment_thread(meta: dict[str, Any]) -> list[dict[str, str]]:
-    return [{"kind": "generative_stream", "text": build_generative_stream_reply(meta)}]
+            if line:
+                body = line
+                break
+    body = _clean_headline_piece(body)
+    body = re.sub(r"#\w+", "", body)
+    body = re.sub(r"https?://\S+", "", body)
+    body = re.sub(r"@\w+", "", body)
+    body = re.sub(r"\s+", " ", body).strip()
+    if not body:
+        body = "A live story from the wire."
+    body = _clip(body, _TWEET_MAX)
+    if body and body[-1] not in ".!?…":
+        if len(body) + 1 <= _TWEET_MAX:
+            body = body + "."
+        else:
+            body = _clip(body, _TWEET_MAX - 1) + "."
+    return body
 
 
 def _client_pair():
@@ -127,77 +87,26 @@ def _client_pair():
     return api_v1, client
 
 
-def _is_forbidden(err: BaseException) -> bool:
-    msg = str(err)
-    return "403" in msg or "Forbidden" in type(err).__name__ or "not permitted" in msg.lower()
-
-
-def _create_reply(client, text: str, in_reply_to: str) -> str:
-    r = client.create_tweet(
-        text=text, in_reply_to_tweet_id=in_reply_to, user_auth=True
-    )
-    if not r or not r.data or "id" not in r.data:
-        raise RuntimeError(f"empty reply response: {r!r}")
-    return str(r.data["id"])
-
-
-def _post_stream_reply(client, meta: dict[str, Any], post_id: str) -> dict[str, Any]:
-    handle = settings.X_ACCOUNT_HANDLE.lstrip("@")
-    text = build_generative_stream_reply(meta)
-    attempts = [
-        text,
-        _clip(
-            f"Generative Stream: {(meta.get('events') or 'live wire')[:120].split(chr(10))[0].lstrip('- ')}. "
-            f"#{style_hashtag(meta)}"
-        ),
-    ]
-    last_err = None
-    for i, body in enumerate(attempts):
-        try:
-            time.sleep(2.0 + i * 1.5)
-            rid = _create_reply(client, body, post_id)
-            return {
-                "kind": "generative_stream",
-                "id": rid,
-                "url": f"https://x.com/{handle}/status/{rid}",
-                "ok": True,
-                "text": body,
-                "attempt": i + 1,
-            }
-        except Exception as e:
-            last_err = e
-            log.warning("X reply attempt %s failed: %s", i + 1, e)
-    return {
-        "kind": "generative_stream",
-        "ok": False,
-        "error": f"{type(last_err).__name__}: {last_err}" if last_err else "unknown",
-    }
-
-
 def _create_main_tweet(
-    client, api_v1, img_path: str, caption: str, meta: dict[str, Any]
+    client, api_v1, img_path: str, text: str
 ) -> tuple[str, str]:
-    """Upload media + create main tweet. Retries on 403 with unique caption variants."""
+    """Upload media + create main tweet. Retries on 403 with slight variants."""
     media = api_v1.media_upload(img_path)
     media_id = media.media_id
-    base = _normalize_caption(caption, meta)
-    # unique retry variants without ugly salts when possible
+    base = _clip(re.sub(r"#\w+", "", text or "").strip(), _TWEET_MAX)
     candidates = [
         base,
-        _normalize_caption(caption + " ·", meta),
-        _clip(
-            re.sub(r"#\w+", "", caption or "")[:100].strip()
-            + f" — Planet Hack. #PlanetHack #{style_hashtag(meta)}"
-        ),
+        _clip(base.rstrip(".!") + " ·", _TWEET_MAX) if base else base,
+        _clip((base[:200] + " — live wire.") if base else "Live wire.", _TWEET_MAX),
     ]
 
     last_err: BaseException | None = None
-    for i, text in enumerate(candidates):
+    for i, body in enumerate(candidates):
         try:
             if i:
                 time.sleep(1.5 * i)
             root = client.create_tweet(
-                text=text,
+                text=body,
                 media_ids=[media_id],
                 user_auth=True,
             )
@@ -215,8 +124,8 @@ def _create_main_tweet(
     )
 
 
-def publish_run(run_id: str, with_comments: bool = True) -> dict[str, Any]:
-    """Upload art.png, tweet caption, one Generative Stream reply."""
+def publish_run(run_id: str, with_comments: bool = False) -> dict[str, Any]:
+    """Upload art.png + single-headline Generative Stream body. No reply by default."""
     meta = art_store.load_run(run_id)
     if not meta:
         raise FileNotFoundError(f"run not found: {run_id}")
@@ -227,9 +136,9 @@ def publish_run(run_id: str, with_comments: bool = True) -> dict[str, Any]:
     if not img.is_file():
         raise FileNotFoundError(f"image missing: {img}")
 
-    caption = (meta.get("caption") or "").strip()
-    if not caption:
-        raise RuntimeError("run has no caption")
+    post_text = build_main_post(meta)
+    if not post_text:
+        raise RuntimeError("run has no Generative Stream headline")
 
     if meta.get("x_post_id") and not meta.get("x_force_repost"):
         return {
@@ -239,28 +148,22 @@ def publish_run(run_id: str, with_comments: bool = True) -> dict[str, Any]:
             "x_post_id": meta.get("x_post_id"),
             "x_url": meta.get("x_url"),
             "handle": settings.X_ACCOUNT_HANDLE,
-            "replies": meta.get("x_replies") or [],
-            "reply_count": sum(1 for r in (meta.get("x_replies") or []) if r.get("ok")),
+            "post_text": meta.get("x_caption_posted") or post_text,
+            "replies": [],
+            "reply_count": 0,
         }
 
     api_v1, client = _client_pair()
-    post_id, x_url = _create_main_tweet(client, api_v1, str(img), caption, meta)
+    post_id, x_url = _create_main_tweet(client, api_v1, str(img), post_text)
 
-    # Persist main post immediately so a reply failure still leaves a URL
     meta["x_post_id"] = post_id
     meta["x_url"] = x_url
     meta["x_handle"] = settings.X_ACCOUNT_HANDLE
     meta["x_posted_at"] = datetime.now(timezone.utc).isoformat()
-    meta["x_caption_posted"] = _normalize_caption(caption, meta)
+    meta["x_caption_posted"] = post_text
+    meta["x_replies"] = []
     art_store.save_run(meta)
 
-    replies: list[dict[str, Any]] = []
-    if with_comments:
-        replies.append(_post_stream_reply(client, meta, post_id))
-        meta["x_replies"] = replies
-        art_store.save_run(meta)
-
-    reply_ok = sum(1 for r in replies if r.get("ok"))
     return {
         "ok": True,
         "already_posted": False,
@@ -268,44 +171,24 @@ def publish_run(run_id: str, with_comments: bool = True) -> dict[str, Any]:
         "x_post_id": post_id,
         "x_url": x_url,
         "handle": settings.X_ACCOUNT_HANDLE,
-        "caption": meta.get("x_caption_posted") or caption,
-        "replies": replies,
-        "reply_count": reply_ok,
-        "reply_failed": reply_ok == 0 and with_comments,
+        "caption": post_text,  # API compat
+        "post_text": post_text,
+        "replies": [],
+        "reply_count": 0,
+        "reply_failed": False,
     }
 
 
 def reply_to_existing(run_id: str) -> dict[str, Any]:
-    """Attach Generative Stream reply to an already-posted main tweet (repair path)."""
+    """No-op: single-post contract (no Generative Stream reply)."""
     meta = art_store.load_run(run_id)
     if not meta:
         raise FileNotFoundError(f"run not found: {run_id}")
-    post_id = meta.get("x_post_id")
-    if not post_id:
-        raise RuntimeError("run has no x_post_id — post the main image first")
-
-    for r in meta.get("x_replies") or []:
-        if r.get("ok") and r.get("kind") == "generative_stream":
-            return {
-                "ok": True,
-                "already_replied": True,
-                "run_id": run_id,
-                "replies": meta.get("x_replies"),
-                "x_url": meta.get("x_url"),
-            }
-
-    _, client = _client_pair()
-    result = _post_stream_reply(client, meta, str(post_id))
-    replies = list(meta.get("x_replies") or [])
-    replies.append(result)
-    meta["x_replies"] = replies
-    meta["updated_at"] = datetime.now(timezone.utc).isoformat()
-    art_store.save_run(meta)
     return {
-        "ok": bool(result.get("ok")),
-        "already_replied": False,
+        "ok": True,
+        "skipped": True,
+        "note": "replies disabled — main post is the Generative Stream headline",
         "run_id": run_id,
-        "reply": result,
         "x_url": meta.get("x_url"),
     }
 
@@ -314,9 +197,7 @@ def preview_post(run_id: str) -> dict[str, Any]:
     meta = art_store.load_run(run_id)
     if not meta:
         raise FileNotFoundError(f"run not found: {run_id}")
-    caption = (meta.get("caption") or "").strip()
-    comments = build_comment_thread(meta)
-    posted = _normalize_caption(caption, meta)
+    posted = build_main_post(meta)
     return {
         "run_id": run_id,
         "handle": settings.X_ACCOUNT_HANDLE,
@@ -326,12 +207,12 @@ def preview_post(run_id: str) -> dict[str, Any]:
         "x_url": meta.get("x_url"),
         "main_post": posted,
         "main_chars": len(posted),
-        "comments": comments,
-        "comment_count": len(comments),
+        "comments": [],
+        "comment_count": 0,
         "stream_slug": meta.get("stream_slug"),
         "events_source": meta.get("events_source"),
         "limits": {
             "chars_per_tweet": _TWEET_MAX,
-            "note": "Main: caption + #PlanetHack #StyleCamel. Reply: Generative Stream slug.",
+            "note": "Main: single headline Generative Stream, full 280, no hashtags, no reply.",
         },
     }

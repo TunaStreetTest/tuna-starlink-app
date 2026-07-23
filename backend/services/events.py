@@ -61,7 +61,7 @@ _LANE_KEYWORDS: dict[str, tuple[str, ...]] = {
 _STREAM_NAME = ".news_stream.json"
 _STREAM_MAX_ITEMS = 120
 _ITEMS_PER_FEED = 12
-_PACK_SIZE = 2  # primary + one secondary is enough for Generative Stream
+_PACK_SIZE = 1  # single story only — full text drives stream + image
 _X_SLOTS = 1
 _X_MIN_SCORE = 40
 
@@ -129,9 +129,10 @@ def _parse_rss_items(
         desc = " ".join(desc.split())
         if not title:
             continue
+        # Keep full summary so Generative Stream can fill the 280-char post field.
         line = title
         if desc and desc.lower() not in title.lower():
-            snippet = desc[:140].rstrip()
+            snippet = desc[:420].rstrip()
             if snippet:
                 line = f"{title} — {snippet}"
         lane = _infer_lane(title, desc, default_lane)
@@ -140,6 +141,7 @@ def _parse_rss_items(
                 "id": _item_id(source, guid, link, title),
                 "title": title,
                 "line": line,
+                "summary": desc[:800] if desc else "",
                 "source": source,
                 "lane": lane,
                 "link": link,
@@ -365,16 +367,24 @@ def _dedupe_key(text: str) -> str:
 
 
 def _pack_line(item: dict[str, Any]) -> str:
-    """Prefer clean title; fall back to line without URL noise."""
+    """Single-story full text: title + summary — enough material to fill 280-char post."""
     title = (item.get("title") or "").strip()
-    line = (item.get("line") or item.get("text") or "").strip()
-    line = re.sub(r"https?://\S+", "", line).strip()
-    line = re.sub(r"\s+", " ", line)
-    if title and len(title) >= 20:
-        if line and " — " in line and line.split(" — ", 1)[0].strip() == title:
-            return line[:240]
-        return title
-    return (line or title)[:240]
+    summary = re.sub(r"https?://\S+", "", (item.get("summary") or "").strip())
+    summary = re.sub(r"\s+", " ", summary).strip()
+    line = re.sub(r"https?://\S+", "", (item.get("line") or item.get("text") or "").strip())
+    line = re.sub(r"\s+", " ", line).strip()
+
+    # Build the longest clean single-story string available
+    if title and summary and summary.lower() not in title.lower():
+        body = f"{title} — {summary}"
+    elif line and len(line) >= len(title):
+        body = line
+    elif title and line and title.lower() not in line.lower():
+        body = f"{title} — {line}"
+    else:
+        body = line or title
+    # Cap well above tweet size so craft_stream_slug can fill all 280
+    return body[:900]
 
 
 _PRIMARY_BOOST = re.compile(
@@ -594,9 +604,8 @@ async def get_events(
         format_bullets(
             [
                 "Global markets and power systems shift under pressure from competing headlines",
-                "Chip supply and energy grids tighten as demand spikes",
             ]
         ),
         "fallback-static",
-        {"fresh": False, "lane": lane, "style_id": style_id, "tap_size": 2},
+        {"fresh": False, "lane": lane, "style_id": style_id, "tap_size": 1},
     )

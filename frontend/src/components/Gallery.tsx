@@ -72,13 +72,20 @@ export function Gallery({ refreshKey = 0 }: { refreshKey?: number }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [modalId]);
 
-  const caption = (detail?.caption as string) || "";
+  // Main X body = Generative Stream (single headline), not a mood poem.
+  const postBody =
+    String(detail?.stream_slug || detail?.caption || "").trim() ||
+    String(detail?.events || "")
+      .split("\n")[0]
+      ?.replace(/^[-•]\s*/, "")
+      .trim() ||
+    "";
   const hasImage = !!detail?.has_image || !!runs.find((r) => r.run_id === modalId)?.has_image;
   const alreadyPosted = !!detail?.x_post_id;
 
-  const copyCaption = async () => {
-    if (!caption) return;
-    await navigator.clipboard.writeText(caption);
+  const copyPost = async () => {
+    if (!postBody) return;
+    await navigator.clipboard.writeText(postBody);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
@@ -88,7 +95,7 @@ export function Gallery({ refreshKey = 0 }: { refreshKey?: number }) {
     setXBusy(true);
     setXMsg(null);
     try {
-      const res = await api.publishX(modalId, true);
+      const res = await api.publishX(modalId, false);
       setXMsg(
         res.already_posted ? `Already posted: ${res.x_url}` : `Posted: ${res.x_url}`,
       );
@@ -205,38 +212,20 @@ export function Gallery({ refreshKey = 0 }: { refreshKey?: number }) {
               </div>
 
               <div className="space-y-3">
-                {caption && (
+                {postBody && (
                   <div>
-                    <div className="text-xs text-muted mb-1">Caption (main post body)</div>
+                    <div className="text-xs text-muted mb-1">
+                      Generative Stream (X post · {postBody.length}/280)
+                    </div>
                     <p className="text-sm border border-border rounded p-3 bg-bg leading-relaxed">
-                      {caption}
-                    </p>
-                  </div>
-                )}
-
-                {(detail?.stream_slug != null || detail?.events != null) && (
-                  <div>
-                    <div className="text-xs text-muted mb-1">Generative Stream (reply)</div>
-                    <p className="text-sm border border-border rounded p-3 bg-bg leading-relaxed">
-                      Generative Stream:{" "}
-                      {String(
-                        detail?.stream_slug ||
-                          String(detail?.events || "")
-                            .split("\n")[0]
-                            ?.replace(/^[-•]\s*/, "")
-                            .split(" — ")[0] ||
-                          "…",
-                      )}{" "}
-                      {detail?.style_hashtag
-                        ? `#${String(detail.style_hashtag)}`
-                        : ""}
+                      {postBody}
                     </p>
                   </div>
                 )}
 
                 {detail?.events != null && (
                   <div>
-                    <div className="text-xs text-muted mb-1">Source (single story)</div>
+                    <div className="text-xs text-muted mb-1">Wire pack (local)</div>
                     <pre className="text-xs border border-border rounded p-2 bg-bg whitespace-pre-wrap max-h-24 overflow-y-auto">
                       {String(detail.events)}
                     </pre>
@@ -251,8 +240,8 @@ export function Gallery({ refreshKey = 0 }: { refreshKey?: number }) {
                   >
                     Open PNG
                   </Button>
-                  <Button variant="ghost" onClick={copyCaption} disabled={!caption}>
-                    {copied ? "Copied" : "Copy caption"}
+                  <Button variant="ghost" onClick={copyPost} disabled={!postBody}>
+                    {copied ? "Copied" : "Copy post"}
                   </Button>
                   <Button
                     variant="accent"
@@ -298,14 +287,34 @@ export function Gallery({ refreshKey = 0 }: { refreshKey?: number }) {
                   </p>
                 )}
                 <p className="text-xs text-muted">
-                  X: caption + #PlanetHack #StyleTag · reply{" "}
-                  <code className="text-[10px]">Generative Stream: … #StyleTag</code>
+                  X: image + Generative Stream headline (no hashtags, no reply)
                 </p>
+
+                {(detail?.has_field ||
+                  runs.find((r) => r.run_id === modalId)?.has_field) && (
+                  <details>
+                    <summary className="text-xs text-muted cursor-pointer">
+                      Kaleidoscope field (stream DNA)
+                    </summary>
+                    <a
+                      href={api.fieldUrl(modalId)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block mt-1"
+                    >
+                      <img
+                        src={api.fieldUrl(modalId)}
+                        alt={`Ring field ${modalId}`}
+                        className="w-full max-h-48 object-contain rounded border border-border bg-bg"
+                      />
+                    </a>
+                  </details>
+                )}
 
                 {detail?.art_brief != null && (
                   <details>
                     <summary className="text-xs text-muted cursor-pointer">
-                      Art director brief (local only)
+                      Raster program (local only)
                     </summary>
                     <pre className="text-xs border border-border rounded p-2 bg-bg whitespace-pre-wrap mt-1 max-h-32 overflow-y-auto">
                       {String(detail.art_brief)}

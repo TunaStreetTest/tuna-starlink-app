@@ -1,4 +1,4 @@
-"""Planet Hack generation pipeline — Session 2."""
+"""Planet Hack generation pipeline."""
 
 from __future__ import annotations
 
@@ -111,7 +111,7 @@ async def run_generate(style_id: str | None = None, force: bool = False) -> dict
         meta["style_hashtag"] = style.get("hashtag")
         meta["news_lane"] = style.get("lane")
 
-        # 1) Multi-source wire pack: X (outlets/headlines) + RSS fill (lane-filtered)
+        # 1) Single story from wire
         events, events_source, events_tap = await events_svc.get_events(
             run_id=run_id,
             lane=style.get("lane"),
@@ -125,7 +125,7 @@ async def run_generate(style_id: str | None = None, force: bool = False) -> dict
         art_store.save_run(meta)
         _current = dict(meta)
 
-        # 2) Art director
+        # 2) Classic art director brief (the path that made cooler images)
         art_brief = await xai_chat.craft_art_brief(events, style)
         meta["art_brief"] = art_brief
         meta["phase"] = "compose"
@@ -133,7 +133,7 @@ async def run_generate(style_id: str | None = None, force: bool = False) -> dict
         art_store.save_run(meta)
         _current = dict(meta)
 
-        # 3) Imagine prompt
+        # 3) Style seed + brief + franchise lock → Imagine
         art_prompt = styles.build_imagine_prompt(art_brief, style)
         meta["art_prompt"] = art_prompt
         meta["phase"] = "imagine"
@@ -141,23 +141,21 @@ async def run_generate(style_id: str | None = None, force: bool = False) -> dict
         art_store.save_run(meta)
         _current = dict(meta)
 
-        # 4) Image
         image_bytes, img_stats = await asyncio.to_thread(
             xai_imagine.generate_image, art_prompt, run_id, style["label"]
         )
         meta["egress_bytes"] = img_stats.get("egress_bytes", 0)
         meta["image_model"] = img_stats.get("model")
         meta["image_source"] = img_stats.get("source")
-        meta["phase"] = "caption"
+        meta["phase"] = "stream"
         meta["updated_at"] = datetime.now(timezone.utc).isoformat()
         art_store.save_run(meta, image_bytes=image_bytes)
         _current = dict(meta)
 
-        # 5) Caption body + Generative Stream slug
-        caption = await xai_chat.craft_caption(events, style["label"], art_brief)
+        # 4) Generative Stream = X post body (single story, full text, no poem, no hashtags)
         stream_slug = await xai_chat.craft_stream_slug(events)
-        meta["caption"] = caption
         meta["stream_slug"] = stream_slug
+        meta["caption"] = stream_slug
         meta["phase"] = "done"
         meta["status"] = "complete"
         ended = datetime.now(timezone.utc)
@@ -174,7 +172,7 @@ async def run_generate(style_id: str | None = None, force: bool = False) -> dict
             try:
                 from services import x_publish
 
-                pub = await asyncio.to_thread(x_publish.publish_run, run_id, True)
+                pub = await asyncio.to_thread(x_publish.publish_run, run_id, False)
                 meta["auto_publish"] = {
                     "ok": True,
                     "x_url": pub.get("x_url"),

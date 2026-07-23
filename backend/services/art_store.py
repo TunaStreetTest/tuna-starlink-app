@@ -50,25 +50,42 @@ def image_path(run_id: str) -> Path:
     return run_dir(run_id) / "art.png"
 
 
-def save_run(meta: dict[str, Any], image_bytes: bytes | None = None) -> dict[str, Any]:
+def field_path(run_id: str) -> Path:
+    """Ring-address DNA map (stream → pixels) saved beside art.png."""
+    return run_dir(run_id) / "field.png"
+
+
+def _atomic_write_bytes(path: Path, data: bytes, suffix: str = ".tmp") -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=str(path.parent), suffix=suffix)
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(data)
+        os.replace(tmp, path)
+    except Exception:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
+def save_run(
+    meta: dict[str, Any],
+    image_bytes: bytes | None = None,
+    field_bytes: bytes | None = None,
+) -> dict[str, Any]:
     run_id = meta["run_id"]
     d = run_dir(run_id)
     d.mkdir(parents=True, exist_ok=True)
     if image_bytes is not None:
-        img = image_path(run_id)
-        fd, tmp = tempfile.mkstemp(dir=str(d), suffix=".png.tmp")
-        try:
-            with os.fdopen(fd, "wb") as f:
-                f.write(image_bytes)
-            os.replace(tmp, img)
-            meta["image_file"] = "art.png"
-            meta["image_bytes"] = len(image_bytes)
-        except Exception:
-            try:
-                os.unlink(tmp)
-            except OSError:
-                pass
-            raise
+        _atomic_write_bytes(image_path(run_id), image_bytes, suffix=".png.tmp")
+        meta["image_file"] = "art.png"
+        meta["image_bytes"] = len(image_bytes)
+    if field_bytes is not None:
+        _atomic_write_bytes(field_path(run_id), field_bytes, suffix=".field.tmp")
+        meta["field_file"] = "field.png"
+        meta["field_bytes"] = len(field_bytes)
     meta.setdefault("updated_at", datetime.now(timezone.utc).isoformat())
     _atomic_write_json(meta_path(run_id), meta)
     return meta

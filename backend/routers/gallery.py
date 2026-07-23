@@ -30,6 +30,8 @@ async def list_gallery(limit: int = 100):
                 "egress_bytes": m.get("egress_bytes"),
                 "latency_ms": m.get("latency_ms"),
                 "has_image": art_store.image_path(m["run_id"]).is_file() if m.get("run_id") else False,
+                "has_field": art_store.field_path(m["run_id"]).is_file() if m.get("run_id") else False,
+                "raster_mode": m.get("raster_mode"),
                 "error": m.get("error"),
             }
         )
@@ -43,6 +45,7 @@ async def get_run(run_id: str):
         raise HTTPException(status_code=404, detail=f"run not found: {run_id}")
     meta = dict(meta)
     meta["has_image"] = art_store.image_path(run_id).is_file()
+    meta["has_field"] = art_store.field_path(run_id).is_file()
     # Don't dump full traceback in list UI; keep on detail if present
     return meta
 
@@ -53,3 +56,11 @@ async def get_image(run_id: str):
     if not path.is_file():
         raise HTTPException(status_code=404, detail="image not found")
     return FileResponse(path, media_type="image/png", filename=f"planethack_{run_id}.png")
+
+
+@router.get("/{run_id}/field")
+async def get_field(run_id: str):
+    path = art_store.field_path(run_id)
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="field not found")
+    return FileResponse(path, media_type="image/png", filename=f"planethack_{run_id}_field.png")

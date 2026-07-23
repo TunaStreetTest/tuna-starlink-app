@@ -8,7 +8,7 @@ router = APIRouter(prefix="/publish")
 
 class PublishBody(BaseModel):
     run_id: str
-    with_comments: bool = True
+    with_comments: bool = False  # replies off — main post is the stream
 
 
 @router.get("/status")
@@ -17,8 +17,8 @@ async def publish_status():
         "credentials_ready": x_publish.x_credentials_ready(),
         "handle": __import__("config", fromlist=["settings"]).settings.X_ACCOUNT_HANDLE,
         "flow": {
-            "main": "image + caption + #PlanetHack #StyleCamel",
-            "comment_1": "Generative Stream: <slug> #StyleCamel",
+            "main": "image + single headline Generative Stream (full 280, no hashtags)",
+            "comment_1": "none",
         },
     }
 

@@ -134,3 +134,104 @@ def generate_image(prompt: str, run_id: str, style_label: str) -> tuple[bytes, d
         "source": "url",
         "image_url": url[:200],
     }
+
+
+def _response_to_bytes(resp: Any) -> tuple[bytes, str]:
+    """Pull image bytes from an ImagesResponse item."""
+    import base64
+
+    item = resp.data[0]
+    b64 = getattr(item, "b64_json", None)
+    if b64:
+        return base64.b64decode(b64), "b64"
+    url = getattr(item, "url", None)
+    if not url:
+        raise RuntimeError("Imagine response had neither url nor b64_json")
+    with httpx.Client(timeout=120.0, follow_redirects=True) as http:
+        r = http.get(url)
+        r.raise_for_status()
+        return r.content, "url"
+
+
+def develop_from_field(
+    field_png: bytes,
+    prompt: str,
+    run_id: str,
+    style_label: str,
+    *,
+    input_fidelity: str = "high",
+) -> tuple[bytes, dict[str, Any]]:
+    """Structure-locked finish: field PNG is composition DNA; edit may only polish.
+
+    xAI /images/edits expects JSON: image.url = data:image/png;base64,...
+    (OpenAI SDK multipart is rejected.) Layout stays owned by the stream field.
+    """
+    if settings.DRY_RUN:
+        return field_png, {
+            "model": "dry-run-field",
+            "egress_bytes": 0,
+            "source": "local-field",
+            "develop": "passthrough",
+        }
+
+    import base64
+    import logging
+
+    log = logging.getLogger("tuna-starlink.imagine")
+    b64 = base64.b64encode(field_png).decode("ascii")
+    data_url = f"data:image/png;base64,{b64}"
+    endpoint = f"{settings.XAI_BASE_URL.rstrip('/')}/images/edits"
+    headers = {
+        "Authorization": f"Bearer {settings.XAI_API_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    def _post(payload: dict[str, Any]) -> bytes:
+        with httpx.Client(timeout=180.0, follow_redirects=True) as http:
+            r = http.post(endpoint, headers=headers, json=payload)
+            if r.status_code >= 400:
+                raise RuntimeError(f"edit HTTP {r.status_code}: {r.text[:400]}")
+            body = r.json()
+        data = (body.get("data") or [None])[0]
+        if not data:
+            raise RuntimeError(f"edit empty data: {body!r}"[:400])
+        if data.get("b64_json"):
+            return base64.b64decode(data["b64_json"])
+        url = data.get("url")
+        if not url:
+            raise RuntimeError(f"edit missing url/b64: {data!r}"[:400])
+        with httpx.Client(timeout=120.0, follow_redirects=True) as http:
+            img = http.get(url)
+            img.raise_for_status()
+            return img.content
+
+    base_payload: dict[str, Any] = {
+        "model": settings.XAI_IMAGE_MODEL,
+        "prompt": prompt,
+        "n": 1,
+        "image": {"url": data_url},
+    }
+    # Try high-fidelity first (may be ignored if unsupported)
+    attempts = [
+        {**base_payload, "input_fidelity": input_fidelity},
+        base_payload,
+    ]
+    last_err: Exception | None = None
+    for i, payload in enumerate(attempts):
+        try:
+            raw = _post(payload)
+            return raw, {
+                "model": settings.XAI_IMAGE_MODEL,
+                "egress_bytes": len(raw),
+                "source": "edit-json",
+                "develop": "edit",
+                "input_fidelity": payload.get("input_fidelity"),
+                "attempt": i + 1,
+            }
+        except Exception as e:
+            last_err = e
+            log.warning("develop attempt %s failed: %s", i + 1, e)
+
+    raise RuntimeError(
+        f"structure-locked develop failed (edit required for path 3): {last_err}"
+    ) from last_err
