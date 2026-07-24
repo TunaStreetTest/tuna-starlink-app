@@ -1,6 +1,6 @@
 # TunaStarLink App — Planet Hack
 
-World headlines → **news stream tap** → **Grok art director** → **xAI Imagine** → gallery → **@tunastarlink** on X.
+Cool tech wire (**SpaceX / GPU / AI models**) → **stream tap** → **Grok art director** → **xAI Imagine** (matrix CGI) → gallery → **@tunastarlink** on X.
 
 Series look: hacker-movie **3D digital cyberspace / hacking the planet**.  
 Home host: **Beelink SER9 (`TunaStarlink`)** on Starlink (also runs fine on a laptop).
@@ -13,8 +13,8 @@ Home host: **Beelink SER9 (`TunaStarlink`)** on Starlink (also runs fine on a la
 
 Each run:
 
-1. **Ingest** public RSS into a local news stream (`art/.news_stream.json`)
-2. **Single story** from the style’s news lane (full title + summary)
+1. **Ingest** cool-tech RSS (SpaceX, NVIDIA/GPU, AI model releases) into `art/.news_stream.json`
+2. **Single story** from the style’s lane (`space` / `ai` / `gpu`) — full title + summary
 3. **Art director** (Grok) metaphors that story into a visual brief
 4. **Imagine** (`grok-imagine-image`, ~$0.02, landscape 16:9)
 5. Save `art/<run_id>/art.png` + `meta.json`

@@ -1,10 +1,10 @@
-"""Lean news wire for Planet Hack — few free RSS streams, short peak evening.
+"""Lean cool-tech wire for Planet Hack — SpaceX / GPU / AI model news only.
 
 Cost rules:
   - RSS only by default (free). X Recent Search is opt-in + gated (see x_search).
-  - Four feeds max (one primary per lane). No NYT/Guardian/NPR fan-out.
+  - Small topic feeds + hard cool-tech filter (no politics / camels / lifestyle junk).
   - Ingest is TTL-cached so back-to-back generates do not re-hit every feed.
-  - Small stream file; small pack. Campaign is a few posts, not a news desk.
+  - Small stream file; single-story pack. Campaign is a few posts, not a news desk.
 """
 
 from __future__ import annotations
@@ -18,6 +18,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
+from urllib.parse import quote_plus
 
 import httpx
 
@@ -26,41 +27,84 @@ from services import art_store
 
 log = logging.getLogger("tuna-starlink.events")
 
-# One solid free feed per style lane. Do not grow this list casually.
+# Topic-scoped free RSS. Prefer Google News queries over general world desks.
+def _gnews(query: str) -> str:
+    # when:14d keeps the firehose small; US English edition.
+    q = f"{query} when:14d"
+    return (
+        "https://news.google.com/rss/search?"
+        f"q={quote_plus(q)}&hl=en-US&gl=US&ceid=US:en"
+    )
+
+
 _RSS_FEEDS: tuple[tuple[str, str, str], ...] = (
     # source_id, url, default_lane
-    ("bbc-world", "https://feeds.bbci.co.uk/news/world/rss.xml", "geopolitics"),
-    ("bbc-tech", "https://feeds.bbci.co.uk/news/technology/rss.xml", "tech"),
-    ("bbc-science", "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml", "science"),
-    ("bbc-business", "https://feeds.bbci.co.uk/news/business/rss.xml", "markets"),
+    ("gnews-spacex", _gnews("SpaceX OR Starship OR Starlink OR Falcon 9"), "space"),
+    ("gnews-gpu", _gnews("NVIDIA GPU OR H100 OR B200 OR Blackwell OR CUDA"), "gpu"),
+    ("gnews-ai", _gnews('OpenAI OR Anthropic OR "AI model" OR LLM OR Grok OR Claude'), "ai"),
+    # Ars as a tight secondary; still hard-filtered by cool-tech allowlist
+    ("ars-index", "https://feeds.arstechnica.com/arstechnica/index", "ai"),
 )
 
+# Style lanes → cool tech only (no geopolitics / markets / climate desks).
 _LANE_KEYWORDS: dict[str, tuple[str, ...]] = {
-    "geopolitics": (
-        "war", "ceasefire", "sanctions", "diplomat", "election", "nato", "military",
-        "invasion", "treaty", "president", "minister", "border", "missile", "ukraine",
-        "israel", "gaza", "iran", "china", "russia", "un ", "security council",
+    "space": (
+        "spacex", "starship", "starlink", "falcon", "crew dragon", "super heavy",
+        "orbital", "launch", "rocket", "satellite constellation", "mars", "iss",
     ),
+    "gpu": (
+        "nvidia", "gpu", "h100", "h200", "b100", "b200", "blackwell", "hopper",
+        "cuda", "tensor core", "ai chip", "accelerator", "semiconductor",
+        "amd mi", "tpu", "inference chip",
+    ),
+    "ai": (
+        "openai", "anthropic", "claude", "chatgpt", "gpt", "gemini", "grok",
+        "llm", "large language", "model release", "open weights", "checkpoint",
+        "mistral", "llama", "deepmind", "xai", "foundation model",
+    ),
+    # legacy aliases still accepted from older styles / configs
     "tech": (
-        "ai ", "artificial intelligence", "chip", "semiconductor", "cyber", "hack",
-        "software", "openai", "google", "apple", "microsoft", "nvidia", "gpu",
-        "startup", "app ", "internet", "crypto", "bitcoin", "robot",
+        "ai ", "gpu", "nvidia", "openai", "spacex", "cyber", "hack", "chip",
+        "software", "model", "llm", "starlink",
     ),
     "science": (
-        "nasa", "space", "climate", "energy", "fusion", "quantum", "research",
-        "scientist", "storm", "wildfire", "earthquake", "virus", "vaccine",
-        "telescope", "mars", "ocean", "species", "physics", "ebola", "nuclear",
+        "spacex", "starship", "starlink", "orbital", "satellite", "rocket",
     ),
+    "geopolitics": (),  # empty — never prefer political lane
     "markets": (
-        "market", "stock", "tariff", "fed ", "inflation", "bank", "trade",
-        "gdp", "recession", "bond", "dollar", "oil price", "layoff", "earnings",
-        "wall street", "economy", "price",
+        "nvidia", "gpu", "ai chip", "semiconductor", "datacenter",
     ),
 }
 
+# Must match at least one — keeps camels / elections / lifestyle out.
+_COOL_TECH_RE = re.compile(
+    r"\b("
+    r"spacex|starship|starlink|falcon\s*9|crew\s*dragon|super\s*heavy|"
+    r"nvidia|gpu|gpus|h100|h200|b100|b200|blackwell|hopper|cuda|tensor\s*core|"
+    r"openai|anthropic|claude|chatgpt|gpt-?\d|gemini|grok|llm|llms|"
+    r"large language|foundation model|model (release|launch|weights|checkpoint)|"
+    r"open[- ]?weights|inference|deepmind|mistral|llama|meta ai|xai|"
+    r"ai chip|accelerator|semiconductor|datacenter|data center|tpu|"
+    r"rocket launch|orbital|satellite constellation"
+    r")\b",
+    re.I,
+)
+
+_BLOCK_RE = re.compile(
+    r"\b("
+    r"camel|camels|election|senate|congress|democrat|republican|gop\b|"
+    r"gaza|hamas|ukraine|israel|war crime|bombing|airstrike|"
+    r"murder|homicide|celebrity|reality tv|football|nba|nfl|cricket|"
+    r"recipe|diet|pregnant|divorce|soap opera|immigration raid|"
+    r"tariff bill|stock market crash|fed rate"  # keep wire off pure politics/macro noise
+    r")\b",
+    re.I,
+)
+
 _STREAM_NAME = ".news_stream.json"
-_STREAM_MAX_ITEMS = 120
-_ITEMS_PER_FEED = 12
+_STREAM_SCHEMA = "cool-tech-v1"  # bump → wipe old politics/camel junk on next load
+_STREAM_MAX_ITEMS = 48  # leaner cache
+_ITEMS_PER_FEED = 8
 _PACK_SIZE = 1  # single story only — full text drives stream + image
 _X_SLOTS = 1
 _X_MIN_SCORE = 40
@@ -91,15 +135,36 @@ def _item_id(source: str, guid: str, link: str, title: str) -> str:
     return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:20]
 
 
+def _is_cool_tech(title: str, summary: str = "") -> bool:
+    """Hard gate: SpaceX / GPU / AI model universe only."""
+    blob = f"{title} {summary}"
+    if _BLOCK_RE.search(blob):
+        return False
+    return bool(_COOL_TECH_RE.search(blob))
+
+
 def _infer_lane(title: str, summary: str, default: str) -> str:
     blob = f"{title} {summary}".lower()
-    scores = {lane: 0 for lane in _LANE_KEYWORDS}
+    scores = {lane: 0 for lane in _LANE_KEYWORDS if _LANE_KEYWORDS[lane]}
     for lane, kws in _LANE_KEYWORDS.items():
+        if not kws:
+            continue
         for kw in kws:
             if kw in blob:
-                scores[lane] += 1
+                scores[lane] = scores.get(lane, 0) + 1
+    if not scores:
+        return default
     best = max(scores, key=lambda k: scores[k])
     if scores[best] == 0:
+        return default
+    # Map legacy aliases to primary cool lanes
+    if best in ("tech",):
+        return "ai"
+    if best in ("science",):
+        return "space"
+    if best in ("markets",):
+        return "gpu"
+    if best == "geopolitics":
         return default
     return best
 
@@ -128,6 +193,12 @@ def _parse_rss_items(
         desc = re.sub(r"<[^>]+>", " ", desc)
         desc = " ".join(desc.split())
         if not title:
+            continue
+        # Drop politics / lifestyle / off-theme noise before it hits the stream
+        if not _is_cool_tech(title, desc):
+            continue
+        # Reject stub titles ("SpaceX - SpaceX") and ultra-thin blurbs
+        if len(title) < 28 or title.count(" ") < 4:
             continue
         # Keep full summary so Generative Stream can fill the 280-char post field.
         line = title
@@ -160,16 +231,25 @@ def _parse_rss_items(
 def _load_stream() -> dict[str, Any]:
     path = _stream_path()
     if not path.is_file():
-        return {"items": [], "updated_at": None, "taps": 0}
+        return {"items": [], "updated_at": None, "taps": 0, "schema": _STREAM_SCHEMA}
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
         if not isinstance(data, dict):
-            return {"items": [], "updated_at": None, "taps": 0}
+            return {"items": [], "updated_at": None, "taps": 0, "schema": _STREAM_SCHEMA}
+        # Schema bump: discard old BBC world/camel/politics cache
+        if data.get("schema") != _STREAM_SCHEMA:
+            log.info(
+                "news stream schema %r → %r; resetting cache",
+                data.get("schema"),
+                _STREAM_SCHEMA,
+            )
+            return {"items": [], "updated_at": None, "taps": 0, "schema": _STREAM_SCHEMA}
         data.setdefault("items", [])
         data.setdefault("taps", 0)
+        data["schema"] = _STREAM_SCHEMA
         return data
     except (json.JSONDecodeError, OSError):
-        return {"items": [], "updated_at": None, "taps": 0}
+        return {"items": [], "updated_at": None, "taps": 0, "schema": _STREAM_SCHEMA}
 
 
 def _save_stream(data: dict[str, Any]) -> None:
@@ -177,6 +257,7 @@ def _save_stream(data: dict[str, Any]) -> None:
 
     path = _stream_path()
     path.parent.mkdir(parents=True, exist_ok=True)
+    data["schema"] = _STREAM_SCHEMA
     data["updated_at"] = _now()
     payload = json.dumps(data, indent=2, ensure_ascii=False) + "\n"
     fd, tmp = tempfile.mkstemp(dir=str(path.parent), suffix=".tmp")
@@ -388,9 +469,9 @@ def _pack_line(item: dict[str, Any]) -> str:
 
 
 _PRIMARY_BOOST = re.compile(
-    r"\b(hack|rogue|breach|war|ceasefire|sanction|missile|nuclear|"
-    r"launch|openai|nvidia|election|storm|wildfire|ebola|vaccine|"
-    r"tariff|inflation|earnings|indict)\b",
+    r"\b(spacex|starship|starlink|nvidia|gpu|h100|b200|blackwell|"
+    r"openai|anthropic|claude|gpt|grok|llm|model release|launch|"
+    r"cuda|inference|open.?weights)\b",
     re.I,
 )
 
@@ -403,6 +484,8 @@ def _primary_rank(item: dict[str, Any]) -> int:
         score += 8
     if _PRIMARY_BOOST.search(title):
         score += 25
+    if not _is_cool_tech(title, item.get("summary") or item.get("line") or ""):
+        score -= 100
     n = len(title)
     if 40 <= n <= 140:
         score += 10
@@ -481,8 +564,8 @@ async def get_events(
     if settings.DRY_RUN:
         stamp = datetime.now(timezone.utc).strftime("%H%M%S")
         lines = [
-            f"Dry-run primary story {stamp}: markets and power grids shift overnight",
-            "Dry-run secondary: chipmakers race for energy contracts",
+            f"Dry-run {stamp}: SpaceX Starship stacks for next orbital flight test "
+            "while NVIDIA ships next-gen AI GPUs and labs drop open-weight models."
         ]
         return (
             format_bullets(lines),
@@ -491,7 +574,15 @@ async def get_events(
         )
 
     rid = run_id or f"tap-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
-    lane = (lane or "geopolitics").lower().strip()
+    # Map style lanes → cool-tech lanes
+    lane_raw = (lane or "ai").lower().strip()
+    lane_map = {
+        "geopolitics": "space",
+        "science": "space",
+        "tech": "ai",
+        "markets": "gpu",
+    }
+    lane = lane_map.get(lane_raw, lane_raw)
     mode = (settings.EVENTS_SOURCE or "stream").lower().strip()
 
     # --- lean RSS (TTL-cached) ---
@@ -603,7 +694,8 @@ async def get_events(
     return (
         format_bullets(
             [
-                "Global markets and power systems shift under pressure from competing headlines",
+                "NVIDIA AI GPUs and open-weight LLMs reshape the compute stack "
+                "while SpaceX pads stack the next Starship flight — pure tech wire.",
             ]
         ),
         "fallback-static",

@@ -1,20 +1,21 @@
 # Planet Hack — digital series for @tunastarlink
-# Session 2 rebalance: dialed back from scrapyard, but NOT sparse void.
-# Target: one clear hero + rich supporting atmosphere + expressive franchise palette.
-# Share / add styles: see docs/STYLE-SEEDS.md
+# Cool-tech wire: SpaceX / GPU / AI model releases only.
+# Visual north star: true hacker-movie matrix — dense neon code-rain architecture.
 
 series:
   name: Planet Hack
-  tagline: One story from the wire, remixed as 3D digital art.
-  # Franchise constants only — per-style seeds own camera + density.
+  tagline: Cool tech from the wire, remixed as matrix CGI.
   shared_lock: >
     HARD RULES: 3D digital CGI only. Wide 16:9 landscape full-bleed frame.
-    One clear hero PLUS rich supporting atmosphere (rings, light shafts, particles,
-    secondary structure) — cinematic and layered, never empty black void, never scrapyard soup.
-    Franchise palette MUST include electric cyan AND magenta signal accents on void black;
-    gold and/or acid-green as allowed by the style notes. High contrast, volumetric light.
-    No readable text, logos, flags, photoreal people, or real city maps.
-    NOT oil paint. NOT a corporate tech banner. NOT a lone object floating in empty space.
+    TRUE HACKER MATRIX energy: luminous code-rain, glyph streams, neon lattice,
+    phosphor green + electric cyan + hot magenta on deep void black, high contrast.
+    One clear hero PLUS dense supporting atmosphere (packet rivers, glyph sheets,
+    rack-light, orbital data) — cinematic and layered, never empty black void,
+    never scrapyard soup, never soft lifestyle tech ad.
+    Push TECH VOLUME: silicon, fiber, rocket telemetry, GPU die light, neural mesh —
+    the scene should feel like the mainframe is awake.
+    No readable product logos, flags, photoreal people, or real city maps.
+    NOT oil paint. NOT a corporate SaaS banner. NOT a lonely object in empty space.
 
 default: data-tunnel
 
@@ -22,66 +23,68 @@ styles:
   planet-core:
     label: Planet Core
     hashtag: PlanetCore
-    lane: geopolitics
-    description: Planetary mainframe core — cracked data-Earth, layered rings, root energy.
+    lane: space
+    description: Planetary mainframe core — Starship-scale orbital compute, matrix Earth.
     art_director_notes: >
-      Geopolitics / global-order story as metaphor only. INTERIOR of a planetary computer core
-      (not a lonely planet in black space). Hero: cracked wireframe/data-Earth OR glowing root
-      node jacked into the core, with layered orbital data rings, volumetric god-rays, and
-      controlled pixel dust / packet rivers as atmosphere. Depth and scale must feel huge.
-      Density: mid-high — interesting architecture, not empty, not junk pile.
-      Palette EXPRESSIVE: void black base + electric cyan + magenta signal + soft gold Earth-limb
-      (acid-green optional spark). Mood: gravity, pressure, hacker-movie climax calm-before-storm.
-      Camera: low-angle or centered deep interior, wide FOV, 16:9 full-bleed.
+      SpaceX / orbital / Starlink story as metaphor only. INTERIOR of a planetary-scale
+      computer core (not a lonely planet in black space). Hero: wireframe data-Earth OR
+      glowing root node jacked into the core, with orbital data rings, Starlink-mesh light,
+      volumetric god-rays, dense cyan-magenta-green glyph dust. Density: HIGH matrix —
+      code-rain sheets in depth, not empty void. Mood: launch pressure, hacker climax.
+      Camera: low-angle deep interior, wide FOV, 16:9 full-bleed.
     prompt_seed: >
       Wide 16:9 cinematic landscape, deep interior of a planetary-scale computer core,
       cracked holographic wireframe Earth as hero, layered orbital data rings with fractures,
-      glowing root node and energy spike, volumetric cyan and magenta god-rays through data fog,
-      soft gold limb light, controlled voxel dust and packet rivers, atmospheric depth and scale,
-      ArtStation CGI cyberspace, full-bleed horizontal — not empty void, not scrapyard
+      Starlink-mesh light veins, dense matrix code-rain and glyph sheets in volumetric fog,
+      glowing root node and energy spike, electric cyan magenta and phosphor green on void black,
+      ArtStation CGI cyberspace hacker-movie still, full-bleed horizontal — not empty void
 
   data-tunnel:
     label: Data Tunnel
     hashtag: DataTunnel
-    lane: tech
-    description: Speed tunnel — vanishing-point conduit with luminous energy walls.
+    lane: ai
+    description: Speed tunnel — AI model weights / inference packets at light-speed.
     art_director_notes: >
-      Tech / AI / infrastructure story as metaphor. Strong tunnel axis, motion, far glow.
-      Geometric conduit walls with readable energy structure — kinetic and saturated,
-      not sparse black pipe. Mid density: streaks, wall detail, horizon bloom.
-      Palette EXPRESSIVE: cyan dominant walls + magenta accents + void black + optional acid-green sparks.
+      AI model release / LLM / inference story as metaphor. Strong tunnel axis, motion,
+      far model-core glow. Conduit walls of geometric code and weight tensors — kinetic,
+      saturated, dense matrix rain sliding along the walls. Mid-high density: streaks,
+      glyph detail, horizon bloom. Palette: cyan dominant + magenta + acid-green sparks.
+      Camera: extreme FOV vanishing point, 16:9 full-bleed.
     prompt_seed: >
       Wide 16:9 landscape, high-speed cyberspace data tunnel, strong vanishing point,
-      luminous geometric conduit walls with cyan energy lines and magenta accents,
-      motion streaks, far root-light bloom, kinetic depth, volumetric haze,
-      extreme FOV, full-bleed horizontal
+      luminous geometric conduit walls of matrix code and neural-weight lattice,
+      cyan energy lines and magenta accents, phosphor-green packet rain, motion streaks,
+      far AI model-core bloom, kinetic depth, volumetric haze, extreme FOV,
+      hacker-movie CGI, full-bleed horizontal
 
   signal-cathedral:
     label: Signal Cathedral
     hashtag: SignalCathedral
-    lane: science
-    description: Signal megastructure — soaring beams, dishes, stained-glass light.
+    lane: space
+    description: Signal megastructure — Starlink / RF cathedral of pure matrix light.
     art_director_notes: >
-      Science / space / climate / energy story as metaphor. Wide cathedral interior with
-      soaring signal beams, parabolic dishes, volumetric light panels — airy but PRESENT,
-      stained-glass neon scale. Vertical architecture in a horizontal frame.
-      Palette EXPRESSIVE: void + cyan + magenta + soft gold (acid-green edge allowed).
+      Starlink / RF / space-comms story as metaphor. Wide cathedral interior of soaring
+      signal beams and dish geometry, stained-glass neon made of glyph panes — dense
+      matrix atmosphere, not empty air. Vertical architecture in a horizontal frame.
+      Palette: void + cyan + magenta + soft gold + acid-green edge. Mood: transmission.
     prompt_seed: >
       Wide 16:9 landscape, colossal digital signal cathedral interior, soaring neon beams
-      and parabolic dish geometry, volumetric cyan-magenta-gold light through dark volumes,
-      pixel-stained glass glow, epic open composition with layered depth, full-bleed horizontal
+      and parabolic dish geometry, volumetric cyan-magenta-gold light through glyph-stained
+      glass, dense matrix code-rain in the nave, epic layered depth, full-bleed horizontal,
+      hacker-movie CGI cyberspace
 
   rootkit-city:
     label: Rootkit City
     hashtag: RootkitCity
-    lane: markets
-    description: Circuit metropolis — skyline plus one bright infiltration path.
+    lane: gpu
+    description: Circuit metropolis — GPU die / datacenter skyline under infiltration.
     art_director_notes: >
-      Markets / power / civic story as metaphor. Circuit-board tower city at night with
-      ONE bright rewrite/infiltration path. Clear skyline, layered depth, grid glow —
-      intentional city detail without noise soup.
-      Palette EXPRESSIVE: acid-green infiltration path + dark cyan grid + magenta signal nodes + void.
+      GPU / NVIDIA / silicon / datacenter story as metaphor. Circuit-board tower city at
+      night as a giant GPU die skyline, ONE bright acid-green rewrite path. Dense grid
+      glow, rack lights, matrix rain between towers — intentional city detail, not noise soup.
+      Palette: acid-green path + dark cyan grid + magenta nodes + void. Mood: root access.
     prompt_seed: >
-      Wide 16:9 landscape, circuit-board metropolis skyline at night, clear tower silhouettes,
-      bright acid-green infiltration path cutting the city, dark cyan grid and magenta signal nodes,
-      layered depth, readable cinematic digital city, full-bleed horizontal
+      Wide 16:9 landscape, circuit-board metropolis skyline like a colossal GPU die at night,
+      clear tower silhouettes, bright acid-green infiltration path cutting the city,
+      dark cyan grid and magenta signal nodes, dense matrix code-rain between towers,
+      layered depth, readable cinematic digital city, hacker-movie CGI, full-bleed horizontal
