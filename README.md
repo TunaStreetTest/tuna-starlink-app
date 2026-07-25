@@ -24,14 +24,14 @@ Downloads: `planethack_<run_id>.png`.
 
 ### Styles
 
-| id | Shot |
-|---|---|
-| `planet-core` | Planetary mainframe core |
-| `data-tunnel` | Packet tunnel flythrough |
-| `signal-cathedral` | Signal megastructure (wide landscape) |
-| `rootkit-city` | Circuit metropolis mid-infiltration |
+| id | Lane | Shot |
+|---|---|---|
+| `planet-core` | space | Planetary mainframe / orbital compute |
+| `data-tunnel` | ai | AI model / inference packet tunnel |
+| `signal-cathedral` | space | Starlink / RF signal cathedral |
+| `rootkit-city` | gpu | GPU die / datacenter circuit city |
 
-Peak schedule (**7–10pm ET**, every **21m**) picks a style at random. Studio dropdown for manual runs.  
+Studio dropdown for manual runs (schedule **off** by default).  
 Share new styles: [`docs/STYLE-SEEDS.md`](docs/STYLE-SEEDS.md).
 
 ---
@@ -43,9 +43,25 @@ cd ~/tuna-starlink-app
 cp backend/.env.example backend/.env.local
 # fill keys — see .env section below
 
-make backend     # http://127.0.0.1:8010
+make backend     # http://127.0.0.1:8010  (dev only — dies with the shell)
 make frontend    # http://127.0.0.1:5174  (proxies /api → :8010)
 ```
+
+### Run as a service (survives Grok / logout)
+
+On Beelink WSL (recommended):
+
+```bash
+cd ~/tuna-starlink-app
+make install-backend
+# optional UI: cd frontend && npm install && npm run build && cp -r dist/* ../backend/static/
+bash scripts/install-persist.sh
+# http://127.0.0.1:8010
+systemctl --user status tuna-starlink
+```
+
+Details: [`docs/BEELINK-INSTALL.md`](docs/BEELINK-INSTALL.md) §4C.  
+Docker alternative: `docker compose up --build -d` → **http://127.0.0.1:8091** (`restart: unless-stopped`).
 
 Zero-cost plumbing test:
 
@@ -168,42 +184,42 @@ DRY_RUN=1 ART_STORAGE_PATH=./art python worker/run_once.py --style data-tunnel
 
 ## Build stats (whole repo)
 
-Four Grok Build sessions, model **grok-4.5**.  
-Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2](docs/STATS-SESSION-2.md) · [S3](docs/STATS-SESSION-3.md) · [S4](docs/STATS-SESSION-4.md).
+Five Grok Build sessions, model **grok-4.5**.  
+Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2](docs/STATS-SESSION-2.md) · [S3](docs/STATS-SESSION-3.md) · [S4](docs/STATS-SESSION-4.md) · [S5](docs/STATS-SESSION-5.md).
 
 ### Lines of code (current repo)
 
 | Area | Lines |
 |---|---:|
-| Python (`backend/`, `worker/`, `scripts/`) | **3,291** |
+| Python (`backend/`, `worker/`, `scripts/`) | **3,384** |
 | Frontend (`frontend/src`) | **1,165** |
-| Style seeds + compose YAML | **135** |
-| **Application code** | **~4,591** |
-| Docs (`docs/`, README, GROK) | **1,524** |
+| Style seeds + compose YAML | **138** |
+| **Application code** | **~4,687** |
+| Docs (`docs/`, README, GROK) | **1,705** |
 | Makefile / Dockerfile / `.env.example` / samples | **129** |
-| **All product files** | **~6,244** |
+| **All product files** | **~6,521** |
 
-(Excludes `node_modules`, `.venv`, generated `art/`, lockfiles.) S3→S4 ≈ **+335** app / **~+450** product.
+(Excludes `node_modules`, `.venv`, generated `art/`, lockfiles.) S4→S5 ≈ **+96** app / **~+277** product (cool-tech wire + service docs).
 
-### Combined session activity (S1–S4)
+### Combined session activity (S1–S5)
 
 | Metric | Value |
 |---|---:|
-| Active engineering time | **~7.3–7.5 hours** (excludes idle) |
-| User turns | **89** |
-| Assistant messages | **385** |
-| Tool calls | **806** |
+| Active engineering time | **~8.0–8.3 hours** (excludes idle) |
+| User turns | **100** |
+| Assistant messages | **426** |
+| Tool calls | **865** |
 | Compactions | **2** |
-| Files touched (sum of snapshots) | **102** |
-| Agent lines added | **~7,396** |
-| Agent lines removed | **~764** |
+| Files touched (sum of snapshots) | **111** |
+| Agent lines added | **~7,839** |
+| Agent lines removed | **~924** |
 
 ### Tokens
 
 | What | Value |
 |---|---:|
 | Context window | **500,000** |
-| Context in use at Session 4 wrap | **~219,794** (~**44%**) |
+| Context in use at Session 5 wrap | **~266,596** (~**53%**) |
 | Lifetime billed in/out tokens | **Not exposed** — xAI / Grok Build dashboard |
 
 `contextTokensUsed` is **window occupancy**, not the sum of every turn.
@@ -212,11 +228,10 @@ Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2]
 
 | Item | Estimate |
 |---|---:|
-| Live gallery Imagine images | **19** × ~$0.02 ≈ **~$0.38** |
+| Live gallery Imagine images | **31** × ~$0.02 ≈ **~$0.62** |
 | Experiment images (non-field) | **~17** × ~$0.02 ≈ **~$0.34** |
-| X posts recorded (this host) | **~4** |
 | X Recent Search | **OFF** |
-| Unattended schedule | **OFF** (manual generate) |
+| Unattended schedule | **OFF** (service keeps API up; generate is manual) |
 
 ---
 
@@ -235,6 +250,7 @@ Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2]
 | [`docs/STATS-SESSION-2.md`](docs/STATS-SESSION-2.md) | Session 2 tallies |
 | [`docs/STATS-SESSION-3.md`](docs/STATS-SESSION-3.md) | Session 3 tallies (cost control) |
 | [`docs/STATS-SESSION-4.md`](docs/STATS-SESSION-4.md) | Session 4 tallies (experiments + restore) |
+| [`docs/STATS-SESSION-5.md`](docs/STATS-SESSION-5.md) | Session 5 tallies (cool-tech wire + service) |
 | [`GROK.md`](GROK.md) | Agent rules |
 
 ---
@@ -242,9 +258,11 @@ Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2]
 ## Layout
 
 ```text
-backend/     FastAPI + pipeline + news stream + X publish
+backend/     FastAPI + pipeline + cool-tech stream + X publish
 frontend/    Studio + Gallery control plane
 worker/      one-shot CLI
+deploy/      systemd unit (tuna-starlink.service)
+scripts/     install-persist.sh (user service)
 docs/        install, styles, creative, stats
 art/         generated assets (gitignored content)
 scripts/     X OAuth pin finish helper

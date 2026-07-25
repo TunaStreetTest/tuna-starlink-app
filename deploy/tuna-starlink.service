@@ -1,0 +1,19 @@
+[Unit]
+Description=TunaStarLink Planet Hack (uvicorn)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/tuna-starlink-app/backend
+Environment=ART_STORAGE_PATH=%h/tuna-starlink-app/art
+# Keys load from backend/.env.local via pydantic Settings
+ExecStart=%h/tuna-starlink-app/backend/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8010
+Restart=always
+RestartSec=5
+# Don't kill on idle; keep art on disk
+StandardOutput=append:%h/tuna-starlink-app/uvicorn.log
+StandardError=append:%h/tuna-starlink-app/uvicorn.log
+
+[Install]
+WantedBy=default.target
