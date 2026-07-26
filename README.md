@@ -26,8 +26,9 @@ Downloads: `planethack_<run_id>.png`.
 
 | id | Lane | Shot |
 |---|---|---|
+| `data-space` | space | Deep space — planet(s), star, SpaceX-inspired craft (varies) |
 | `planet-core` | space | Planetary mainframe / orbital compute |
-| `data-tunnel` | ai | AI model / inference packet tunnel |
+| `data-tunnel` | ai | Speed data tunnel (classic vanishing-point) |
 | `signal-cathedral` | space | Starlink / RF signal cathedral |
 | `rootkit-city` | gpu | GPU die / datacenter circuit city |
 
@@ -184,42 +185,42 @@ DRY_RUN=1 ART_STORAGE_PATH=./art python worker/run_once.py --style data-tunnel
 
 ## Build stats (whole repo)
 
-Five Grok Build sessions, model **grok-4.5**.  
-Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2](docs/STATS-SESSION-2.md) · [S3](docs/STATS-SESSION-3.md) · [S4](docs/STATS-SESSION-4.md) · [S5](docs/STATS-SESSION-5.md).
+Six Grok Build sessions, model **grok-4.5**.  
+Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2](docs/STATS-SESSION-2.md) · [S3](docs/STATS-SESSION-3.md) · [S4](docs/STATS-SESSION-4.md) · [S5](docs/STATS-SESSION-5.md) · [S6](docs/STATS-SESSION-6.md).
 
 ### Lines of code (current repo)
 
 | Area | Lines |
 |---|---:|
-| Python (`backend/`, `worker/`, `scripts/`) | **3,384** |
+| Python (`backend/`, `worker/`, `scripts/`) | **3,446** |
 | Frontend (`frontend/src`) | **1,165** |
-| Style seeds + compose YAML | **138** |
-| **Application code** | **~4,687** |
-| Docs (`docs/`, README, GROK) | **1,705** |
+| Style seeds + compose YAML | **170** |
+| **Application code** | **~4,781** |
+| Docs (`docs/`, README, GROK) | **1,700** |
 | Makefile / Dockerfile / `.env.example` / samples | **129** |
-| **All product files** | **~6,521** |
+| **All product files** | **~6,610** |
 
-(Excludes `node_modules`, `.venv`, generated `art/`, lockfiles.) S4→S5 ≈ **+96** app / **~+277** product (cool-tech wire + service docs).
+(Excludes `node_modules`, `.venv`, generated `art/`, lockfiles.) S5→S6 ≈ **+94** app / **~+89** product (Data Space + art locks).
 
-### Combined session activity (S1–S5)
+### Combined session activity (S1–S6)
 
 | Metric | Value |
 |---|---:|
-| Active engineering time | **~8.0–8.3 hours** (excludes idle) |
-| User turns | **100** |
-| Assistant messages | **426** |
-| Tool calls | **865** |
+| Active engineering time | **~8.6–9.0 hours** (excludes idle) |
+| User turns | **107** |
+| Assistant messages | **453** |
+| Tool calls | **920** |
 | Compactions | **2** |
-| Files touched (sum of snapshots) | **111** |
-| Agent lines added | **~7,839** |
-| Agent lines removed | **~924** |
+| Files touched (sum of snapshots) | **122** |
+| Agent lines added | **~8,371** |
+| Agent lines removed | **~1,140** |
 
 ### Tokens
 
 | What | Value |
 |---|---:|
 | Context window | **500,000** |
-| Context in use at Session 5 wrap | **~266,596** (~**53%**) |
+| Context in use at Session 6 wrap | **~308,787** (~**62%**) |
 | Lifetime billed in/out tokens | **Not exposed** — xAI / Grok Build dashboard |
 
 `contextTokensUsed` is **window occupancy**, not the sum of every turn.
@@ -228,7 +229,7 @@ Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2]
 
 | Item | Estimate |
 |---|---:|
-| Live gallery Imagine images | **31** × ~$0.02 ≈ **~$0.62** |
+| Live gallery Imagine images | **44** × ~$0.02 ≈ **~$0.88** |
 | Experiment images (non-field) | **~17** × ~$0.02 ≈ **~$0.34** |
 | X Recent Search | **OFF** |
 | Unattended schedule | **OFF** (service keeps API up; generate is manual) |
@@ -251,6 +252,7 @@ Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2]
 | [`docs/STATS-SESSION-3.md`](docs/STATS-SESSION-3.md) | Session 3 tallies (cost control) |
 | [`docs/STATS-SESSION-4.md`](docs/STATS-SESSION-4.md) | Session 4 tallies (experiments + restore) |
 | [`docs/STATS-SESSION-5.md`](docs/STATS-SESSION-5.md) | Session 5 tallies (cool-tech wire + service) |
+| [`docs/STATS-SESSION-6.md`](docs/STATS-SESSION-6.md) | Session 6 tallies (Data Space + art polish) |
 | [`GROK.md`](GROK.md) | Agent rules |
 
 ---

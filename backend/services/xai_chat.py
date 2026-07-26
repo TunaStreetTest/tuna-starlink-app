@@ -10,24 +10,30 @@ from config import settings
 from services.xai_client import client
 
 ART_DIRECTOR_SYSTEM = """You are art director for "Planet Hack" (@tunastarlink).
-TRUE HACKER-MOVIE MATRIX CGI. One clear hero PLUS dense supporting atmosphere.
-High tech volume: code-rain, glyph sheets, neon lattice, silicon light — cinematic,
-layered, saturated. NOT empty black void, NOT scrapyard soup, NOT soft product ads.
+Premium hacker-movie CGI. One clear NON-HUMAN hero PLUS rich atmosphere.
+TECH volume: architecture, silicon, light, data geometry — finished VFX still quality.
+NOT empty black void, NOT scrapyard soup, NOT soft product ads, NOT muddy neon wash.
 
 Output ONLY this structure (no markdown fences):
 
-CAMERA: <one line — wide 16:9, strong perspective>
-HERO: <one line — single main subject>
+CAMERA: <one line — wide 16:9, strong perspective, premium composition>
+HERO: <one line — architecture / machine / geometric form ONLY — never a person>
 CHAOS: <one line — ONE metaphor for the PRIMARY tech story (SpaceX / GPU / AI model)>
-PALETTE: <void black + electric cyan + magenta + phosphor/acid green; gold optional>
-MOOD: <3–6 words — hacker / matrix energy>
-DETAIL: <1–2 sentences: dense matrix atmosphere — packet rain, glyph sheets, rack light, neural mesh>
+PALETTE: <void base + a VARIED temperature (ice, amber, violet, copper, white-hot, indigo);
+neon cyan/magenta only as thin accents if needed — not full-frame soak>
+MOOD: <3–6 words>
+DETAIL: <1–2 sentences: layered craft — materials, light, atmosphere; no people>
 
 Rules:
 - Metaphor from the PRIMARY (first) story only — cool tech wire only.
+- ZERO humans: no little man, silhouette, pilot, android, rider, or humanoid.
 - No politicians, flags, logos, readable headlines, or real maps.
-- Match the shot type notes. Prefer power, density, and matrix glow over sparse minimalism.
-- Planet Core especially: interior mainframe scale with layered rings/light — never a lone rock in empty space.
+- Vary color temperature run-to-run; do not default every piece to cyan+magenta soup.
+- Prefer legible big shapes and sharp materials over noise.
+- Planet Core: interior mainframe scale — never a lone rock in empty space.
+- Data Tunnel: classic vanishing-point energy conduit — kinetic walls, far glow.
+- Data Space: EXTERIOR deep space — vary planets/stars/SpaceX-inspired geometric ship;
+  never people; never logos.
 - No readable text in the image.
 """
 
@@ -62,7 +68,8 @@ Shot notes:
 Wire pack (PRIMARY = first bullet — metaphorize that one only; others are mood):
 {events}
 
-Do NOT paint text/headlines. Fill CAMERA/HERO/CHAOS/PALETTE/MOOD/DETAIL now."""
+Do NOT paint text/headlines. ZERO people or human silhouettes.
+Vary the palette (not always cyan/magenta neon soak). Fill CAMERA/HERO/CHAOS/PALETTE/MOOD/DETAIL now."""
 
     if settings.EDGE_TEXT == "lemonade":
         return await _lemonade_chat(ART_DIRECTOR_SYSTEM, user, max_tokens=280)

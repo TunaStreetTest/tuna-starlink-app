@@ -13,8 +13,29 @@ from config import settings
 _STYLES_FILE = Path(__file__).resolve().parent.parent / "prompts" / "styles.yaml"
 
 # Fallback if yaml missing fields
-_LANE_DEFAULT = "geopolitics"
+_LANE_DEFAULT = "space"
 _HASHTAG_DEFAULT = "PlanetHack"
+
+# Per-run scene recipes for data-space (keeps spatial variety without boring tunnels)
+_DATA_SPACE_SCENES = (
+    "SCENE: single large holographic data-planet as hero, cracked wireframe continents, "
+    "thin orbital data rings, deep indigo void, soft gold limb light, no ship.",
+    "SCENE: multi-planet system — three to five worlds at different depths and sizes, "
+    "one closer hero planet with data-ring, others receding, no ship required.",
+    "SCENE: bright star (or binary) dominates the frame with lens-flare energy; "
+    "one small data-planet as secondary; star is the emotional hero.",
+    "SCENE: SpaceX-inspired geometric starship as pure machine silhouette "
+    "(stainless stacked body, abstract grid fins, engine plume light) — no logos, "
+    "no crew windows with people, alone against deep space and sparse data-mesh.",
+    "SCENE: SpaceX-inspired geometric starship near a large data-planet, "
+    "orbital approach composition, plume and planet limb light, no people.",
+    "SCENE: Starlink-like constellation mesh of many small satellites as a glowing net "
+    "wrapping a dark planet; planet + mesh are the dual hero; no crewed ship.",
+    "SCENE: planetary system edge-on with a bright accretion-like data disk and "
+    "one ringed world; cinematic scale; optional tiny geometric ship as accent only.",
+    "SCENE: two planets in conjunction (near-overlap) with a star rising between them; "
+    "holographic telemetry arcs; no people.",
+)
 
 
 @lru_cache(maxsize=1)
@@ -85,8 +106,42 @@ def get_style(style_id: str | None = None) -> dict[str, Any]:
     }
 
 
+def _palette_steer(art_brief: str, style_id: str) -> str:
+    """Nudge Imagine off the default cyan/magenta soak with a stable per-run accent."""
+    import hashlib
+
+    accents = (
+        "Palette steer: ice-white and cobalt primary; neon only as thin edge accents.",
+        "Palette steer: amber-copper heat with graphite metal; violet only in deep shadows.",
+        "Palette steer: deep indigo and soft gold; phosphor green as sparse signal only.",
+        "Palette steer: steel-silver and white-hot core light; electric violet rims.",
+        "Palette steer: charcoal and bronze architecture; acid-green as a single path accent.",
+        "Palette steer: amethyst and cool white beams; cyan only in distant fog.",
+    )
+    h = hashlib.sha256(f"{style_id}|{art_brief[:120]}".encode()).digest()
+    return accents[h[0] % len(accents)]
+
+
+def _data_space_scene(art_brief: str) -> str:
+    """Pick a spatial recipe so runs vary: planet(s), star, SpaceX-inspired ship, etc."""
+    import hashlib
+
+    h = hashlib.sha256(art_brief.encode()).digest()
+    return _DATA_SPACE_SCENES[h[0] % len(_DATA_SPACE_SCENES)]
+
+
 def build_imagine_prompt(art_brief: str, style: dict[str, Any]) -> str:
     seed = (style.get("prompt_seed") or "").strip()
     brief = art_brief.strip()
     lock = (style.get("shared_lock") or "").strip()
-    return "\n\n".join(p for p in (seed, brief, lock) if p)
+    style_id = str(style.get("id") or "")
+    steer = _palette_steer(brief, style_id)
+    quality = (
+        "Render quality: ultra-premium cinematic still, sharp micro-detail, clean geometry, "
+        "deep volumetric light, no people or human silhouettes."
+    )
+    parts = [seed]
+    if style_id in ("data-space", "data_space"):
+        parts.append(_data_space_scene(brief or seed))
+    parts.extend([brief, steer, quality, lock])
+    return "\n\n".join(p for p in parts if p)
