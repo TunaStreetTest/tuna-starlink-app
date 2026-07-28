@@ -45,7 +45,7 @@ Counted at Session 7 wrap (**2026-07-28**). Excludes `node_modules`, `.venv`, `a
 | S3 → S4 | ~+335 | ~+450 |
 | S4 → S5 | ~+96 | ~+277 |
 | S5 → S6 | ~+94 | ~+89 |
-| S6 → S7 | **~−30** | **~+190** |
+| S6 → S7 | **~−30** | **~+192** |
 
 *(S7 app LOC down slightly: deleted list-only `StudioGallery` after merge; news + color logic grew Python.)*
 
@@ -54,7 +54,7 @@ Counted at Session 7 wrap (**2026-07-28**). Excludes `node_modules`, `.venv`, `a
 | Ext | Lines |
 |---|---:|
 | `.py` | 3,662 |
-| `.md` | ~1,920 |
+| `.md` | 1,922 |
 | `.tsx` / `.ts` / `.css` | 905 |
 | `.yaml` / `.yml` | 184 |
 | other | ~129 |
