@@ -1,10 +1,10 @@
-"""Lean cool-tech wire for Planet Hack — SpaceX / GPU / AI model news only.
+"""Lean cool-tech wire for Planet Hack — SpaceX / Tesla / xAI / NVIDIA / AI only.
 
 Cost rules:
   - RSS only by default (free). X Recent Search is opt-in + gated (see x_search).
-  - Small topic feeds + hard cool-tech filter (no politics / camels / lifestyle junk).
-  - Ingest is TTL-cached so back-to-back generates do not re-hit every feed.
-  - Small stream file; single-story pack. Campaign is a few posts, not a news desk.
+  - Tiny focused feed set (few posts/day — not a news desk).
+  - Ingest is TTL-cached; items expire by publish age so we never post week-old wire.
+  - Single-story pack; ALWAYS prefer newest unconsumed story (never oldest).
 """
 
 from __future__ import annotations
@@ -15,7 +15,8 @@ import logging
 import re
 import tempfile
 import xml.etree.ElementTree as ET
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 from typing import Any, Iterable
 from urllib.parse import quote_plus
@@ -29,21 +30,20 @@ log = logging.getLogger("tuna-starlink.events")
 
 # Topic-scoped free RSS. Prefer Google News queries over general world desks.
 def _gnews(query: str) -> str:
-    # when:14d keeps the firehose small; US English edition.
-    q = f"{query} when:14d"
+    # Short window only — few posts/day; never stockpile two weeks of wire.
+    q = f"{query} when:3d"
     return (
         "https://news.google.com/rss/search?"
         f"q={quote_plus(q)}&hl=en-US&gl=US&ceid=US:en"
     )
 
 
+# Dialed-back source set (3 feeds). Hard-focused on the brands we post about.
 _RSS_FEEDS: tuple[tuple[str, str, str], ...] = (
     # source_id, url, default_lane
-    ("gnews-spacex", _gnews("SpaceX OR Starship OR Starlink OR Falcon 9"), "space"),
-    ("gnews-gpu", _gnews("NVIDIA GPU OR H100 OR B200 OR Blackwell OR CUDA"), "gpu"),
-    ("gnews-ai", _gnews('OpenAI OR Anthropic OR "AI model" OR LLM OR Grok OR Claude'), "ai"),
-    # Ars as a tight secondary; still hard-filtered by cool-tech allowlist
-    ("ars-index", "https://feeds.arstechnica.com/arstechnica/index", "ai"),
+    ("gnews-spacex", _gnews("SpaceX OR Starship OR Starlink OR Falcon"), "space"),
+    ("gnews-tesla-xai", _gnews("Tesla OR Optimus OR xAI OR Grok OR Dojo"), "ai"),
+    ("gnews-nvidia-ai", _gnews("NVIDIA OR Blackwell OR OpenAI OR Anthropic OR LLM"), "gpu"),
 )
 
 # Style lanes → cool tech only (no geopolitics / markets / climate desks).
@@ -51,28 +51,30 @@ _LANE_KEYWORDS: dict[str, tuple[str, ...]] = {
     "space": (
         "spacex", "starship", "starlink", "falcon", "crew dragon", "super heavy",
         "orbital", "launch", "rocket", "satellite constellation", "mars", "iss",
+        "raptor", "dragon capsule",
     ),
     "gpu": (
         "nvidia", "gpu", "h100", "h200", "b100", "b200", "blackwell", "hopper",
         "cuda", "tensor core", "ai chip", "accelerator", "semiconductor",
-        "amd mi", "tpu", "inference chip",
+        "tpu", "inference chip", "gb200", "rubin",
     ),
     "ai": (
         "openai", "anthropic", "claude", "chatgpt", "gpt", "gemini", "grok",
         "llm", "large language", "model release", "open weights", "checkpoint",
         "mistral", "llama", "deepmind", "xai", "foundation model",
+        "tesla", "optimus", "dojo", "fsd", "full self-driving", "robotaxi",
     ),
     # legacy aliases still accepted from older styles / configs
     "tech": (
-        "ai ", "gpu", "nvidia", "openai", "spacex", "cyber", "hack", "chip",
-        "software", "model", "llm", "starlink",
+        "ai ", "gpu", "nvidia", "openai", "spacex", "tesla", "xai", "grok",
+        "chip", "model", "llm", "starlink",
     ),
     "science": (
         "spacex", "starship", "starlink", "orbital", "satellite", "rocket",
     ),
     "geopolitics": (),  # empty — never prefer political lane
     "markets": (
-        "nvidia", "gpu", "ai chip", "semiconductor", "datacenter",
+        "nvidia", "gpu", "ai chip", "semiconductor", "datacenter", "tesla",
     ),
 }
 
@@ -80,10 +82,11 @@ _LANE_KEYWORDS: dict[str, tuple[str, ...]] = {
 _COOL_TECH_RE = re.compile(
     r"\b("
     r"spacex|starship|starlink|falcon\s*9|crew\s*dragon|super\s*heavy|"
-    r"nvidia|gpu|gpus|h100|h200|b100|b200|blackwell|hopper|cuda|tensor\s*core|"
+    r"tesla|optimus|dojo|robotaxi|full self[- ]?driving|\bfsd\b|"
+    r"nvidia|gpu|gpus|h100|h200|b100|b200|blackwell|hopper|cuda|tensor\s*core|gb200|"
     r"openai|anthropic|claude|chatgpt|gpt-?\d|gemini|grok|llm|llms|"
     r"large language|foundation model|model (release|launch|weights|checkpoint)|"
-    r"open[- ]?weights|inference|deepmind|mistral|llama|meta ai|xai|"
+    r"open[- ]?weights|inference|deepmind|mistral|llama|meta ai|xai|\bx\.?ai\b|"
     r"ai chip|accelerator|semiconductor|datacenter|data center|tpu|"
     r"rocket launch|orbital|satellite constellation"
     r")\b",
@@ -96,18 +99,22 @@ _BLOCK_RE = re.compile(
     r"gaza|hamas|ukraine|israel|war crime|bombing|airstrike|"
     r"murder|homicide|celebrity|reality tv|football|nba|nfl|cricket|"
     r"recipe|diet|pregnant|divorce|soap opera|immigration raid|"
-    r"tariff bill|stock market crash|fed rate"  # keep wire off pure politics/macro noise
+    r"tariff bill|stock market crash|fed rate|"
+    r"copyright settlement|copyright lawsuit|authors have mixed"  # dull legal recycle
     r")\b",
     re.I,
 )
 
 _STREAM_NAME = ".news_stream.json"
-_STREAM_SCHEMA = "cool-tech-v1"  # bump → wipe old politics/camel junk on next load
-_STREAM_MAX_ITEMS = 48  # leaner cache
-_ITEMS_PER_FEED = 8
+# Bump wipes old 14-day / Ars / stale Anthropic-settlement cache on next load.
+_STREAM_SCHEMA = "cool-tech-v2"
+_STREAM_MAX_ITEMS = 18  # few posts/day — tiny working set
+_ITEMS_PER_FEED = 5
 _PACK_SIZE = 1  # single story only — full text drives stream + image
 _X_SLOTS = 1
 _X_MIN_SCORE = 40
+# Drop anything older than this (publish time, else ingest time). Never post week-old wire.
+_MAX_STORY_AGE_HOURS = 72
 
 
 def _now() -> str:
@@ -135,8 +142,74 @@ def _item_id(source: str, guid: str, link: str, title: str) -> str:
     return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:20]
 
 
+def _parse_published(raw: str | None) -> datetime | None:
+    """Best-effort RSS pubDate / ISO → aware UTC datetime."""
+    if not raw or not str(raw).strip():
+        return None
+    s = str(raw).strip()
+    try:
+        dt = parsedate_to_datetime(s)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
+    except (TypeError, ValueError, IndexError, OverflowError):
+        pass
+    try:
+        dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
+    except ValueError:
+        return None
+
+
+def _item_when(item: dict[str, Any]) -> datetime | None:
+    """Story time: prefer publisher clock, else when we first saw it."""
+    for key in ("published_at", "published", "ingested_at"):
+        raw = item.get(key)
+        if not raw:
+            continue
+        if key == "published_at" or key == "ingested_at" or (
+            isinstance(raw, str) and "T" in raw
+        ):
+            try:
+                dt = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                return dt.astimezone(timezone.utc)
+            except ValueError:
+                pass
+        dt = _parse_published(str(raw))
+        if dt:
+            return dt
+    return None
+
+
+def _age_hours(item: dict[str, Any]) -> float | None:
+    when = _item_when(item)
+    if when is None:
+        return None
+    return (datetime.now(timezone.utc) - when).total_seconds() / 3600.0
+
+
+def _freshness_key(item: dict[str, Any]) -> str:
+    """Sort key: newest publish/ingest first (ISO strings sort lexicographically)."""
+    when = _item_when(item)
+    if when is not None:
+        return when.isoformat()
+    return item.get("ingested_at") or item.get("published_at") or ""
+
+
+def _is_fresh(item: dict[str, Any], max_age_hours: float = _MAX_STORY_AGE_HOURS) -> bool:
+    age = _age_hours(item)
+    if age is None:
+        # Unknown age: keep briefly via ingest stamp only if present and young-ish
+        return True
+    return age <= max_age_hours
+
+
 def _is_cool_tech(title: str, summary: str = "") -> bool:
-    """Hard gate: SpaceX / GPU / AI model universe only."""
+    """Hard gate: SpaceX / Tesla / xAI / NVIDIA / AI model universe only."""
     blob = f"{title} {summary}"
     if _BLOCK_RE.search(blob):
         return False
@@ -207,6 +280,12 @@ def _parse_rss_items(
             if snippet:
                 line = f"{title} — {snippet}"
         lane = _infer_lane(title, desc, default_lane)
+        pub_dt = _parse_published(pub)
+        # Skip already-stale headlines at the door (Google sometimes still surfaces them)
+        if pub_dt is not None:
+            age_h = (datetime.now(timezone.utc) - pub_dt).total_seconds() / 3600.0
+            if age_h > _MAX_STORY_AGE_HOURS:
+                continue
         items.append(
             {
                 "id": _item_id(source, guid, link, title),
@@ -218,6 +297,7 @@ def _parse_rss_items(
                 "link": link,
                 "guid": guid,
                 "published": pub,
+                "published_at": pub_dt.isoformat() if pub_dt else None,
                 "ingested_at": _now(),
                 "consumed_at": None,
                 "consumed_by_run": None,
@@ -225,6 +305,8 @@ def _parse_rss_items(
         )
         if len(items) >= limit:
             break
+    # Newest first within this feed batch
+    items.sort(key=_freshness_key, reverse=True)
     return items
 
 
@@ -273,16 +355,40 @@ def _save_stream(data: dict[str, Any]) -> None:
         raise
 
 
+def _prune_stale(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Drop stories older than max age. Prefer published_at; never hoard week-old wire."""
+    kept: list[dict[str, Any]] = []
+    dropped = 0
+    for i in items:
+        # Normalize published_at if we only have raw RSS pubDate
+        if not i.get("published_at") and i.get("published"):
+            dt = _parse_published(str(i.get("published")))
+            if dt:
+                i["published_at"] = dt.isoformat()
+        if _is_fresh(i):
+            kept.append(i)
+        else:
+            dropped += 1
+    if dropped:
+        log.info("pruned %s stale stories (>%sh)", dropped, _MAX_STORY_AGE_HOURS)
+    return kept
+
+
 def _trim_stream(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    items = _prune_stale(items)
     if len(items) <= _STREAM_MAX_ITEMS:
+        # Still sort newest-first for a stable file / UI
+        items.sort(key=_freshness_key, reverse=True)
         return items
     unconsumed = [i for i in items if not i.get("consumed_at")]
     consumed = [i for i in items if i.get("consumed_at")]
-    unconsumed.sort(key=lambda x: x.get("ingested_at") or "", reverse=True)
-    consumed.sort(key=lambda x: x.get("consumed_at") or "", reverse=True)
+    # Newest stories first — never keep the oldest just because they sat unconsumed
+    unconsumed.sort(key=_freshness_key, reverse=True)
+    consumed.sort(key=_freshness_key, reverse=True)
     keep = unconsumed[:_STREAM_MAX_ITEMS]
     if len(keep) < _STREAM_MAX_ITEMS:
         keep.extend(consumed[: _STREAM_MAX_ITEMS - len(keep)])
+    keep.sort(key=_freshness_key, reverse=True)
     return keep
 
 
@@ -354,8 +460,13 @@ async def ingest_feeds(*, force: bool = False) -> dict[str, Any]:
                         by_id[item["id"]] = item
                         new_count += 1
                     else:
-                        if not by_id[item["id"]].get("lane"):
-                            by_id[item["id"]]["lane"] = item["lane"]
+                        prev = by_id[item["id"]]
+                        if not prev.get("lane"):
+                            prev["lane"] = item["lane"]
+                        # Refresh publish clock if we learn it later
+                        if item.get("published_at") and not prev.get("published_at"):
+                            prev["published_at"] = item["published_at"]
+                            prev["published"] = item.get("published") or prev.get("published")
             except Exception as e:
                 feed_fail += 1
                 log.warning("RSS feed failed source=%s: %s", source, e)
@@ -387,12 +498,14 @@ async def ingest_feeds(*, force: bool = False) -> dict[str, Any]:
 def _tap_unconsumed(
     items: list[dict[str, Any]], n: int, lane: str | None
 ) -> list[dict[str, Any]]:
-    free = [i for i in items if not i.get("consumed_at")]
+    """Pick newest unconsumed stories (by publish time). Never oldest-first."""
+    free = [i for i in items if not i.get("consumed_at") and _is_fresh(i)]
     if lane:
         lane_free = [i for i in free if (i.get("lane") or "") == lane]
+        # Only stay in-lane when that lane still has fresh stories
         if lane_free:
             free = lane_free
-    free.sort(key=lambda x: x.get("ingested_at") or "", reverse=True)
+    free.sort(key=_freshness_key, reverse=True)
     return free[:n]
 
 
@@ -421,17 +534,28 @@ def stream_stats() -> dict[str, Any]:
     stream = _load_stream()
     items = stream.get("items") or []
     by_lane: dict[str, int] = {}
+    fresh_unconsumed = 0
+    newest_pub: str | None = None
     for i in items:
         if i.get("consumed_at"):
             continue
+        if not _is_fresh(i):
+            continue
+        fresh_unconsumed += 1
         lane = i.get("lane") or "unknown"
         by_lane[lane] = by_lane.get(lane, 0) + 1
+        fk = _freshness_key(i)
+        if fk and (newest_pub is None or fk > newest_pub):
+            newest_pub = fk
     return {
         "total": len(items),
         "unconsumed": sum(1 for i in items if not i.get("consumed_at")),
+        "fresh_unconsumed": fresh_unconsumed,
         "consumed": sum(1 for i in items if i.get("consumed_at")),
         "taps": stream.get("taps") or 0,
         "updated_at": stream.get("updated_at"),
+        "newest_story_at": newest_pub,
+        "max_story_age_hours": _MAX_STORY_AGE_HOURS,
         "unconsumed_by_lane": by_lane,
         "path": str(_stream_path()),
         "pack_size": _PACK_SIZE,
@@ -440,6 +564,7 @@ def stream_stats() -> dict[str, Any]:
         "feeds_count": len(_RSS_FEEDS),
         "rss_ttl_minutes": int(settings.RSS_INGEST_TTL_MINUTES or 0),
         "x_search_enabled": bool(settings.X_SEARCH_ENABLED),
+        "schema": stream.get("schema"),
     }
 
 
@@ -468,16 +593,18 @@ def _pack_line(item: dict[str, Any]) -> str:
     return body[:900]
 
 
+# Core brands we post about — strong boost so dull edge stories lose to the real wire.
 _PRIMARY_BOOST = re.compile(
-    r"\b(spacex|starship|starlink|nvidia|gpu|h100|b200|blackwell|"
-    r"openai|anthropic|claude|gpt|grok|llm|model release|launch|"
-    r"cuda|inference|open.?weights)\b",
+    r"\b(spacex|starship|starlink|falcon|tesla|optimus|dojo|xai|grok|"
+    r"nvidia|blackwell|h100|b200|gb200|cuda|"
+    r"openai|anthropic|claude|chatgpt|gpt|llm|model release|launch|"
+    r"inference|open.?weights)\b",
     re.I,
 )
 
 
 def _primary_rank(item: dict[str, Any]) -> int:
-    """Higher = better primary for Generative Stream / art metaphor."""
+    """Higher = better primary. Freshness dominates — never prefer oldest in the batch."""
     title = item.get("title") or item.get("line") or ""
     score = int(item.get("score") or 0)
     if item.get("source") == "x-search":
@@ -491,6 +618,21 @@ def _primary_rank(item: dict[str, Any]) -> int:
         score += 10
     elif n > 180:
         score -= 8
+
+    # Freshness is the main lever (few posts/day → always the newest story)
+    age = _age_hours(item)
+    if age is None:
+        score -= 5
+    elif age <= 6:
+        score += 50
+    elif age <= 24:
+        score += 35
+    elif age <= 48:
+        score += 15
+    elif age <= _MAX_STORY_AGE_HOURS:
+        score += 0
+    else:
+        score -= 80
     return score
 
 
@@ -546,7 +688,11 @@ def _build_wire_pack(
             }
         )
 
-    candidates.sort(key=_primary_rank, reverse=True)
+    # Rank by brand fit + freshness; tie-break newest publish time
+    candidates.sort(
+        key=lambda c: (_primary_rank(c), _freshness_key(c)),
+        reverse=True,
+    )
     return candidates[:pack_size]
 
 
@@ -585,10 +731,16 @@ async def get_events(
     lane = lane_map.get(lane_raw, lane_raw)
     mode = (settings.EVENTS_SOURCE or "stream").lower().strip()
 
-    # --- lean RSS (TTL-cached) ---
+    # --- lean RSS (TTL-cached; force refresh if nothing fresh left) ---
     stats = await ingest_feeds()
     stream = _load_stream()
     items = stream.get("items") or []
+    # Drop stale rows even when ingest was cache-skipped
+    pruned = _prune_stale(items)
+    if len(pruned) != len(items):
+        stream["items"] = _trim_stream(pruned)
+        _save_stream(stream)
+        items = stream["items"]
 
     rss_pool = _tap_unconsumed(items, _PACK_SIZE + 4, lane)
     if len(rss_pool) < _PACK_SIZE:
@@ -598,6 +750,21 @@ async def get_events(
             if m["id"] not in seen_ids:
                 rss_pool.append(m)
                 seen_ids.add(m["id"])
+
+    # Cache hit but no fresh stories → re-hit feeds once (don't post week-old wire)
+    if len(rss_pool) < _PACK_SIZE and stats.get("cached"):
+        log.info("no fresh unconsumed stories; forcing RSS re-ingest")
+        stats = await ingest_feeds(force=True)
+        stream = _load_stream()
+        items = stream.get("items") or []
+        rss_pool = _tap_unconsumed(items, _PACK_SIZE + 4, lane)
+        if len(rss_pool) < _PACK_SIZE:
+            more = _tap_unconsumed(items, _PACK_SIZE + 4, None)
+            seen_ids = {r["id"] for r in rss_pool}
+            for m in more:
+                if m["id"] not in seen_ids:
+                    rss_pool.append(m)
+                    seen_ids.add(m["id"])
 
     # --- X search (paid; hard gated) ---
     x_hits: list[dict[str, Any]] = []
@@ -628,11 +795,15 @@ async def get_events(
 
     recycled = False
     if not rss_pool and not x_hits:
-        recycled_pool = [i for i in items if i.get("consumed_at")]
+        # Only recycle still-fresh stories; newest first (never oldest consumed)
         recycled_pool = [
+            i for i in items if i.get("consumed_at") and _is_fresh(i)
+        ]
+        lane_recycled = [
             i for i in recycled_pool if (i.get("lane") or "") == lane
-        ] or recycled_pool
-        recycled_pool.sort(key=lambda x: x.get("consumed_at") or "")
+        ]
+        recycled_pool = lane_recycled or recycled_pool
+        recycled_pool.sort(key=_freshness_key, reverse=True)
         rss_pool = recycled_pool[:_PACK_SIZE]
         recycled = bool(rss_pool)
         for c in rss_pool:

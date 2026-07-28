@@ -47,8 +47,9 @@ class Settings(BaseSettings):
     #   x|x-search — force X recent-search only when X_SEARCH_ENABLED
     EVENTS_SOURCE: str = "stream"
 
-    # Re-fetch RSS at most this often (seconds of network saved on Starlink too).
-    RSS_INGEST_TTL_MINUTES: int = 45
+    # Re-fetch RSS at most this often. Short TTL so manual generates see new wire.
+    # (Few posts/day — 20m is cheap; still skips back-to-back double-fetches.)
+    RSS_INGEST_TTL_MINUTES: int = 20
 
     # X Recent Search is PAID. Keep OFF. Publish/post still works without it.
     X_SEARCH_ENABLED: bool = False

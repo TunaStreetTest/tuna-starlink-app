@@ -63,7 +63,7 @@ export function StarlinkPanel() {
         <dt className="text-muted">News stream</dt>
         <dd>
           {news
-            ? `${String(news.unconsumed ?? "?")} fresh / ${String(news.total ?? "?")} total · ${String(news.taps ?? 0)} taps`
+            ? `${String(news.fresh_unconsumed ?? news.unconsumed ?? "?")} fresh / ${String(news.total ?? "?")} total · ${String(news.taps ?? 0)} taps · ${String(news.feeds_count ?? "?")} feeds`
             : "—"}
         </dd>
       </dl>

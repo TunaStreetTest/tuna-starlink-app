@@ -67,8 +67,8 @@ export function GeneratePanel({ onStarted }: { onStarted?: () => void }) {
     <Card>
       <CardTitle>Generate</CardTitle>
       <p className="text-xs text-muted mb-3">
-        World events → Grok art director → Imagine → gallery. Series look: 3D digital
-        “inside the machine / hacking the planet.”
+        World events → Grok art director → Imagine → gallery below (Post to X on any
+        tile). Series look: 3D digital “inside the machine / hacking the planet.”
       </p>
 
       <label className="block text-xs text-muted mb-1">Style</label>

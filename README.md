@@ -1,6 +1,6 @@
 # TunaStarLink App — Planet Hack
 
-Cool tech wire (**SpaceX / GPU / AI models**) → **stream tap** → **Grok art director** → **xAI Imagine** (matrix CGI) → gallery → **@tunastarlink** on X.
+Cool tech wire (**SpaceX / Tesla / xAI / NVIDIA / AI**) → **newest story first** → **Grok art director** → **xAI Imagine** (neon matrix CGI) → Studio gallery → **@tunastarlink** on X.
 
 Series look: hacker-movie **3D digital cyberspace / hacking the planet**.  
 Home host: **Beelink SER9 (`TunaStarlink`)** on Starlink (also runs fine on a laptop).
@@ -13,12 +13,12 @@ Home host: **Beelink SER9 (`TunaStarlink`)** on Starlink (also runs fine on a la
 
 Each run:
 
-1. **Ingest** cool-tech RSS (SpaceX, NVIDIA/GPU, AI model releases) into `art/.news_stream.json`
-2. **Single story** from the style’s lane (`space` / `ai` / `gpu`) — full title + summary
-3. **Art director** (Grok) metaphors that story into a visual brief
+1. **Ingest** lean cool-tech RSS (**3 feeds**, last ~3 days) into `art/.news_stream.json` — drop stories older than **72h**
+2. **Single newest story** (publish-time rank; never oldest-first) — full title + summary
+3. **Art director** (Grok) metaphors that story into a visual brief — **full neon spectrum**
 4. **Imagine** (`grok-imagine-image`, ~$0.02, landscape 16:9)
 5. Save `art/<run_id>/art.png` + `meta.json`
-6. **X post** (manual or `AUTO_PUBLISH`) — image + **Generative Stream** body (one story, fill ~280, **no hashtags**, no reply)
+6. **X post** from Studio tile modal (or `AUTO_PUBLISH`) — image + **Generative Stream** body (one story, fill ~280, **no hashtags**, no reply)
 
 Downloads: `planethack_<run_id>.png`.
 
@@ -99,7 +99,7 @@ DEFAULT_STYLE=data-tunnel
 EVENTS_SOURCE=stream
 
 # Lean free RSS (4 BBC feeds). TTL avoids re-download every generate.
-RSS_INGEST_TTL_MINUTES=45
+RSS_INGEST_TTL_MINUTES=20
 # X Recent Search is PAID — keep OFF. Publish still works.
 X_SEARCH_ENABLED=false
 X_SEARCH_TTL_MINUTES=120
@@ -147,7 +147,7 @@ That writes access tokens into `backend/.env.local`. Restart the backend after a
 
 Stored on each run: `x_url`, `x_post_id`, `stream_slug`, `events_source` in `meta.json`.
 
-**Gallery** tab → tile → modal → **Post to X**, or enable `AUTO_PUBLISH=true` after generate.
+**Studio** → gallery tile → modal → **Post to X**, or enable `AUTO_PUBLISH=true` after generate.
 
 ---
 
@@ -185,42 +185,42 @@ DRY_RUN=1 ART_STORAGE_PATH=./art python worker/run_once.py --style data-tunnel
 
 ## Build stats (whole repo)
 
-Six Grok Build sessions, model **grok-4.5**.  
-Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2](docs/STATS-SESSION-2.md) · [S3](docs/STATS-SESSION-3.md) · [S4](docs/STATS-SESSION-4.md) · [S5](docs/STATS-SESSION-5.md) · [S6](docs/STATS-SESSION-6.md).
+Seven Grok Build sessions, model **grok-4.5**.  
+Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2](docs/STATS-SESSION-2.md) · [S3](docs/STATS-SESSION-3.md) · [S4](docs/STATS-SESSION-4.md) · [S5](docs/STATS-SESSION-5.md) · [S6](docs/STATS-SESSION-6.md) · [S7](docs/STATS-SESSION-7.md).
 
 ### Lines of code (current repo)
 
 | Area | Lines |
 |---|---:|
-| Python (`backend/`, `worker/`, `scripts/`) | **3,446** |
-| Frontend (`frontend/src`) | **1,165** |
-| Style seeds + compose YAML | **170** |
-| **Application code** | **~4,781** |
-| Docs (`docs/`, README, GROK) | **1,700** |
+| Python (`backend/`, `worker/`, `scripts/`) | **3,662** |
+| Frontend (`frontend/src`) | **905** |
+| Style seeds + compose YAML | **184** |
+| **Application code** | **~4,751** |
+| Docs (`docs/`, README, GROK) | **1,922** |
 | Makefile / Dockerfile / `.env.example` / samples | **129** |
-| **All product files** | **~6,610** |
+| **All product files** | **~6,802** |
 
-(Excludes `node_modules`, `.venv`, generated `art/`, lockfiles.) S5→S6 ≈ **+94** app / **~+89** product (Data Space + art locks).
+(Excludes `node_modules`, `.venv`, generated `art/`, lockfiles.) S6→S7 ≈ **−30** app / **~+192** product (Studio merge −LOC; news + neon + stats +docs).
 
-### Combined session activity (S1–S6)
+### Combined session activity (S1–S7)
 
 | Metric | Value |
 |---|---:|
-| Active engineering time | **~8.6–9.0 hours** (excludes idle) |
-| User turns | **107** |
-| Assistant messages | **453** |
-| Tool calls | **920** |
+| Active engineering time | **~9.1–9.8 hours** (excludes idle) |
+| User turns | **~110–111** |
+| Assistant messages | **~489** |
+| Tool calls | **~1,015** |
 | Compactions | **2** |
-| Files touched (sum of snapshots) | **122** |
-| Agent lines added | **~8,371** |
-| Agent lines removed | **~1,140** |
+| Files touched (sum of snapshots) | **~133** |
+| Agent lines added | **~8,742** |
+| Agent lines removed | **~1,300** |
 
 ### Tokens
 
 | What | Value |
 |---|---:|
 | Context window | **500,000** |
-| Context in use at Session 6 wrap | **~308,787** (~**62%**) |
+| Context in use at Session 7 wrap | **~101,749** (~**20%**) |
 | Lifetime billed in/out tokens | **Not exposed** — xAI / Grok Build dashboard |
 
 `contextTokensUsed` is **window occupancy**, not the sum of every turn.
@@ -229,7 +229,7 @@ Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2]
 
 | Item | Estimate |
 |---|---:|
-| Live gallery Imagine images | **44** × ~$0.02 ≈ **~$0.88** |
+| Live gallery Imagine images | **62** × ~$0.02 ≈ **~$1.24** |
 | Experiment images (non-field) | **~17** × ~$0.02 ≈ **~$0.34** |
 | X Recent Search | **OFF** |
 | Unattended schedule | **OFF** (service keeps API up; generate is manual) |
@@ -253,6 +253,7 @@ Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2]
 | [`docs/STATS-SESSION-4.md`](docs/STATS-SESSION-4.md) | Session 4 tallies (experiments + restore) |
 | [`docs/STATS-SESSION-5.md`](docs/STATS-SESSION-5.md) | Session 5 tallies (cool-tech wire + service) |
 | [`docs/STATS-SESSION-6.md`](docs/STATS-SESSION-6.md) | Session 6 tallies (Data Space + art polish) |
+| [`docs/STATS-SESSION-7.md`](docs/STATS-SESSION-7.md) | Session 7 tallies (Studio merge + neon + wire) |
 | [`GROK.md`](GROK.md) | Agent rules |
 
 ---
@@ -261,7 +262,7 @@ Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2]
 
 ```text
 backend/     FastAPI + pipeline + cool-tech stream + X publish
-frontend/    Studio + Gallery control plane
+frontend/    Studio control plane (generate + gallery + Post to X)
 worker/      one-shot CLI
 deploy/      systemd unit (tuna-starlink.service)
 scripts/     install-persist.sh (user service)

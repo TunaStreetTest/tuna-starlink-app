@@ -16,25 +16,47 @@ _STYLES_FILE = Path(__file__).resolve().parent.parent / "prompts" / "styles.yaml
 _LANE_DEFAULT = "space"
 _HASHTAG_DEFAULT = "PlanetHack"
 
-# Per-run scene recipes for data-space (keeps spatial variety without boring tunnels)
+# Per-run scene recipes for data-space (spatial variety; keep satellite counts low)
 _DATA_SPACE_SCENES = (
     "SCENE: single large holographic data-planet as hero, cracked wireframe continents, "
-    "thin orbital data rings, deep indigo void, soft gold limb light, no ship.",
+    "thin orbital data rings, deep indigo void, soft gold limb light, no ship, "
+    "no satellite swarm.",
     "SCENE: multi-planet system — three to five worlds at different depths and sizes, "
-    "one closer hero planet with data-ring, others receding, no ship required.",
+    "one closer hero planet with data-ring, others receding, no ship, no satellite swarm.",
     "SCENE: bright star (or binary) dominates the frame with lens-flare energy; "
-    "one small data-planet as secondary; star is the emotional hero.",
+    "one small data-planet as secondary; star is the emotional hero; no satellite swarm.",
     "SCENE: SpaceX-inspired geometric starship as pure machine silhouette "
     "(stainless stacked body, abstract grid fins, engine plume light) — no logos, "
-    "no crew windows with people, alone against deep space and sparse data-mesh.",
+    "no crew windows with people, alone against deep space; at most 1–3 distant craft glints.",
     "SCENE: SpaceX-inspired geometric starship near a large data-planet, "
-    "orbital approach composition, plume and planet limb light, no people.",
-    "SCENE: Starlink-like constellation mesh of many small satellites as a glowing net "
-    "wrapping a dark planet; planet + mesh are the dual hero; no crewed ship.",
+    "orbital approach composition, plume and planet limb light, no people, "
+    "no dense satellite mesh.",
+    "SCENE: dark planet with sparse orbital infrastructure — only a few (3–8) small "
+    "satellite points of light on a thin ring, NOT hundreds; planet is the hero.",
     "SCENE: planetary system edge-on with a bright accretion-like data disk and "
-    "one ringed world; cinematic scale; optional tiny geometric ship as accent only.",
+    "one ringed world; cinematic scale; optional single tiny geometric ship as accent only.",
     "SCENE: two planets in conjunction (near-overlap) with a star rising between them; "
-    "holographic telemetry arcs; no people.",
+    "holographic telemetry arcs; no people; no satellite swarm.",
+)
+
+# Per-run cityscape recipes for rootkit-city (layout variety; keep neon spectrum)
+_ROOTKIT_CITY_SCENES = (
+    "SCENE: sprawling coastal circuit metropolis — towers step down to a luminous "
+    "cyan-magenta data-sea horizon; acid-green rewrite snakes inland; neon night.",
+    "SCENE: floating voxel districts stacked at different altitudes over a dark die-grid "
+    "base; bridges of cyan/magenta light between blocks; phosphor rain.",
+    "SCENE: deep canyon street between colossal GPU-die skyscrapers; low camera looking "
+    "along the neon canyon toward a bright acid-green root-access core.",
+    "SCENE: elevated megastructure ring-city above a lower sprawl; one vertical "
+    "acid-green infiltration beam from the ring into a cyan-magenta grid below.",
+    "SCENE: hexagonal die-district from a high oblique angle — unique block layout, "
+    "different tower heights; rewrite path as a bright green circuit trace on cyan streets.",
+    "SCENE: night skyline with a planetary data-horizon behind the towers; "
+    "silhouette variety (spires, cubes, lattice stacks); full cyan/magenta/green neon glow.",
+    "SCENE: industrial silicon waterfront — machine-form cooling geometry, packet piers, "
+    "vapor neon cyan and magenta; acid-green rewrite along the docks.",
+    "SCENE: fractured mid-infiltration city — half still dark cyan grid, half rewritten "
+    "in acid-green and hot magenta; clear front-line of the rootkit spread.",
 )
 
 
@@ -107,27 +129,44 @@ def get_style(style_id: str | None = None) -> dict[str, Any]:
 
 
 def _palette_steer(art_brief: str, style_id: str) -> str:
-    """Nudge Imagine off the default cyan/magenta soak with a stable per-run accent."""
+    """Vary which neon leads — keep full cyan/magenta/acid-green spectrum, never desaturate."""
     import hashlib
 
+    # Spectrum shifts inside the franchise neon night — not monochrome / graphite replacements.
     accents = (
-        "Palette steer: ice-white and cobalt primary; neon only as thin edge accents.",
-        "Palette steer: amber-copper heat with graphite metal; violet only in deep shadows.",
-        "Palette steer: deep indigo and soft gold; phosphor green as sparse signal only.",
-        "Palette steer: steel-silver and white-hot core light; electric violet rims.",
-        "Palette steer: charcoal and bronze architecture; acid-green as a single path accent.",
-        "Palette steer: amethyst and cool white beams; cyan only in distant fog.",
+        "COLOR SPECTRUM: cyan-led neon night — electric cyan grids dominate, hot magenta "
+        "nodes secondary, acid-green path as hero accent; void black depths; gold metal rims optional.",
+        "COLOR SPECTRUM: magenta-led neon night — hot magenta signal clusters lead, cyan streets "
+        "underneath, acid-green rewrite cut; void black; copper edge warmth optional.",
+        "COLOR SPECTRUM: acid-green-led neon night — phosphor green rewrite floods the frame, "
+        "cyan structure supports, magenta pulses at nodes; void black; white-hot core sparks.",
+        "COLOR SPECTRUM: gold-warm neon night — soft gold / amber window and limb light warms "
+        "metal, still full cyan grids + magenta nodes + acid-green path (do not drop neon).",
+        "COLOR SPECTRUM: ice-spectrum neon — ice-cyan and white-hot cores lead, violet-magenta "
+        "depth glows, acid-green filaments; still a saturated neon night, not grey metal.",
+        "COLOR SPECTRUM: balanced triad neon — equal electric cyan + hot magenta + acid green "
+        "across architecture and data; high saturation; void black negative space.",
     )
     h = hashlib.sha256(f"{style_id}|{art_brief[:120]}".encode()).digest()
     return accents[h[0] % len(accents)]
 
 
-def _data_space_scene(art_brief: str) -> str:
-    """Pick a spatial recipe so runs vary: planet(s), star, SpaceX-inspired ship, etc."""
+def _scene_pick(art_brief: str, scenes: tuple[str, ...], style_id: str = "") -> str:
+    """Stable per-run scene recipe from art_brief (+ style) so layouts vary."""
     import hashlib
 
-    h = hashlib.sha256(art_brief.encode()).digest()
-    return _DATA_SPACE_SCENES[h[0] % len(_DATA_SPACE_SCENES)]
+    h = hashlib.sha256(f"{style_id}|{art_brief}".encode()).digest()
+    return scenes[h[0] % len(scenes)]
+
+
+def _data_space_scene(art_brief: str) -> str:
+    """Pick a spatial recipe so runs vary: planet(s), star, SpaceX-inspired ship, etc."""
+    return _scene_pick(art_brief, _DATA_SPACE_SCENES, "data-space")
+
+
+def _rootkit_city_scene(art_brief: str) -> str:
+    """Pick a cityscape recipe so rootkit-city is not the same skyline every run."""
+    return _scene_pick(art_brief, _ROOTKIT_CITY_SCENES, "rootkit-city")
 
 
 def build_imagine_prompt(art_brief: str, style: dict[str, Any]) -> str:
@@ -138,10 +177,12 @@ def build_imagine_prompt(art_brief: str, style: dict[str, Any]) -> str:
     steer = _palette_steer(brief, style_id)
     quality = (
         "Render quality: ultra-premium cinematic still, sharp micro-detail, clean geometry, "
-        "deep volumetric light, no people or human silhouettes."
+        "deep volumetric light, saturated neon color spectrum, no people or human silhouettes."
     )
     parts = [seed]
     if style_id in ("data-space", "data_space"):
         parts.append(_data_space_scene(brief or seed))
+    elif style_id in ("rootkit-city", "rootkit_city"):
+        parts.append(_rootkit_city_scene(brief or seed))
     parts.extend([brief, steer, quality, lock])
     return "\n\n".join(p for p in parts if p)

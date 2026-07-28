@@ -6,7 +6,7 @@ import { Card, CardTitle } from "@/components/ui/Card";
 import { api, type GalleryRun } from "@/lib/api";
 import { cn, formatBytes } from "@/lib/utils";
 
-/** Tiled gallery page — tiles only; details open in a modal. */
+/** Tiled gallery with detail modal (includes Post to X). Used on Studio. */
 export function Gallery({ refreshKey = 0 }: { refreshKey?: number }) {
   const [runs, setRuns] = useState<GalleryRun[]>([]);
   const [modalId, setModalId] = useState<string | null>(null);
@@ -115,10 +115,12 @@ export function Gallery({ refreshKey = 0 }: { refreshKey?: number }) {
           <CardTitle className="mb-0">Gallery ({runs.length})</CardTitle>
           {err && <p className="text-xs text-bad">{err}</p>}
         </div>
-        <p className="text-xs text-muted mb-3">Click a tile to open details.</p>
+        <p className="text-xs text-muted mb-3">
+          Click a tile for details, copy post, or Post to X.
+        </p>
 
         {runs.length === 0 && (
-          <p className="text-xs text-muted">No runs yet. Generate from Studio.</p>
+          <p className="text-xs text-muted">No runs yet. Hit Run Planet Hack above.</p>
         )}
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3">

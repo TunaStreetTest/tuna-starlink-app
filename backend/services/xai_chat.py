@@ -12,15 +12,16 @@ from services.xai_client import client
 ART_DIRECTOR_SYSTEM = """You are art director for "Planet Hack" (@tunastarlink).
 Premium hacker-movie CGI. One clear NON-HUMAN hero PLUS rich atmosphere.
 TECH volume: architecture, silicon, light, data geometry — finished VFX still quality.
-NOT empty black void, NOT scrapyard soup, NOT soft product ads, NOT muddy neon wash.
+NOT empty black void, NOT scrapyard soup, NOT soft product ads, NOT desaturated grey metal.
 
 Output ONLY this structure (no markdown fences):
 
 CAMERA: <one line — wide 16:9, strong perspective, premium composition>
 HERO: <one line — architecture / machine / geometric form ONLY — never a person>
 CHAOS: <one line — ONE metaphor for the PRIMARY tech story (SpaceX / GPU / AI model)>
-PALETTE: <void base + a VARIED temperature (ice, amber, violet, copper, white-hot, indigo);
-neon cyan/magenta only as thin accents if needed — not full-frame soak>
+PALETTE: <void black base + FULL neon spectrum: electric cyan AND hot magenta AND acid/phosphor
+green MUST all appear as luminous color; name which color LEADS this run (cyan-led /
+magenta-led / green-led / gold-warm neon); gold/amber optional on metal; NEVER monochrome graphite>
 MOOD: <3–6 words>
 DETAIL: <1–2 sentences: layered craft — materials, light, atmosphere; no people>
 
@@ -28,12 +29,13 @@ Rules:
 - Metaphor from the PRIMARY (first) story only — cool tech wire only.
 - ZERO humans: no little man, silhouette, pilot, android, rider, or humanoid.
 - No politicians, flags, logos, readable headlines, or real maps.
-- Vary color temperature run-to-run; do not default every piece to cyan+magenta soup.
+- Neon color spectrum is franchise DNA — vary WHICH color leads, do NOT strip neon away.
 - Prefer legible big shapes and sharp materials over noise.
+- Rootkit City: neon circuit metropolis — cyan grid, magenta nodes, acid-green rewrite path.
 - Planet Core: interior mainframe scale — never a lone rock in empty space.
-- Data Tunnel: classic vanishing-point energy conduit — kinetic walls, far glow.
+- Data Tunnel: classic vanishing-point energy conduit — kinetic walls, far glow, busy data.
 - Data Space: EXTERIOR deep space — vary planets/stars/SpaceX-inspired geometric ship;
-  never people; never logos.
+  never people; never logos; few satellites max (no dense swarms).
 - No readable text in the image.
 """
 
@@ -55,9 +57,9 @@ async def craft_art_brief(events: str, style: dict) -> str:
             f"CAMERA: wide 16:9, {style.get('label')}\n"
             f"HERO: single digital form matching style\n"
             f"CHAOS: one quiet metaphor for the story\n"
-            f"PALETTE: void + cyan + one accent\n"
-            f"MOOD: focused, atmospheric\n"
-            f"DETAIL: Negative space; do not fill the frame."
+            f"PALETTE: void black + cyan-led neon (cyan grid, magenta nodes, acid-green path)\n"
+            f"MOOD: neon root access\n"
+            f"DETAIL: Layered circuit towers with luminous grids and data particles."
         )
 
     user = f"""Shot type: {style.get('label')} — {style.get('description')}
@@ -69,7 +71,8 @@ Wire pack (PRIMARY = first bullet — metaphorize that one only; others are mood
 {events}
 
 Do NOT paint text/headlines. ZERO people or human silhouettes.
-Vary the palette (not always cyan/magenta neon soak). Fill CAMERA/HERO/CHAOS/PALETTE/MOOD/DETAIL now."""
+Keep the full neon color spectrum (cyan + magenta + acid-green); vary which color leads.
+Fill CAMERA/HERO/CHAOS/PALETTE/MOOD/DETAIL now."""
 
     if settings.EDGE_TEXT == "lemonade":
         return await _lemonade_chat(ART_DIRECTOR_SYSTEM, user, max_tokens=280)
