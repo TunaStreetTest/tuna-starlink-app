@@ -56,8 +56,12 @@ class Settings(BaseSettings):
     # (Few posts/day — 20m is cheap; still skips back-to-back double-fetches.)
     RSS_INGEST_TTL_MINUTES: int = 20
 
-    # X Recent Search is PAID. Keep OFF. Publish/post still works without it.
+    # X Recent Search is PAID. When enabled, prefer official brand posts
+    # (SpaceX / Tesla / NVIDIA / xAI / OpenAI …) over Google News rewrites.
+    # Publish/post still works with search OFF (RSS only).
     X_SEARCH_ENABLED: bool = False
+    # One official-account query per lane then stop (cheaper + higher trust).
+    X_SEARCH_PRIMARY_ONLY: bool = True
     X_SEARCH_TTL_MINUTES: int = 120
     X_SEARCH_MAX_RESULTS: int = 10
 

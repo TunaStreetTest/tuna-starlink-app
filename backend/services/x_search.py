@@ -1,13 +1,12 @@
-"""X recent search for Planet Hack — real headlines over viral junk.
+"""X recent search for Planet Hack — primary brand posts over secondary rewrite.
 
-Session 2 fix: Free-tier keyword search returns study logs, crypto promos, and
-meme "Breaking" posts. We prefer (1) known news accounts, (2) has:links newsy
-queries, then rank with strict junk filters + headline-likeness.
+Prefer official accounts (SpaceX, Tesla, NVIDIA, xAI, OpenAI, …) so we quote
+the primary source, not "space photo of the day" Google News rewrites.
 
-Cost guard (2026-07): X Recent Search is paid. Defaults:
-  - X_SEARCH_ENABLED=false (kill switch)
-  - per-lane TTL cache so peak-window runs share one lookup
-  - stop after first query that fills keepers (outlet query first)
+Cost guard: X Recent Search is paid.
+  - X_SEARCH_ENABLED kill switch (default off in config; enable when you want wire)
+  - X_SEARCH_PRIMARY_ONLY=true → one official-account query per lane, then stop
+  - per-lane TTL cache so runs share one lookup
 """
 
 from __future__ import annotations
@@ -24,59 +23,70 @@ log = logging.getLogger("tuna-starlink.x_search")
 # lane -> (expires_monotonic, hits)
 _CACHE: dict[str, tuple[float, list[dict[str, Any]]]] = {}
 
-# Per lane: list of queries tried in order until we have enough keepers.
-# Outlet accounts first (high signal), then keyword + has:links.
+# Official brand handles — primary source, not a desk rewrite.
+_PRIMARY_SPACE = (
+    "from:SpaceX OR from:NASA OR from:NASASpaceflight OR from:NASAKennedy "
+    "OR from:esa OR from:Starlink"
+)
+_PRIMARY_AI = (
+    "from:xai OR from:Tesla OR from:elonmusk OR from:OpenAI OR from:AnthropicAI "
+    "OR from:GoogleDeepMind OR from:MetaAI OR from:sama"
+)
+_PRIMARY_GPU = (
+    "from:nvidia OR from:NVIDIAAI OR from:NVIDIAGeForce OR from:OpenAI OR from:AnthropicAI"
+)
+
+# Per lane: primary accounts first (stop after keepers when PRIMARY_ONLY).
+# Cool-tech lanes (space/ai/gpu) are what Planet Hack styles use.
 _LANE_QUERIES: dict[str, list[str]] = {
-    "geopolitics": [
+    "space": [
+        f"({_PRIMARY_SPACE}) -is:retweet -is:reply lang:en",
         (
-            "(from:Reuters OR from:AP OR from:BBCWorld OR from:AJEnglish OR from:NPR "
-            "OR from:guardian OR from:SkyNews OR from:dwnews) "
+            "(SpaceX OR Starship OR Starlink OR Falcon) (launch OR launches OR launched "
+            "OR flight OR splashdown OR orbit OR deploy OR test) has:links "
             "-is:retweet -is:reply lang:en"
         ),
+    ],
+    "ai": [
+        f"({_PRIMARY_AI}) -is:retweet -is:reply lang:en",
         (
-            "(breaking OR war OR ceasefire OR sanctions OR election OR NATO OR Iran "
-            "OR Ukraine OR Gaza OR China OR Russia) has:links "
+            "(xAI OR Grok OR Tesla OR Optimus OR OpenAI OR Anthropic OR LLM) "
+            "(announce OR announces OR announced OR release OR launches OR launched) has:links "
             "-is:retweet -is:reply lang:en"
         ),
+    ],
+    "gpu": [
+        f"({_PRIMARY_GPU}) -is:retweet -is:reply lang:en",
+        (
+            "(NVIDIA OR Blackwell OR H100 OR B200 OR GB200 OR GPU) "
+            "(announce OR announces OR shipping OR launch) has:links "
+            "-is:retweet -is:reply lang:en"
+        ),
+    ],
+    # legacy aliases → same cool-tech primary desks
+    "science": [
+        f"({_PRIMARY_SPACE}) -is:retweet -is:reply lang:en",
     ],
     "tech": [
-        (
-            "(from:Reuters OR from:BBCTech OR from:verge OR from:WIRED OR from:TechCrunch "
-            "OR from:arstechnica OR from:TheRegister) "
-            "-is:retweet -is:reply lang:en"
-        ),
-        (
-            "(OpenAI OR NVIDIA OR Apple OR Google OR Microsoft OR semiconductor OR cyber "
-            "OR \"artificial intelligence\") (announces OR announced OR reports OR reported "
-            "OR launches OR launched OR breach OR lawsuit) has:links "
-            "-is:retweet -is:reply lang:en"
-        ),
-    ],
-    "science": [
-        (
-            "(from:NASA OR from:Nature OR from:ScienceMagazine OR from:BBCScienceNews "
-            "OR from:Space_Station OR from:ESA OR from:ReutersScience) "
-            "-is:retweet -is:reply lang:en"
-        ),
-        (
-            "(NASA OR climate OR fusion OR quantum OR wildfire OR earthquake OR vaccine "
-            "OR telescope OR mars OR scientists) (reports OR discovered OR announces "
-            "OR study OR research) has:links -is:retweet -is:reply lang:en"
-        ),
+        f"({_PRIMARY_AI} OR {_PRIMARY_GPU}) -is:retweet -is:reply lang:en",
     ],
     "markets": [
-        (
-            "(from:ReutersBiz OR from:WSJ OR from:FT OR from:Bloomberg OR from:CNBC "
-            "OR from:markets OR from:TheEconomist) "
-            "-is:retweet -is:reply lang:en"
-        ),
-        (
-            "(tariff OR Fed OR inflation OR stocks OR \"interest rate\" OR GDP OR recession "
-            "OR earnings OR \"oil price\") (rises OR falls OR announces OR reports OR beats "
-            "OR misses) has:links -is:retweet -is:reply lang:en"
-        ),
+        f"({_PRIMARY_GPU}) -is:retweet -is:reply lang:en",
+    ],
+    "geopolitics": [
+        f"({_PRIMARY_SPACE}) -is:retweet -is:reply lang:en",
     ],
 }
+
+# Soft junk still common on free keyword search
+_SOFT_FEATURE_RE = re.compile(
+    r"("
+    r"photo of the day|picture of the day|image of the day|"
+    r"looks absolutely|stunning photos?|don'?t miss these|"
+    r"you may like|watch this space"
+    r")",
+    re.I,
+)
 
 _JUNK_RE = re.compile(
     r"("
@@ -125,36 +135,35 @@ _MIN_TEXT = 50
 _MIN_SCORE = 35  # raise bar so "Breaking Jimothy" style trash drops out
 _MAX_KEEP_PER_SEARCH = 8
 
-# Post-filter outlet results so geopolitics doesn't lead with Alphabet earnings.
+# Keyword-fallback only — primary account hits skip this filter.
 _LANE_MATCH: dict[str, tuple[str, ...]] = {
-    "geopolitics": (
-        "war", "ceasefire", "sanction", "diplomat", "election", "nato", "military",
-        "invasion", "treaty", "president", "minister", "border", "missile", "ukraine",
-        "israel", "gaza", "iran", "china", "russia", "congress", "senate", "un ",
-        "security council", "troops", "strike", "hostage", "summit", "protest",
-        "refugee", "ice ", "immigration", "governor", "prime minister", "pentagon",
-        "white house", "state department", "foreign", "embassy", "coup", "ballot",
+    "space": (
+        "spacex", "starship", "starlink", "falcon", "rocket", "launch", "orbit",
+        "splashdown", "nasa", "mars", "satellite", "crew dragon", "super heavy",
+        "raptor", "starbase", "booster", "capsule", "flight test",
     ),
+    "ai": (
+        "ai ", "artificial intelligence", "openai", "anthropic", "claude", "chatgpt",
+        "gpt", "grok", "xai", "llm", "model", "tesla", "optimus", "dojo", "fsd",
+        "robotaxi", "deepmind", "mistral", "llama", "open weights",
+    ),
+    "gpu": (
+        "nvidia", "gpu", "h100", "h200", "b100", "b200", "blackwell", "hopper",
+        "cuda", "chip", "semiconductor", "accelerator", "gb200", "inference",
+        "data center", "datacenter", "tpu",
+    ),
+    # legacy aliases
     "tech": (
-        "ai ", "artificial intelligence", "chip", "semiconductor", "cyber", "hack",
-        "software", "openai", "google", "apple", "microsoft", "nvidia", "gpu",
-        "startup", "internet", "crypto", "bitcoin", "robot", "cloud", "alphabet",
-        "meta ", "amazon", "iphone", "android", "data center", "model", "llm",
-        "tech", "app ", "smartphone", "quantum computing",
+        "ai ", "openai", "nvidia", "gpu", "tesla", "xai", "grok", "llm", "chip",
     ),
     "science": (
-        "nasa", "space", "climate", "energy", "fusion", "quantum", "research",
-        "scientist", "storm", "wildfire", "earthquake", "virus", "vaccine",
-        "telescope", "mars", "ocean", "species", "physics", "ebola", "nuclear",
-        "heatwave", "hurricane", "earth", "biology", "genome", "cancer", "study",
-        "astronaut", "orbit", "reef", "emissions", "temperature",
+        "spacex", "starship", "nasa", "orbit", "launch", "rocket", "mars",
     ),
     "markets": (
-        "market", "stock", "tariff", "fed ", "inflation", "bank", "trade",
-        "gdp", "recession", "bond", "dollar", "oil", "layoff", "earnings",
-        "wall street", "economy", "revenue", "shares", "nasdaq", "dow ",
-        "s&p", "interest rate", "jobs report", "unemployment", "price",
-        "ipo", "merger", "acquisition", "quarterly",
+        "nvidia", "gpu", "chip", "semiconductor", "datacenter", "earnings",
+    ),
+    "geopolitics": (
+        "spacex", "starship", "nasa", "orbit", "launch",
     ),
 }
 
@@ -204,6 +213,8 @@ def _is_junk(text: str) -> bool:
     if len(t) < _MIN_TEXT:
         return True
     if _JUNK_RE.search(t):
+        return True
+    if _SOFT_FEATURE_RE.search(t):
         return True
     if _OPINION_RE.search(t.strip()):
         return True
@@ -257,7 +268,9 @@ def _quality_score(text: str, likes: int, rts: int, replies: int, quotes: int) -
     return min(eng * 2, 40) + _headline_bonus(text)
 
 
-def _run_query(client: Any, query: str, max_results: int) -> list[dict[str, Any]]:
+def _run_query(
+    client: Any, query: str, max_results: int, *, primary: bool = False
+) -> list[dict[str, Any]]:
     try:
         resp = client.search_recent_tweets(
             query=query,
@@ -271,6 +284,9 @@ def _run_query(client: Any, query: str, max_results: int) -> list[dict[str, Any]
 
     data = getattr(resp, "data", None) or []
     out: list[dict[str, Any]] = []
+    # Official accounts often post short operational updates — keep them.
+    min_text = 24 if primary else _MIN_TEXT
+    min_score = 15 if primary else _MIN_SCORE
     for tw in data:
         metrics = getattr(tw, "public_metrics", None) or {}
         if isinstance(metrics, dict):
@@ -281,10 +297,19 @@ def _run_query(client: Any, query: str, max_results: int) -> list[dict[str, Any]
         else:
             likes = rts = replies = quotes = 0
         text = _clean_line(getattr(tw, "text", None) or "")
-        if _is_junk(text):
+        if len(text) < min_text:
+            continue
+        # Soft features still junk; other junk filters softer on primary
+        if _SOFT_FEATURE_RE.search(text):
+            continue
+        if not primary and _is_junk(text):
+            continue
+        if primary and _OPINION_RE.search(text.strip()):
             continue
         score = _quality_score(text, likes, rts, replies, quotes)
-        if score < _MIN_SCORE:
+        if primary:
+            score += 25  # brand voice is the product
+        if score < min_score:
             continue
         tid = str(getattr(tw, "id", "") or "")
         out.append(
@@ -299,6 +324,7 @@ def _run_query(client: Any, query: str, max_results: int) -> list[dict[str, Any]
                 "url": f"https://x.com/i/web/status/{tid}" if tid else "",
                 "source": "x-search",
                 "created_at": str(getattr(tw, "created_at", "") or ""),
+                "primary_account": primary,
             }
         )
     return out
@@ -345,16 +371,25 @@ def _cache_set(lane: str, hits: list[dict[str, Any]]) -> None:
 def search_lane(
     lane: str, max_results: int | None = None, *, bypass_cache: bool = False
 ) -> list[dict[str, Any]]:
-    """Search a lane via outlet + keyword queries; return ranked keepers.
+    """Search a lane via primary accounts (+ optional keyword); return ranked keepers.
 
     No-ops when X_SEARCH_ENABLED=false. Uses per-lane TTL cache unless
-    bypass_cache=True.
+    bypass_cache=True. When X_SEARCH_PRIMARY_ONLY, only the first (official
+    account) query runs — cheaper and higher trust.
     """
     if not search_enabled():
         log.info("X search skipped (X_SEARCH_ENABLED=false)")
         return []
 
-    lane = (lane or "geopolitics").lower().strip()
+    lane = (lane or "space").lower().strip()
+    # Map leftovers onto cool-tech
+    if lane in ("science", "geopolitics"):
+        lane = "space"
+    elif lane in ("tech",):
+        lane = "ai"
+    elif lane in ("markets",):
+        lane = "gpu"
+
     if not bypass_cache:
         cached = _cache_get(lane)
         if cached is not None:
@@ -365,7 +400,11 @@ def search_lane(
             )
             return cached[:_MAX_KEEP_PER_SEARCH]
 
-    queries = _LANE_QUERIES.get(lane) or _LANE_QUERIES["geopolitics"]
+    queries = list(_LANE_QUERIES.get(lane) or _LANE_QUERIES["space"])
+    primary_only = bool(getattr(settings, "X_SEARCH_PRIMARY_ONLY", True))
+    if primary_only:
+        queries = queries[:1]
+
     if max_results is None:
         max_results = int(settings.X_SEARCH_MAX_RESULTS or 10)
     # X API min for recent search is 10
@@ -380,25 +419,26 @@ def search_lane(
     by_id: dict[str, dict[str, Any]] = {}
     queries_run = 0
     for i, query in enumerate(queries):
-        batch = _run_query(client, query, max_results=max_results)
+        is_primary = i == 0
+        batch = _run_query(client, query, max_results=max_results, primary=is_primary)
         queries_run += 1
         for hit in batch:
             text = hit.get("text") or hit.get("line") or ""
-            # Outlet timelines mix topics — keep only on-lane headlines
-            if not _matches_lane(text, lane):
+            # Keyword fallback still needs on-lane filter; primary accounts are trusted
+            if not is_primary and not _matches_lane(text, lane):
                 continue
             hit["lane"] = lane
-            hit["query_rank"] = i  # 0 = preferred outlet query
-            if i == 0:
-                hit["score"] = int(hit.get("score") or 0) + 15
+            hit["query_rank"] = i  # 0 = preferred primary accounts
+            hit["primary_account"] = is_primary or bool(hit.get("primary_account"))
+            if is_primary:
+                hit["score"] = int(hit.get("score") or 0) + 40  # strong primary boost
             tid = hit.get("id") or ""
             if not tid:
                 continue
             prev = by_id.get(tid)
             if not prev or hit["score"] > prev["score"]:
                 by_id[tid] = hit
-        # Cost: one billable search is enough when outlet query yields keepers.
-        # Keyword fallback only runs if query 0 produced nothing on-lane.
+        # Cost: stop after first query that yields keepers (primary-first).
         if len(by_id) >= 1:
             break
 
@@ -406,8 +446,9 @@ def search_lane(
     out = out[:_MAX_KEEP_PER_SEARCH]
     _cache_set(lane, out)
     log.info(
-        "X search lane=%s queries_run=%s kept=%s top_score=%s ttl_m=%s",
+        "X search lane=%s primary_only=%s queries_run=%s kept=%s top_score=%s ttl_m=%s",
         lane,
+        primary_only,
         queries_run,
         len(out),
         out[0]["score"] if out else 0,

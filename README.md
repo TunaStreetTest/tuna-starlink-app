@@ -13,12 +13,12 @@ Home host: **Beelink SER9 (`TunaStarlink`)** on Starlink (also runs fine on a la
 
 Each run:
 
-1. **Ingest** lean cool-tech RSS (**3 feeds**, last ~3 days) into `art/.news_stream.json` — drop stories older than **72h**
-2. **Single newest story** (publish-time rank; never oldest-first) — full title + summary
+1. **Ingest** lean cool-tech RSS (**3 feeds**, last ~3 days) into `art/.news_stream.json` — drop stories older than **72h**; block soft “photo of the day” features
+2. **Single story** — prefer **official X brand posts** (SpaceX / Tesla / NVIDIA / xAI …) when `X_SEARCH_ENABLED`; else newest RSS (publish-time rank)
 3. **Art director** (Grok) metaphors that story into a visual brief — **full neon spectrum**
 4. **Imagine** (`grok-imagine-image-quality`, ~$0.05 1K / ~$0.07 2K, landscape 16:9)
 5. Save `art/<run_id>/art.png` + `meta.json`
-6. **X post** from Studio tile modal (or `AUTO_PUBLISH`) — image + **Generative Stream** body (one story, fill ~280, **no hashtags**, no reply)
+6. **X post** from Studio tile modal (or `AUTO_PUBLISH`) — image + **source-only** Generative Stream body (wire text clipped to ~280, **no LLM invent**, **no hashtags**, no reply)
 
 Downloads: `planethack_<run_id>.png`.
 
@@ -99,10 +99,12 @@ XAI_IMAGE_ASPECT_RATIO=16:9
 DEFAULT_STYLE=data-tunnel
 EVENTS_SOURCE=stream
 
-# Lean free RSS (4 BBC feeds). TTL avoids re-download every generate.
+# Lean free RSS. TTL avoids re-download every generate.
 RSS_INGEST_TTL_MINUTES=20
-# X Recent Search is PAID — keep OFF. Publish still works.
+# X Recent Search is PAID. When ON: prefer official brand posts (primary-only).
+# Publish still works with search OFF (RSS caption = source text only).
 X_SEARCH_ENABLED=false
+X_SEARCH_PRIMARY_ONLY=true
 X_SEARCH_TTL_MINUTES=120
 
 # optional local text model on Beelink
@@ -186,42 +188,42 @@ DRY_RUN=1 ART_STORAGE_PATH=./art python worker/run_once.py --style data-tunnel
 
 ## Build stats (whole repo)
 
-Eight Grok Build sessions, model **grok-4.5**.  
-Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2](docs/STATS-SESSION-2.md) · [S3](docs/STATS-SESSION-3.md) · [S4](docs/STATS-SESSION-4.md) · [S5](docs/STATS-SESSION-5.md) · [S6](docs/STATS-SESSION-6.md) · [S7](docs/STATS-SESSION-7.md) · [S8](docs/STATS-SESSION-8.md).
+Nine Grok Build sessions, model **grok-4.5**.  
+Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2](docs/STATS-SESSION-2.md) · [S3](docs/STATS-SESSION-3.md) · [S4](docs/STATS-SESSION-4.md) · [S5](docs/STATS-SESSION-5.md) · [S6](docs/STATS-SESSION-6.md) · [S7](docs/STATS-SESSION-7.md) · [S8](docs/STATS-SESSION-8.md) · [S9](docs/STATS-SESSION-9.md).
 
 ### Lines of code (current repo)
 
 | Area | Lines |
 |---|---:|
-| Python (`backend/`, `worker/`, `scripts/`) | **3,826** |
+| Python (`backend/`, `worker/`, `scripts/`) | **3,829** |
 | Frontend (`frontend/src`) | **905** |
 | Style seeds + compose YAML | **170** |
-| **Application code** | **~4,901** |
-| Docs (`docs/`, README, GROK) | **2,033** |
-| Makefile / Dockerfile / `.env.example` / samples | **132** |
-| **All product files** | **~7,066** |
+| **Application code** | **~4,904** |
+| Docs (`docs/`, README, GROK) | **2,143** |
+| Makefile / Dockerfile / `.env.example` / samples | **133** |
+| **All product files** | **~7,180** |
 
-(Excludes `node_modules`, `.venv`, generated `art/`, lockfiles.) S7→S8 ≈ **+150** app / **~+264** product (Grok 4.5 art director + SHOT compose + rootkit craft).
+(Excludes `node_modules`, `.venv`, generated `art/`, lockfiles.) S8→S9 ≈ **+3** app / **~+114** product (source-only captions + primary X wire).
 
-### Combined session activity (S1–S8)
+### Combined session activity (S1–S9)
 
 | Metric | Value |
 |---|---:|
-| Active engineering time | **~9.8–10.8 hours** (excludes idle) |
-| User turns | **~115–116** |
-| Assistant messages | **~528** |
-| Tool calls | **~1,128** |
+| Active engineering time | **~10.3–11.6 hours** (excludes idle) |
+| User turns | **~118–119** |
+| Assistant messages | **~558** |
+| Tool calls | **~1,188** |
 | Compactions | **2** |
-| Files touched (sum of snapshots) | **~147** |
-| Agent lines added | **~9,049** |
-| Agent lines removed | **~1,448** |
+| Files touched (sum of snapshots) | **~151** |
+| Agent lines added | **~9,258** |
+| Agent lines removed | **~1,586** |
 
 ### Tokens
 
 | What | Value |
 |---|---:|
 | Context window | **500,000** |
-| Context in use at Session 8 wrap | **~103,730** (~**21%**) |
+| Context in use at Session 9 wrap | **~87,496** (~**17%**) |
 | Lifetime billed in/out tokens | **Not exposed** — xAI / Grok Build dashboard |
 
 `contextTokensUsed` is **window occupancy**, not the sum of every turn.
@@ -230,9 +232,9 @@ Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2]
 
 | Item | Estimate |
 |---|---:|
-| Live gallery Imagine images | **69** (mix ~$0.02 + quality ~$0.05) ≈ **~$1.50–1.70** |
+| Live gallery Imagine images | **70** (mix ~$0.02 + quality ~$0.05) ≈ **~$1.55–1.75** |
 | Experiment images (non-field) | **~17** × ~$0.02 ≈ **~$0.34** |
-| X Recent Search | **OFF** |
+| X Recent Search | **Primary-only when enabled** (official brands) |
 | Unattended schedule | **OFF** (service keeps API up; generate is manual) |
 
 ---
@@ -256,6 +258,7 @@ Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2]
 | [`docs/STATS-SESSION-6.md`](docs/STATS-SESSION-6.md) | Session 6 tallies (Data Space + art polish) |
 | [`docs/STATS-SESSION-7.md`](docs/STATS-SESSION-7.md) | Session 7 tallies (Studio merge + neon + wire) |
 | [`docs/STATS-SESSION-8.md`](docs/STATS-SESSION-8.md) | Session 8 tallies (rootkit craft + Grok 4.5 art director) |
+| [`docs/STATS-SESSION-9.md`](docs/STATS-SESSION-9.md) | Session 9 tallies (source-only captions + primary X) |
 | [`GROK.md`](GROK.md) | Agent rules |
 
 ---

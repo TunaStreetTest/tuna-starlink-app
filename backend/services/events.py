@@ -105,6 +105,17 @@ _BLOCK_RE = re.compile(
     re.I,
 )
 
+# Soft secondary features — real articles, wrong signal for a tech wire post body.
+# "Space photo of the day" titles misled caption expansion ("floating" → "in orbit").
+_SOFT_FEATURE_RE = re.compile(
+    r"("
+    r"photo of the day|picture of the day|image of the day|"
+    r"space photo of the day|looks absolutely|stunning photos?|"
+    r"don'?t miss these|you may like"
+    r")",
+    re.I,
+)
+
 _STREAM_NAME = ".news_stream.json"
 # Bump wipes old 14-day / Ars / stale Anthropic-settlement cache on next load.
 _STREAM_SCHEMA = "cool-tech-v2"
@@ -270,10 +281,13 @@ def _parse_rss_items(
         # Drop politics / lifestyle / off-theme noise before it hits the stream
         if not _is_cool_tech(title, desc):
             continue
+        # Soft features mislead the caption (photo-of-the-day "floating" ≠ orbital news)
+        if _SOFT_FEATURE_RE.search(f"{title} {desc}"):
+            continue
         # Reject stub titles ("SpaceX - SpaceX") and ultra-thin blurbs
         if len(title) < 28 or title.count(" ") < 4:
             continue
-        # Keep full summary so Generative Stream can fill the 280-char post field.
+        # Title + summary only as source material — never invent beyond this text.
         line = title
         if desc and desc.lower() not in title.lower():
             snippet = desc[:420].rstrip()
@@ -573,14 +587,14 @@ def _dedupe_key(text: str) -> str:
 
 
 def _pack_line(item: dict[str, Any]) -> str:
-    """Single-story full text: title + summary — enough material to fill 280-char post."""
+    """Single-story source text: title + summary only (caption will not invent past this)."""
     title = (item.get("title") or "").strip()
     summary = re.sub(r"https?://\S+", "", (item.get("summary") or "").strip())
     summary = re.sub(r"\s+", " ", summary).strip()
     line = re.sub(r"https?://\S+", "", (item.get("line") or item.get("text") or "").strip())
     line = re.sub(r"\s+", " ", line).strip()
 
-    # Build the longest clean single-story string available
+    # Prefer longest clean string that is still only wire text
     if title and summary and summary.lower() not in title.lower():
         body = f"{title} — {summary}"
     elif line and len(line) >= len(title):
@@ -589,7 +603,6 @@ def _pack_line(item: dict[str, Any]) -> str:
         body = f"{title} — {line}"
     else:
         body = line or title
-    # Cap well above tweet size so craft_stream_slug can fill all 280
     return body[:900]
 
 
@@ -604,14 +617,25 @@ _PRIMARY_BOOST = re.compile(
 
 
 def _primary_rank(item: dict[str, Any]) -> int:
-    """Higher = better primary. Freshness dominates — never prefer oldest in the batch."""
+    """Higher = better primary. Official X beats secondary RSS rewrites."""
     title = item.get("title") or item.get("line") or ""
     score = int(item.get("score") or 0)
-    if item.get("source") == "x-search":
-        score += 8
+    is_x = item.get("source") == "x-search"
+    is_primary_acct = bool(item.get("primary_account"))
+    # Prefer primary brand posts from X over Google News rewrites
+    if is_x:
+        score += 80
+        if is_primary_acct:
+            score += 50
     if _PRIMARY_BOOST.search(title):
         score += 25
-    if not _is_cool_tech(title, item.get("summary") or item.get("line") or ""):
+    if _SOFT_FEATURE_RE.search(title):
+        score -= 80
+    # Official account posts are already cool-tech by construction — don't
+    # punish short "still afloat…" SpaceX updates for omitting the brand name.
+    if not is_primary_acct and not _is_cool_tech(
+        title, item.get("summary") or item.get("line") or ""
+    ):
         score -= 100
     n = len(title)
     if 40 <= n <= 140:
@@ -619,10 +643,13 @@ def _primary_rank(item: dict[str, Any]) -> int:
     elif n > 180:
         score -= 8
 
-    # Freshness is the main lever (few posts/day → always the newest story)
+    # Freshness still matters — few posts/day → newest story
     age = _age_hours(item)
     if age is None:
-        score -= 5
+        if is_x:
+            score += 30
+        else:
+            score -= 5
     elif age <= 6:
         score += 50
     elif age <= 24:
@@ -641,7 +668,7 @@ def _build_wire_pack(
     rss_hits: list[dict[str, Any]],
     pack_size: int = _PACK_SIZE,
 ) -> list[dict[str, Any]]:
-    """Merge optional X + RSS into a small multi-headline pack."""
+    """Merge X primary + RSS; rank so official posts win over soft RSS."""
     candidates: list[dict[str, Any]] = []
     seen: set[str] = set()
 
@@ -665,6 +692,8 @@ def _build_wire_pack(
                 "url": h.get("url"),
                 "score": h.get("score"),
                 "likes": h.get("likes"),
+                "primary_account": bool(h.get("primary_account")),
+                "published_at": h.get("created_at") or h.get("published_at"),
             }
         )
         x_kept += 1
@@ -672,7 +701,10 @@ def _build_wire_pack(
     for h in rss_hits:
         if len(candidates) >= pack_size + 2:
             break
-        key = _dedupe_key(h.get("title") or h.get("line") or "")
+        title = h.get("title") or h.get("line") or ""
+        if _SOFT_FEATURE_RE.search(title):
+            continue
+        key = _dedupe_key(title)
         if not key or key in seen:
             continue
         seen.add(key)
@@ -685,10 +717,13 @@ def _build_wire_pack(
                 "lane": h.get("lane"),
                 "link": h.get("link"),
                 "score": 50,
+                "published_at": h.get("published_at"),
+                "published": h.get("published"),
+                "ingested_at": h.get("ingested_at"),
             }
         )
 
-    # Rank by brand fit + freshness; tie-break newest publish time
+    # Rank by primary trust + freshness; tie-break newest publish time
     candidates.sort(
         key=lambda c: (_primary_rank(c), _freshness_key(c)),
         reverse=True,
@@ -766,12 +801,11 @@ async def get_events(
                     rss_pool.append(m)
                     seen_ids.add(m["id"])
 
-    # --- X search (paid; hard gated) ---
+    # --- X search (paid; hard gated). Prefer primary brand posts over RSS rewrites. ---
     x_hits: list[dict[str, Any]] = []
     x_err: str | None = None
     x_skipped: str | None = None
     force_x_mode = mode in ("x", "x-search")
-    rss_thin = len(rss_pool) < _PACK_SIZE
 
     from services import x_search
 
@@ -779,19 +813,16 @@ async def get_events(
         x_skipped = "dry_run"
     elif not x_search.search_enabled():
         x_skipped = "x_search_disabled"
-    elif force_x_mode or rss_thin:
+    else:
+        # Always consult X when enabled — official SpaceX/Tesla/NVIDIA/xAI posts
+        # beat "photo of the day" Google News titles even when RSS is full.
         try:
             x_hits = x_search.pick_top_stories(lane, n=_X_SLOTS + 1)
+            if not x_hits and force_x_mode:
+                log.info("X search empty in force-x mode lane=%s", lane)
         except Exception as e:
             x_err = str(e)
             x_hits = []
-    else:
-        x_skipped = "rss_sufficient"
-        log.info(
-            "X search skipped (RSS has %s items, pack=%s)",
-            len(rss_pool),
-            _PACK_SIZE,
-        )
 
     recycled = False
     if not rss_pool and not x_hits:

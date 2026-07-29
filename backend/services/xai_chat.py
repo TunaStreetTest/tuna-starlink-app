@@ -1,4 +1,7 @@
-"""Grok steps: art director + caption + Generative Stream slug (Session 2)."""
+"""Grok steps: art director brief + source-only stream caption.
+
+Art director may metaphorize. The X caption must never invent facts past the wire text.
+"""
 
 from __future__ import annotations
 
@@ -63,16 +66,9 @@ Rules:
 - Materials and light sell "astounding" more than stacking more neon objects.
 """
 
-# Generative Stream is the main X post body: one story, fill the full 280, no hashtags.
+# Generative Stream is the main X post body: source text only, no LLM invent.
+# Short headlines stay short. Never pad with fabricated "facts."
 STREAM_SLUG_MAX = 280
-
-STREAM_SLUG_SYSTEM = (
-    "You write the body of one X post for a creative news art account. "
-    "ONE primary story only. Lead with who/what. Sound like a wire desk, not a promo. "
-    "Use as much of the character budget as you can — aim to fill it. "
-    "Expand with concrete facts from the source (names, places, stakes) when needed. "
-    "No hashtags. No URLs. No @mentions. No 'the poster said'. No newlines."
-)
 
 
 async def craft_art_brief(events: str, style: dict) -> str:
@@ -154,7 +150,7 @@ def _fit_text(s: str, limit: int) -> str:
 
 
 def pack_stream_slug(headlines: list[str], max_chars: int = STREAM_SLUG_MAX) -> str:
-    """Single primary story — take as much text as fits in max_chars."""
+    """Single primary story — only text present in the wire, clipped to max_chars."""
     junk_re = re.compile(
         r"\b(day\s*\d+|leetcode|follow me|link in bio|becoming better|"
         r"jimothy|frog-like|tokenized|perp game|watch until the end|"
@@ -173,19 +169,22 @@ def pack_stream_slug(headlines: list[str], max_chars: int = STREAM_SLUG_MAX) -> 
         return "A live story from the wire."
 
     body = _fit_text(primary, max_chars)
-    if body and body[-1] not in ".!?…":
+    # Terminal period only when the source already ends mid-sentence punctuation-less
+    # and we didn't ellipsis-cut — never invent trailing content.
+    if body and body[-1] not in ".!?…" and not body.endswith("…"):
         if len(body) + 1 <= max_chars:
             body = body + "."
-        else:
-            body = _fit_text(body, max_chars - 1) + "."
     return body
 
 
 async def craft_stream_slug(
     events: str, max_chars: int = STREAM_SLUG_MAX
 ) -> str:
-    """Generative Stream body — one story, fill the full character budget."""
-    # Single primary story — full available text (title + summary).
+    """X post body from the wire only — never LLM-expand.
+
+    Expanding short headlines invented launch dates, "still in orbit," and other
+    bullshit. Humans trust the caption as news. Source text only, clipped to budget.
+    """
     source = ""
     for line in (events or "").splitlines():
         line = line.strip().lstrip("-• ").strip()
@@ -198,82 +197,10 @@ async def craft_stream_slug(
             source = line
             break
 
-    if settings.DRY_RUN:
-        # Dry-run: pad with factual filler so length checks still exercise the budget
-        base = pack_stream_slug(
-            [source] if source else ["A live story from the wire, remixed as digital weather."],
-            max_chars=max_chars,
-        )
-        if len(base) >= max_chars - 8:
-            return base
-        pad = (
-            " More detail continues to emerge from the wire as the situation develops "
-            "across markets, institutions, and public response."
-        )
-        return _fit_text(base.rstrip(". ") + "." + pad, max_chars)
+    if not source and settings.DRY_RUN:
+        source = "Dry-run: SpaceX Starship stacks for next flight test."
 
-    # If we already have enough raw material, use it (clip to full budget).
-    raw = pack_stream_slug([source] if source else [], max_chars=max_chars)
-    if source and len(_clean_headline_piece(source)) >= max_chars - 12:
-        return raw
-
-    # Expand short wire items to fill the 280-char field with the same story.
-    user = (
-        f"Source story (use only these facts, expand to fill the budget):\n{source or events}\n\n"
-        f"Write ONE X post body about this story only. "
-        f"Target length: {max_chars - 5}–{max_chars} characters (use almost all of it). "
-        f"Hard max {max_chars}. No hashtags, URLs, or @mentions."
-    )
-    if settings.EDGE_TEXT == "lemonade":
-        text = await _lemonade_chat(STREAM_SLUG_SYSTEM, user, max_tokens=220)
-    else:
-        text = await _xai_chat(
-            STREAM_SLUG_SYSTEM,
-            user,
-            max_tokens=220,
-            temperature=0.35,
-            model=settings.XAI_CHAT_MODEL,
-        )
-
-    text = _clean_headline_piece(text or "")
-    text = re.sub(r"#\w+", "", text)
-    text = re.sub(r"https?://\S+", "", text)
-    text = re.sub(r"@\w+", "", text)
-    text = re.sub(r"\s+", " ", text).strip()
-
-    # Reject expansions that drift off the source story
-    def _on_story(src: str, exp: str) -> bool:
-        keys = [
-            w
-            for w in re.findall(r"[A-Za-z0-9€$%]{4,}", src or "")
-            if w.lower()
-            not in {
-                "with", "from", "that", "this", "have", "been", "were", "their",
-                "about", "after", "over", "under", "into", "said", "says", "will",
-            }
-        ]
-        if not keys:
-            return bool(exp)
-        hits = sum(1 for w in keys if w.lower() in (exp or "").lower())
-        return hits >= min(2, len(keys))
-
-    if (
-        text
-        and len(text) >= max(len(raw), int(max_chars * 0.75))
-        and _on_story(source, text)
-    ):
-        body = _fit_text(text, max_chars)
-    elif source:
-        body = raw
-    else:
-        body = text or raw or "A live story from the wire."
-
-    if body and body[-1] not in ".!?…":
-        if len(body) + 1 <= max_chars:
-            body = body + "."
-        else:
-            body = _fit_text(body, max_chars - 1) + "."
-    return body
+    return pack_stream_slug([source] if source else [], max_chars=max_chars)
 
 
 async def _xai_chat(
