@@ -58,7 +58,8 @@ DRY_RUN=false
 ART_STORAGE_PATH=/art
 XAI_API_KEY=xai-...
 XAI_CHAT_MODEL=grok-4-1-fast-non-reasoning
-XAI_IMAGE_MODEL=grok-imagine-image
+XAI_IMAGE_MODEL=grok-imagine-image-quality
+XAI_IMAGE_RESOLUTION=1k
 DEFAULT_STYLE=data-tunnel
 EVENTS_SOURCE=stream
 
@@ -207,7 +208,7 @@ Starlink tip: each run downloads **one image** (~0.5 MB). No model weights over 
 
 **Cost ballpark (cheap Imagine model):**
 
-- ~**$0.02–0.04** xAI per full run (Imagine dominates)  
+- ~**$0.05–0.07** xAI per full run (quality Imagine dominates; cheap model still available)  
 - X posts use your **X API plan limits**, not xAI credits  
 
 ---

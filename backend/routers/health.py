@@ -22,9 +22,11 @@ async def health():
         "ok": bool(settings.XAI_API_KEY) or settings.DRY_RUN,
         "dry_run": settings.DRY_RUN,
         "chat_model": settings.XAI_CHAT_MODEL,
+        "art_model": settings.XAI_ART_MODEL,
         "image_model": settings.XAI_IMAGE_MODEL,
+        "image_resolution": settings.XAI_IMAGE_RESOLUTION,
         "key_present": bool(settings.XAI_API_KEY),
-        "note": "chat uses non-reasoning by default; Imagine is the main $ cost",
+        "note": "art director uses XAI_ART_MODEL (Grok 4.5); Imagine is the main $ cost",
     }
 
     # Optional Lemonade

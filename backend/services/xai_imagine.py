@@ -84,21 +84,26 @@ def generate_image(prompt: str, run_id: str, style_label: str) -> tuple[bytes, d
     }
     size = (settings.XAI_IMAGE_SIZE or "").strip()
     aspect = (settings.XAI_IMAGE_ASPECT_RATIO or "").strip()
+    resolution = (settings.XAI_IMAGE_RESOLUTION or "").strip().lower()
+    extra: dict[str, Any] = {}
     if size:
         kwargs["size"] = size
     if aspect:
-        # xAI-style aspect; ignored harmlessly if unsupported when sent as extra_body
-        kwargs["extra_body"] = {"aspect_ratio": aspect}
+        extra["aspect_ratio"] = aspect
+    if resolution in ("1k", "2k"):
+        extra["resolution"] = resolution
+    if extra:
+        kwargs["extra_body"] = extra
 
     try:
         resp = c.images.generate(**kwargs)
     except Exception as e:
-        # Retry once without size/aspect — this is a second billable image call.
+        # Retry once without size/aspect/resolution — this is a second billable image call.
         # Only fire when the first request was rejected (bad params), not on timeout mid-gen.
         import logging
 
         logging.getLogger("tuna-starlink.imagine").warning(
-            "Imagine first attempt failed (%s); one retry without size/aspect",
+            "Imagine first attempt failed (%s); one retry without size/aspect/resolution",
             type(e).__name__,
         )
         resp = c.images.generate(
@@ -211,6 +216,9 @@ def develop_from_field(
         "n": 1,
         "image": {"url": data_url},
     }
+    resolution = (settings.XAI_IMAGE_RESOLUTION or "").strip().lower()
+    if resolution in ("1k", "2k"):
+        base_payload["resolution"] = resolution
     # Try high-fidelity first (may be ignored if unsupported)
     attempts = [
         {**base_payload, "input_fidelity": input_fidelity},

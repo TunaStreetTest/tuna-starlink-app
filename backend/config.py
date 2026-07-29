@@ -12,12 +12,17 @@ class Settings(BaseSettings):
     # xAI — short chat calls + Imagine for images
     XAI_API_KEY: str = ""
     XAI_BASE_URL: str = "https://api.x.ai/v1"
-    # Non-reasoning is enough for art brief + caption (reasoning wastes tokens).
+    # Stream slug / cheap text. Art director uses XAI_ART_MODEL (better briefs).
     XAI_CHAT_MODEL: str = "grok-4-1-fast-non-reasoning"
-    XAI_IMAGE_MODEL: str = "grok-imagine-image"
+    # Art director — Grok 4.5 writes the Imagine SHOT paragraph (tokens << image $).
+    XAI_ART_MODEL: str = "grok-4.5"
+    # Imagine: quality ~$0.05/img @1K. Standard grok-imagine-image ~$0.02. Skip 2K for now.
+    XAI_IMAGE_MODEL: str = "grok-imagine-image-quality"
     # Keep series posts landscape (16:9). Portrait shows as a thin middle bar.
     XAI_IMAGE_SIZE: str = "1792x1024"
     XAI_IMAGE_ASPECT_RATIO: str = "16:9"
+    # Imagine resolution: "1k" (default, quality ~$0.05) or "2k" (quality ~$0.07).
+    XAI_IMAGE_RESOLUTION: str = "1k"
 
     # Dry run: fake events + placeholder PNG, zero API spend
     DRY_RUN: bool = False

@@ -39,24 +39,32 @@ _DATA_SPACE_SCENES = (
     "holographic telemetry arcs; no people; no satellite swarm.",
 )
 
-# Per-run cityscape recipes for rootkit-city (layout variety; keep neon spectrum)
+# Per-run cityscape recipes for rootkit-city — classic hacker skyline.
+# Green lives on ARCHITECTURE (windows, one tower, PCB etch), never as a path/beam/bolt.
 _ROOTKIT_CITY_SCENES = (
-    "SCENE: sprawling coastal circuit metropolis — towers step down to a luminous "
-    "cyan-magenta data-sea horizon; acid-green rewrite snakes inland; neon night.",
-    "SCENE: floating voxel districts stacked at different altitudes over a dark die-grid "
-    "base; bridges of cyan/magenta light between blocks; phosphor rain.",
-    "SCENE: deep canyon street between colossal GPU-die skyscrapers; low camera looking "
-    "along the neon canyon toward a bright acid-green root-access core.",
-    "SCENE: elevated megastructure ring-city above a lower sprawl; one vertical "
-    "acid-green infiltration beam from the ring into a cyan-magenta grid below.",
-    "SCENE: hexagonal die-district from a high oblique angle — unique block layout, "
-    "different tower heights; rewrite path as a bright green circuit trace on cyan streets.",
-    "SCENE: night skyline with a planetary data-horizon behind the towers; "
-    "silhouette variety (spires, cubes, lattice stacks); full cyan/magenta/green neon glow.",
-    "SCENE: industrial silicon waterfront — machine-form cooling geometry, packet piers, "
-    "vapor neon cyan and magenta; acid-green rewrite along the docks.",
-    "SCENE: fractured mid-infiltration city — half still dark cyan grid, half rewritten "
-    "in acid-green and hot magenta; clear front-line of the rootkit spread.",
+    "SCENE: classic neon circuit skyline — readable tower blocks on a dark cyan grid street "
+    "plane; square magenta node panels on facades; acid-green only as steady window strips "
+    "on a few towers; calm night city haze; hard orthogonal geometry only.",
+    "SCENE: low street-level canyon between colossal circuit skyscrapers; vanishing-point "
+    "cyan grid road (straight grid lines, not jagged); layered readable architecture; "
+    "one mid-ground tower lit entirely in acid-green facade panels as the rootkit hero.",
+    "SCENE: elevated overpass view of a sprawling die-grid metropolis; mixed tower heights "
+    "(spires, cubes, lattice stacks); cyan streets; magenta window clusters; "
+    "green appears as PCB-style right-angle circuit etchings on building skins only.",
+    "SCENE: waterfront circuit city — towers meet a dark reflective canal; cyan/magenta "
+    "neon reflections; one green-lit machine tower at the docks; quiet night atmosphere.",
+    "SCENE: dense mid-rise district, high oblique angle — hexagonal block layout, "
+    "cyan grid arteries as streets, magenta roof nodes; rootkit = one green-glowing "
+    "district block (solid building lights), not a line through the city.",
+    "SCENE: night skyline silhouette variety against a soft planetary data-horizon; "
+    "hero is architecture; cyan edge light on towers; sparse green window bands; "
+    "still cityscape, no energy weather.",
+    "SCENE: floating upper districts linked by thin straight light bridges over lower sprawl; "
+    "Tron/Hackers city — hard edges, legible towers, controlled neon; "
+    "acid-green only on bridge rail lights and a few facade panels.",
+    "SCENE: root-access plaza — dark cyan plaza grid, ring of surrounding towers; "
+    "hero is a single cubic green-glass core building in the plaza center "
+    "(solid architecture, not a glowing crack or beam).",
 )
 
 
@@ -133,20 +141,39 @@ def _palette_steer(art_brief: str, style_id: str) -> str:
     import hashlib
 
     # Spectrum shifts inside the franchise neon night — not monochrome / graphite replacements.
-    accents = (
-        "COLOR SPECTRUM: cyan-led neon night — electric cyan grids dominate, hot magenta "
-        "nodes secondary, acid-green path as hero accent; void black depths; gold metal rims optional.",
-        "COLOR SPECTRUM: magenta-led neon night — hot magenta signal clusters lead, cyan streets "
-        "underneath, acid-green rewrite cut; void black; copper edge warmth optional.",
-        "COLOR SPECTRUM: acid-green-led neon night — phosphor green rewrite floods the frame, "
-        "cyan structure supports, magenta pulses at nodes; void black; white-hot core sparks.",
-        "COLOR SPECTRUM: gold-warm neon night — soft gold / amber window and limb light warms "
-        "metal, still full cyan grids + magenta nodes + acid-green path (do not drop neon).",
-        "COLOR SPECTRUM: ice-spectrum neon — ice-cyan and white-hot cores lead, violet-magenta "
-        "depth glows, acid-green filaments; still a saturated neon night, not grey metal.",
-        "COLOR SPECTRUM: balanced triad neon — equal electric cyan + hot magenta + acid green "
-        "across architecture and data; high saturation; void black negative space.",
-    )
+    # Never describe green (or any color) as a path/bolt/beam — that becomes neon lightning.
+    if style_id in ("rootkit-city", "rootkit_city"):
+        accents = (
+            "COLOR SPECTRUM: cyan-led city night — electric cyan grid streets dominate; "
+            "hot magenta square panels on facades; acid-green only as steady facade window "
+            "bands on select towers; void black. No green lines on the ground.",
+            "COLOR SPECTRUM: magenta-led city night — magenta facade clusters lead; cyan streets; "
+            "acid-green as one solid green-lit tower block; void black; soft amber windows optional.",
+            "COLOR SPECTRUM: green-architecture night — one hero tower or district with solid "
+            "acid-green glass/panels; rest of city cyan + magenta; void black. Green is BUILDING "
+            "LIGHT, never a crack, path, bolt, beam, or river.",
+            "COLOR SPECTRUM: warm-window city night — amber window dots on metal; cyan street grid; "
+            "magenta nodes; sparse green facade accents. No molten orange sky.",
+            "COLOR SPECTRUM: ice city night — ice-cyan streets and white-hot window cores; "
+            "violet-magenta depth; acid-green as PCB right-angle etch glow on skins only.",
+            "COLOR SPECTRUM: balanced triad on architecture — cyan streets, magenta panels, "
+            "green windows distributed on towers; high saturation; controlled city glow only.",
+        )
+    else:
+        accents = (
+            "COLOR SPECTRUM: cyan-led neon night — electric cyan grids dominate, hot magenta "
+            "nodes secondary, acid-green accents on structure; void black depths; cool metal rims optional.",
+            "COLOR SPECTRUM: magenta-led neon night — hot magenta signal clusters lead, cyan "
+            "structure underneath, acid-green accents; void black; soft copper warmth optional.",
+            "COLOR SPECTRUM: acid-green-led neon night — phosphor green structural accents lead, "
+            "cyan supports, magenta nodes; void black; white-hot core sparks on machines.",
+            "COLOR SPECTRUM: warm-window neon night — soft amber window/limb light on metal, "
+            "still full cyan + magenta + acid-green luminous color (do not drop neon).",
+            "COLOR SPECTRUM: ice-spectrum neon — ice-cyan and white-hot cores lead, violet-magenta "
+            "depth glows, acid-green filaments; saturated neon night, not grey metal.",
+            "COLOR SPECTRUM: balanced triad neon — equal electric cyan + hot magenta + acid green "
+            "across architecture and data; high saturation; void black negative space.",
+        )
     h = hashlib.sha256(f"{style_id}|{art_brief[:120]}".encode()).digest()
     return accents[h[0] % len(accents)]
 
@@ -169,20 +196,103 @@ def _rootkit_city_scene(art_brief: str) -> str:
     return _scene_pick(art_brief, _ROOTKIT_CITY_SCENES, "rootkit-city")
 
 
-def build_imagine_prompt(art_brief: str, style: dict[str, Any]) -> str:
-    seed = (style.get("prompt_seed") or "").strip()
-    brief = art_brief.strip()
-    lock = (style.get("shared_lock") or "").strip()
-    style_id = str(style.get("id") or "")
-    steer = _palette_steer(brief, style_id)
-    quality = (
-        "Render quality: ultra-premium cinematic still, sharp micro-detail, clean geometry, "
-        "deep volumetric light, saturated neon color spectrum, no people or human silhouettes."
+def _sanitize_rootkit_brief(brief: str) -> str:
+    """Rewrite path/bolt metaphors so Imagine does not paint neon lightning."""
+    import re
+
+    if not brief:
+        return brief
+    # Common art-director phrases that become jagged green energy.
+    replacements = (
+        (r"\b(thin\s+)?acid[- ]green\s+(rootkit\s+)?(rewrite\s+)?(trace|path|seam|cut|route|line)s?\b",
+         "acid-green facade lights on one tower"),
+        (r"\b(rootkit\s+)?(rewrite|infiltration)\s+(trace|path|seam|beam|route|river|channel)s?\b",
+         "green-lit rootkit tower block"),
+        (r"\b(snaking|weaving|slicing|carving|fracturing|forking)\s+down\b", "concentrated in"),
+        (r"\b(snaking|weaving|slicing|carving|fracturing|forking)\b", "concentrated"),
+        (r"\bcarves a precise path\b", "anchors the district"),
+        (r"\b(precise\s+)?path between towers\b", "tower block"),
+        (r"\b(lightning|bolt|bolts|storm|storms)\b", "glow"),
+        (r"\b(vertical\s+)?beams?\b", "tower lights"),
+        (r"\b(jagged|crack|cracks|crackling)\b", "angular"),
+        (r"\b(molten|lava|phosphor\s+rain)\b", "neon haze"),
+        (r"\bdigital\s+river\b", "green-lit district"),
+        (r"\bgreen\s+river\b", "green-lit block"),
+        (r"\bcentral boulevard\b", "central district"),
     )
-    parts = [seed]
+    out = brief
+    for pat, rep in replacements:
+        out = re.sub(pat, rep, out, flags=re.I)
+    return out
+
+
+def _extract_shot_paragraph(art_brief: str) -> str:
+    """Pull SHOT: from art director brief; fall back to full brief."""
+    import re
+
+    text = (art_brief or "").strip()
+    if not text:
+        return ""
+    m = re.search(
+        r"(?is)^SHOT:\s*(.+?)(?=^\s*(?:HERO|METAPHOR|LIGHT|MOOD|AVOID|CAMERA|CHAOS|PALETTE|DETAIL)\s*:|\Z)",
+        text,
+        re.M,
+    )
+    if m:
+        shot = re.sub(r"\s+", " ", m.group(1)).strip()
+        if len(shot) > 40:
+            return shot
+    return text
+
+
+def build_imagine_prompt(art_brief: str, style: dict[str, Any]) -> str:
+    """Compose Imagine prompt: SHOT paragraph leads; seed/lock are light guardrails.
+
+    Best Grok Imagine stills win on ONE poetic architecture + materials + dual light,
+    not a stack of competing rule blocks. Keep franchise locks short.
+    """
+    seed = (style.get("prompt_seed") or "").strip()
+    brief = (art_brief or "").strip()
+    style_id = str(style.get("id") or "")
+    if style_id in ("rootkit-city", "rootkit_city"):
+        brief = _sanitize_rootkit_brief(brief)
+
+    shot = _extract_shot_paragraph(brief)
+    if style_id in ("rootkit-city", "rootkit_city"):
+        shot = _sanitize_rootkit_brief(shot)
+
+    # Lead with the cinematic SHOT — this is what quality Imagine work looks like.
+    parts: list[str] = []
+    if shot:
+        parts.append(shot)
+    elif seed:
+        parts.append(seed)
+
+    # Light style geometry cue (not a second full prompt).
     if style_id in ("data-space", "data_space"):
         parts.append(_data_space_scene(brief or seed))
     elif style_id in ("rootkit-city", "rootkit_city"):
         parts.append(_rootkit_city_scene(brief or seed))
-    parts.extend([brief, steer, quality, lock])
+        parts.append(
+            "Cityscape only: orthogonal towers and grid streets; acid-green as building "
+            "lights only — no glowing ground paths, bolts, or vertical energy shafts."
+        )
+    elif seed and shot and seed not in shot:
+        # Short style anchor when SHOT is present (seed is fallback lead otherwise).
+        first_line = seed.split("\n", 1)[0].strip()
+        if first_line:
+            parts.append(first_line)
+
+    # Dual-light material bar (from showcase DNA), not a neon dump checklist.
+    parts.append(
+        "Finished ultra-premium VFX still, wide 16:9, photoreal materials (glass, metal, "
+        "silicon micro-detail), dual light (warm practical + cool digital), deep atmospheric "
+        "depth of field, epic scale, legible architecture. No people or human silhouettes. "
+        "No lava, no lightning-bolt weather, no scrapyard noise soup."
+    )
+    # Franchise hard rules — keep short so SHOT stays the hero.
+    parts.append(
+        "HARD: pure machine/architecture CGI only — zero humans; no logos, flags, or "
+        "readable text; neon accents allowed but subordinate to the one hero structure."
+    )
     return "\n\n".join(p for p in parts if p)

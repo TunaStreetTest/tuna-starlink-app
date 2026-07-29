@@ -245,8 +245,8 @@ def _style_phosphor(style: dict[str, Any] | None) -> str:
             "deep cyan-magenta pressure light."
         ),
         "rootkit-city": (
-            f"{label}: kaleidoscope circuit city — angular mirrored facets, acid-green rewrite seam, "
-            "magenta nodes on dark cyan grid glass."
+            f"{label}: kaleidoscope circuit cityscape — readable mirrored towers, cyan grid streets, "
+            "magenta facade nodes, green building lights — no lightning paths or lava."
         ),
     }
     return notes.get(sid, f"{label}: full-frame digital kaleidoscope CGI.")

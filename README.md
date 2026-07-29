@@ -16,7 +16,7 @@ Each run:
 1. **Ingest** lean cool-tech RSS (**3 feeds**, last ~3 days) into `art/.news_stream.json` — drop stories older than **72h**
 2. **Single newest story** (publish-time rank; never oldest-first) — full title + summary
 3. **Art director** (Grok) metaphors that story into a visual brief — **full neon spectrum**
-4. **Imagine** (`grok-imagine-image`, ~$0.02, landscape 16:9)
+4. **Imagine** (`grok-imagine-image-quality`, ~$0.05 1K / ~$0.07 2K, landscape 16:9)
 5. Save `art/<run_id>/art.png` + `meta.json`
 6. **X post** from Studio tile modal (or `AUTO_PUBLISH`) — image + **Generative Stream** body (one story, fill ~280, **no hashtags**, no reply)
 
@@ -91,7 +91,8 @@ ART_STORAGE_PATH=../art
 
 XAI_API_KEY=xai-...
 XAI_CHAT_MODEL=grok-4-1-fast-reasoning
-XAI_IMAGE_MODEL=grok-imagine-image
+XAI_IMAGE_MODEL=grok-imagine-image-quality
+XAI_IMAGE_RESOLUTION=1k
 XAI_IMAGE_SIZE=1792x1024
 XAI_IMAGE_ASPECT_RATIO=16:9
 
@@ -160,7 +161,7 @@ EVENTS_SOURCE=stream
 X_SEARCH_ENABLED=false
 ```
 
-No background fires. Click **Generate** when you want a piece; with `AUTO_PUBLISH` it posts after success. No X search. **~$0.02–0.04 xAI per intentional generate** (Imagine dominates).
+No background fires. Click **Generate** when you want a piece; with `AUTO_PUBLISH` it posts after success. No X search. **~$0.05–0.07 xAI per intentional generate** (quality Imagine dominates; set `XAI_IMAGE_MODEL=grok-imagine-image` for ~$0.02 cheap runs).
 
 ---
 
@@ -185,42 +186,42 @@ DRY_RUN=1 ART_STORAGE_PATH=./art python worker/run_once.py --style data-tunnel
 
 ## Build stats (whole repo)
 
-Seven Grok Build sessions, model **grok-4.5**.  
-Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2](docs/STATS-SESSION-2.md) · [S3](docs/STATS-SESSION-3.md) · [S4](docs/STATS-SESSION-4.md) · [S5](docs/STATS-SESSION-5.md) · [S6](docs/STATS-SESSION-6.md) · [S7](docs/STATS-SESSION-7.md).
+Eight Grok Build sessions, model **grok-4.5**.  
+Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2](docs/STATS-SESSION-2.md) · [S3](docs/STATS-SESSION-3.md) · [S4](docs/STATS-SESSION-4.md) · [S5](docs/STATS-SESSION-5.md) · [S6](docs/STATS-SESSION-6.md) · [S7](docs/STATS-SESSION-7.md) · [S8](docs/STATS-SESSION-8.md).
 
 ### Lines of code (current repo)
 
 | Area | Lines |
 |---|---:|
-| Python (`backend/`, `worker/`, `scripts/`) | **3,662** |
+| Python (`backend/`, `worker/`, `scripts/`) | **3,826** |
 | Frontend (`frontend/src`) | **905** |
-| Style seeds + compose YAML | **184** |
-| **Application code** | **~4,751** |
-| Docs (`docs/`, README, GROK) | **1,922** |
-| Makefile / Dockerfile / `.env.example` / samples | **129** |
-| **All product files** | **~6,802** |
+| Style seeds + compose YAML | **170** |
+| **Application code** | **~4,901** |
+| Docs (`docs/`, README, GROK) | **2,033** |
+| Makefile / Dockerfile / `.env.example` / samples | **132** |
+| **All product files** | **~7,066** |
 
-(Excludes `node_modules`, `.venv`, generated `art/`, lockfiles.) S6→S7 ≈ **−30** app / **~+192** product (Studio merge −LOC; news + neon + stats +docs).
+(Excludes `node_modules`, `.venv`, generated `art/`, lockfiles.) S7→S8 ≈ **+150** app / **~+264** product (Grok 4.5 art director + SHOT compose + rootkit craft).
 
-### Combined session activity (S1–S7)
+### Combined session activity (S1–S8)
 
 | Metric | Value |
 |---|---:|
-| Active engineering time | **~9.1–9.8 hours** (excludes idle) |
-| User turns | **~110–111** |
-| Assistant messages | **~489** |
-| Tool calls | **~1,015** |
+| Active engineering time | **~9.8–10.8 hours** (excludes idle) |
+| User turns | **~115–116** |
+| Assistant messages | **~528** |
+| Tool calls | **~1,128** |
 | Compactions | **2** |
-| Files touched (sum of snapshots) | **~133** |
-| Agent lines added | **~8,742** |
-| Agent lines removed | **~1,300** |
+| Files touched (sum of snapshots) | **~147** |
+| Agent lines added | **~9,049** |
+| Agent lines removed | **~1,448** |
 
 ### Tokens
 
 | What | Value |
 |---|---:|
 | Context window | **500,000** |
-| Context in use at Session 7 wrap | **~101,749** (~**20%**) |
+| Context in use at Session 8 wrap | **~103,730** (~**21%**) |
 | Lifetime billed in/out tokens | **Not exposed** — xAI / Grok Build dashboard |
 
 `contextTokensUsed` is **window occupancy**, not the sum of every turn.
@@ -229,7 +230,7 @@ Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2]
 
 | Item | Estimate |
 |---|---:|
-| Live gallery Imagine images | **62** × ~$0.02 ≈ **~$1.24** |
+| Live gallery Imagine images | **69** (mix ~$0.02 + quality ~$0.05) ≈ **~$1.50–1.70** |
 | Experiment images (non-field) | **~17** × ~$0.02 ≈ **~$0.34** |
 | X Recent Search | **OFF** |
 | Unattended schedule | **OFF** (service keeps API up; generate is manual) |
@@ -254,6 +255,7 @@ Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2]
 | [`docs/STATS-SESSION-5.md`](docs/STATS-SESSION-5.md) | Session 5 tallies (cool-tech wire + service) |
 | [`docs/STATS-SESSION-6.md`](docs/STATS-SESSION-6.md) | Session 6 tallies (Data Space + art polish) |
 | [`docs/STATS-SESSION-7.md`](docs/STATS-SESSION-7.md) | Session 7 tallies (Studio merge + neon + wire) |
+| [`docs/STATS-SESSION-8.md`](docs/STATS-SESSION-8.md) | Session 8 tallies (rootkit craft + Grok 4.5 art director) |
 | [`GROK.md`](GROK.md) | Agent rules |
 
 ---

@@ -9,19 +9,19 @@
 ## Aesthetic (non-negotiable)
 
 - Hacker-movie climax: **inside the computer / hacking the planet**
-- 3D CGI cyberspace — voxels, pixel shards, neon edge light, volumetric data fog
-- References in spirit (not copies): Tron / Hackers / Matrix construct / GiTS data layers / modern ArtStation digital
-- Palette: void black, electric cyan, magenta, acid green, gold Earth-limb accents
-- **Not:** oil paint, watercolor, photoreal politicians, readable UI text
+- Quality bar: best Grok Imagine showcase stills — **one** impossible poetic architecture,
+  photoreal materials, dual warm/cool light, epic scale, atmospheric depth
+- Neon accents (cyan / magenta / acid-green) subordinate to materials + composition
+- **Not:** oil paint, neon lightning weather, lava, scrapyard soup, people, readable UI text
 
-## Pipeline (cheap model for now)
+## Pipeline
 
 ```
 1. Grok news desk     → event bullets
-2. Grok art director  → visual brief (metaphors only)
-3. Compose            → brief + series lock + shot seed
-4. Imagine            → grok-imagine-image (~$0.02)
-5. Grok caption       → short post line
+2. Grok 4.5 art dir   → SHOT paragraph (one poetic plate) + light meta
+3. Compose            → SHOT leads; short style/hard locks only
+4. Imagine            → grok-imagine-image-quality (~$0.05 @ 1K; skip 2K for now)
+5. Fast caption       → stream slug
 ```
 
 ## Shot presets
@@ -31,7 +31,7 @@
 | `planet-core` | Hero planetary mainframe core (default) |
 | `data-tunnel` | Speed-rush packet tunnel |
 | `signal-cathedral` | Vertical signal megastructure |
-| `rootkit-city` | Circuit metropolis mid-infiltration |
+| `rootkit-city` | Classic hacker circuit cityscape mid-root-access |
 
 ## Dry-run honesty
 
@@ -39,4 +39,4 @@ Dry-run never calls Imagine. It draws a local neon grid placeholder and a canned
 
 ## Cost
 
-Stay on `grok-imagine-image` until series look is proven. Upgrade to `grok-imagine-image-quality` only after a few winners.
+Default is `grok-imagine-image-quality` (~$0.05/image at 1K). Optional: `XAI_IMAGE_RESOLUTION=2k` (~$0.07). Fall back to `grok-imagine-image` (~$0.02) only for cheap experiments.

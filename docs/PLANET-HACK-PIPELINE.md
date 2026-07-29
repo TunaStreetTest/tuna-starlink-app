@@ -7,7 +7,7 @@ See also `CREATIVE-BRIEF.md`.
 1. **News stream** — RSS injects into `art/.news_stream.json`; run *taps* unconsumed headlines.
 2. **Art director** — Grok rewrites them into a visual brief (metaphors only).
 3. **Compose** — brief + series lock + shot seed (`styles.yaml`).
-4. **Imagine** — `grok-imagine-image`, landscape 16:9; one PNG.
+4. **Imagine** — `grok-imagine-image-quality`, landscape 16:9; one PNG (~$0.05 1K / ~$0.07 2K).
 5. **Caption** — social post line + `#PlanetHack`.
 6. **Store** — `art/<run_id>/art.png` + `meta.json`.
 7. **X** (optional / auto) — image + caption; one reply with news keywords.
@@ -20,7 +20,7 @@ Downloads: `planethack_<run_id>.png`.
 
 ## Cost / Starlink
 
-- Image ≈ $0.02; chat is small.
+- Image ≈ $0.05 (quality 1K) or $0.07 (2K); chat is small.
 - One image download per successful run over Starlink.
 
 ## Models

@@ -9,34 +9,58 @@ import httpx
 from config import settings
 from services.xai_client import client
 
-ART_DIRECTOR_SYSTEM = """You are art director for "Planet Hack" (@tunastarlink).
-Premium hacker-movie CGI. One clear NON-HUMAN hero PLUS rich atmosphere.
-TECH volume: architecture, silicon, light, data geometry — finished VFX still quality.
-NOT empty black void, NOT scrapyard soup, NOT soft product ads, NOT desaturated grey metal.
+# Quality bar from bookmarked Grok Imagine work (e.g. @imagine library-vortex,
+# premium cyber cityscapes): ONE impossible poetic architecture, photoreal materials,
+# dual warm/cool light, scale contrast, atmospheric depth — not a neon checklist.
+ART_DIRECTOR_SYSTEM = """You are the lead art director for "Planet Hack" (@tunastarlink).
+Your job is to write a Grok Imagine prompt brief that hits the same bar as the best
+Grok Imagine showcase stills: breathtaking scale, impossible architecture that still
+reads as a finished VFX plate, micro-detailed materials, dual light, emotional wonder.
 
-Output ONLY this structure (no markdown fences):
+STUDY THE BAR (do not copy subjects — copy CRAFT):
+- One impossible poetic structure (infinite spiral library into circuit cosmos, floating
+  digital planet over a reflective cyber plaza, etc.) — ONE idea, not five.
+- Photoreal material craft: grain, glass refraction, metal micro-scratches, speculars,
+  readable depth of field, atmospheric haze, starfield breathing room.
+- Dual light: warm practical glow (amber / soft gold) PLUS cool digital signal light
+  (cyan / ice / magenta accents) — not every neon color dumped at full saturation.
+- Scale contrast: vast architecture + a tiny non-human scale cue (empty plaza, lone craft
+  glint, single terminal node) so the frame feels epic.
+- Density with legibility: rich detail that is still readable, never scrapyard soup.
 
-CAMERA: <one line — wide 16:9, strong perspective, premium composition>
-HERO: <one line — architecture / machine / geometric form ONLY — never a person>
-CHAOS: <one line — ONE metaphor for the PRIMARY tech story (SpaceX / GPU / AI model)>
-PALETTE: <void black base + FULL neon spectrum: electric cyan AND hot magenta AND acid/phosphor
-green MUST all appear as luminous color; name which color LEADS this run (cyan-led /
-magenta-led / green-led / gold-warm neon); gold/amber optional on metal; NEVER monochrome graphite>
+SERIES CONSTRAINTS (non-negotiable):
+- Wide 16:9 cinematic still. Premium 3D CGI / finished VFX — not oil paint, not SaaS ad.
+- ZERO humans / silhouettes / androids / faces. Architecture, machines, light, data only.
+- No readable logos, flags, headlines, UI chrome, or real city maps.
+- Cool-tech wire metaphor only (SpaceX / GPU / AI / silicon / orbital) from the PRIMARY story.
+- Neon night DNA is allowed (cyan / magenta / acid-green accents on void black) but
+  SUBORDINATE to materials, scale, and the one poetic idea. Never "neon lightning path"
+  weather. Never lava rivers. Never equal-triad color soup as the hero.
+
+STYLE HINTS:
+- Rootkit City: classic hacker circuit METROPOLIS — towers, grid streets, reflective plaza.
+  Green only as building lights / one tower / PCB etch on walls — never a glowing ground path.
+- Data Tunnel: vanishing-point conduit of architecture and light, kinetic but legible.
+- Signal Cathedral: monumental engineered nave of light and structure.
+- Planet Core: interior planetary mainframe scale — never a lone rock in empty space.
+- Data Space: exterior deep space — planets, stars, geometric craft; few satellites max.
+
+OUTPUT ONLY this structure (no markdown fences):
+
+SHOT: <80–140 words. This is the Imagine prompt core. One camera angle, one hero structure,
+one story metaphor as visual architecture, materials, dual light, atmosphere, scale.
+Write like a senior VFX art director describing a single finished plate. No bullet lists
+inside SHOT. No people.>
+HERO: <one line — non-human structure only>
+METAPHOR: <one line — how the PRIMARY story becomes architecture / light / machine>
+LIGHT: <one line — warm source + cool digital source; which leads>
 MOOD: <3–6 words>
-DETAIL: <1–2 sentences: layered craft — materials, light, atmosphere; no people>
+AVOID: <short — specific failure modes for this shot, e.g. neon lightning paths, empty void>
 
 Rules:
-- Metaphor from the PRIMARY (first) story only — cool tech wire only.
-- ZERO humans: no little man, silhouette, pilot, android, rider, or humanoid.
-- No politicians, flags, logos, readable headlines, or real maps.
-- Neon color spectrum is franchise DNA — vary WHICH color leads, do NOT strip neon away.
-- Prefer legible big shapes and sharp materials over noise.
-- Rootkit City: neon circuit metropolis — cyan grid, magenta nodes, acid-green rewrite path.
-- Planet Core: interior mainframe scale — never a lone rock in empty space.
-- Data Tunnel: classic vanishing-point energy conduit — kinetic walls, far glow, busy data.
-- Data Space: EXTERIOR deep space — vary planets/stars/SpaceX-inspired geometric ship;
-  never people; never logos; few satellites max (no dense swarms).
-- No readable text in the image.
+- Metaphor from the PRIMARY (first) wire story only.
+- Prefer ONE strong composition over many competing effects.
+- Materials and light sell "astounding" more than stacking more neon objects.
 """
 
 # Generative Stream is the main X post body: one story, fill the full 280, no hashtags.
@@ -54,12 +78,14 @@ STREAM_SLUG_SYSTEM = (
 async def craft_art_brief(events: str, style: dict) -> str:
     if settings.DRY_RUN:
         return (
-            f"CAMERA: wide 16:9, {style.get('label')}\n"
-            f"HERO: single digital form matching style\n"
-            f"CHAOS: one quiet metaphor for the story\n"
-            f"PALETTE: void black + cyan-led neon (cyan grid, magenta nodes, acid-green path)\n"
-            f"MOOD: neon root access\n"
-            f"DETAIL: Layered circuit towers with luminous grids and data particles."
+            f"SHOT: Wide 16:9 cinematic VFX still of {style.get('label')}: one impossible "
+            f"digital structure with photoreal materials, dual warm amber and cool cyan light, "
+            f"layered depth and atmospheric haze, epic scale, no people.\n"
+            f"HERO: single digital architectural form matching style\n"
+            f"METAPHOR: quiet machine metaphor for the wire story\n"
+            f"LIGHT: amber practical + cyan signal, cyan leads\n"
+            f"MOOD: epic root access wonder\n"
+            f"AVOID: neon lightning paths, empty black void, scrapyard soup"
         )
 
     user = f"""Shot type: {style.get('label')} — {style.get('description')}
@@ -67,22 +93,27 @@ async def craft_art_brief(events: str, style: dict) -> str:
 Shot notes:
 {style.get('art_director_notes')}
 
-Wire pack (PRIMARY = first bullet — metaphorize that one only; others are mood):
+Wire pack (PRIMARY = first bullet — metaphorize that one only; others are mood only):
 {events}
 
-Do NOT paint text/headlines. ZERO people or human silhouettes.
-Keep the full neon color spectrum (cyan + magenta + acid-green); vary which color leads.
-Fill CAMERA/HERO/CHAOS/PALETTE/MOOD/DETAIL now."""
+Write SHOT/HERO/METAPHOR/LIGHT/MOOD/AVOID now.
+SHOT must be Imagine-ready: one poetic impossible architecture idea, materials, dual light,
+scale, atmosphere. ZERO people. No logos or readable text."""
 
+    model = (settings.XAI_ART_MODEL or settings.XAI_CHAT_MODEL).strip()
     if settings.EDGE_TEXT == "lemonade":
-        return await _lemonade_chat(ART_DIRECTOR_SYSTEM, user, max_tokens=280)
-    return await _xai_chat(ART_DIRECTOR_SYSTEM, user, max_tokens=280, temperature=0.65)
+        return await _lemonade_chat(ART_DIRECTOR_SYSTEM, user, max_tokens=420)
+    return await _xai_chat(
+        ART_DIRECTOR_SYSTEM,
+        user,
+        max_tokens=420,
+        temperature=0.7,
+        model=model,
+    )
 
 
 def _clean_headline_piece(s: str) -> str:
     """Normalize one headline for Generative Stream (no hashtags/URLs)."""
-    import re
-
     s = re.sub(r"#\w+", "", (s or "").strip())
     s = re.sub(
         r"^(the poster|someone|this user|the author)\s+(reported|said|shared|posted)\s+",
@@ -154,8 +185,6 @@ async def craft_stream_slug(
     events: str, max_chars: int = STREAM_SLUG_MAX
 ) -> str:
     """Generative Stream body — one story, fill the full character budget."""
-    import re
-
     # Single primary story — full available text (title + summary).
     source = ""
     for line in (events or "").splitlines():
@@ -198,7 +227,13 @@ async def craft_stream_slug(
     if settings.EDGE_TEXT == "lemonade":
         text = await _lemonade_chat(STREAM_SLUG_SYSTEM, user, max_tokens=220)
     else:
-        text = await _xai_chat(STREAM_SLUG_SYSTEM, user, max_tokens=220, temperature=0.35)
+        text = await _xai_chat(
+            STREAM_SLUG_SYSTEM,
+            user,
+            max_tokens=220,
+            temperature=0.35,
+            model=settings.XAI_CHAT_MODEL,
+        )
 
     text = _clean_headline_piece(text or "")
     text = re.sub(r"#\w+", "", text)
@@ -242,11 +277,15 @@ async def craft_stream_slug(
 
 
 async def _xai_chat(
-    system: str, user: str, max_tokens: int, temperature: float
+    system: str,
+    user: str,
+    max_tokens: int,
+    temperature: float,
+    model: str | None = None,
 ) -> str:
     c = client()
     resp = c.chat.completions.create(
-        model=settings.XAI_CHAT_MODEL,
+        model=(model or settings.XAI_CHAT_MODEL).strip(),
         messages=[
             {"role": "system", "content": system},
             {"role": "user", "content": user},

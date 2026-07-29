@@ -5,27 +5,11 @@
 series:
   name: Planet Hack
   tagline: Cool tech from the wire, remixed as matrix CGI.
+  # Kept for style metadata / UI; compose path now leads with art-director SHOT paragraph.
   shared_lock: >
-    HARD RULES: Premium 3D digital CGI only. Wide 16:9 landscape full-bleed frame.
-    NO humans, NO little men, NO silhouettes of people, NO pilots, NO androids,
-    NO humanoid figures of any kind — pure architecture, machines, light, and data.
-    One clear non-human hero (structure, core, vehicle-as-geometry, lattice) PLUS
-    rich supporting atmosphere — cinematic and layered, never empty black void,
-    never scrapyard soup, never soft lifestyle tech ad.
-    QUALITY BAR: sharp materials, clean geometry, deep volumetric light, micro-detail
-    on metal/glass/silicon, strong depth layering, hero-shot composition — looks like
-    a finished VFX still, not a muddy wash.
-    COLOR SPECTRUM (series DNA — never desaturate this away): void-black base with a
-    RICH neon night spectrum — electric cyan, hot magenta, and acid/phosphor green MUST
-    all appear in the frame as luminous color (grids, nodes, paths, beams, packets).
-    Gold / amber / copper may warm metal and window lights. Vary WHICH color leads
-    (cyan-led, magenta-led, green-led, gold-warm neon) so runs feel different —
-    but do NOT strip neon down to graphite monochrome or “accents only.”
-    High contrast, saturated signal light.
-    TECH VOLUME: silicon, fiber, telemetry, GPU die light, neural mesh, orbital data —
-    the machine universe feels awake (interior OR deep-space exterior, depending on style).
-    No readable product logos, flags, or real city maps.
-    NOT oil paint. NOT a corporate SaaS banner. NOT a lonely object in empty space.
+    Premium 3D digital CGI, wide 16:9 VFX still. Zero humans. One impossible non-human
+    hero structure with photoreal materials and dual warm/cool light. Neon accents ok;
+    no lightning paths, lava, logos, flags, or readable text.
 
 default: data-tunnel
 
@@ -118,19 +102,21 @@ styles:
     label: Rootkit City
     hashtag: RootkitCity
     lane: gpu
-    description: Neon circuit metropolis mid-infiltration — unique skyline each run.
+    description: Classic neon circuit cityscape — towers and grid streets, unique skyline each run.
     art_director_notes: >
-      GPU / NVIDIA / silicon / datacenter story as metaphor. This is the franchise neon city:
-      circuit-board metropolis at night with floating voxel districts and a bright acid-green
-      infiltration rewrite path. VARIETY is in CITY LAYOUT (sprawl, canyon, die-grid, coastal
-      data-horizon, floating districts) — NOT in stripping the neon palette.
-      Clear readable towers, layered depth — intentional detail, not noise soup.
-      NO tiny people on streets. Classic palette ALWAYS: void black + dark cyan grid +
-      magenta signal nodes + acid-green rewrite path + optional gold/amber window edges.
-      Mood: root access neon night. Planetary data-horizon when it fits.
+      GPU / NVIDIA / silicon / datacenter story as metaphor. Franchise HACKER CITYSCAPE only:
+      Tron / Hackers / Matrix-construct metropolis — readable circuit-board towers, orthogonal
+      cyan grid streets, square magenta facade nodes. Rootkit shows as ARCHITECTURE: one
+      green-lit tower, green window bands, or PCB right-angle etch on building skins.
+      NEVER describe a green path, trace, seam, beam, river, crack, or snaking line — Imagine
+      turns those into neon lightning every time. Story metaphor = which tower/district is
+      compromised (solid building light), not energy weather. VARIETY = city layout (canyon,
+      skyline, waterfront, plaza, elevated districts). NO people. Palette: void black + cyan
+      streets + magenta panels + green building lights + optional amber windows.
     prompt_seed: >
-      Wide 16:9 landscape, 3D circuit-board metropolis skyline at night, floating voxel
-      districts, clear tower silhouettes, bright acid-green infiltration path rewriting the grid,
-      dark cyan grid and magenta signal nodes, neon night planetary data-horizon,
-      cyan magenta acid-green color spectrum, layered depth, readable cinematic digital city,
-      hacker-movie CGI, full-bleed horizontal — no people, no human figures
+      Wide 16:9 landscape, classic hacker-movie neon circuit metropolis at night, readable
+      tower silhouettes, orthogonal cyan grid streets, square magenta signal panels on facades,
+      acid-green only as steady building lights (windows or one solid green-lit tower), layered
+      cinematic city depth, calm volumetric haze, cyan magenta acid-green neon night spectrum,
+      Tron/Hackers digital city CGI, full-bleed horizontal — no people, no lightning bolts,
+      no jagged glowing paths, no beams, no lava
