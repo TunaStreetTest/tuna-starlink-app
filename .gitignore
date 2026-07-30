@@ -18,6 +18,7 @@ backend/.env.local
 # Art output (generated)
 art/*/
 art/.news_stream.json
+art/.news_used.json
 !art/.gitkeep
 
 # IDE / OS

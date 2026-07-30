@@ -41,8 +41,11 @@ SERIES CONSTRAINTS (non-negotiable):
   weather. Never lava rivers. Never equal-triad color soup as the hero.
 
 STYLE HINTS:
-- Rootkit City: classic hacker circuit METROPOLIS — towers, grid streets, reflective plaza.
-  Green only as building lights / one tower / PCB etch on walls — never a glowing ground path.
+- Rootkit City: DENSE digital city INSIDE the hacker's computer — the city IS the silicon.
+  Pack the frame with lots of buildings: GPU-die skyscrapers, CPU-core towers, memory banks,
+  rack-lit data spires, circuit-board mid-rises. Streets = cyan PCB grid. Facades etched
+  with circuitry + magenta nodes. Optional vertical matrix code-rain BETWEEN towers.
+  Green only as building lights / one tower / PCB etch / code-rain — never a glowing ground path.
 - Data Tunnel: vanishing-point conduit of architecture and light, kinetic but legible.
 - Signal Cathedral: monumental engineered nave of light and structure.
 - Planet Core: interior planetary mainframe scale — never a lone rock in empty space.

@@ -31,7 +31,7 @@
 | `planet-core` | Hero planetary mainframe core (default) |
 | `data-tunnel` | Speed-rush packet tunnel |
 | `signal-cathedral` | Vertical signal megastructure |
-| `rootkit-city` | Classic hacker circuit cityscape mid-root-access |
+| `rootkit-city` | Dense digital city inside the computer — GPU/CPU/data towers |
 
 ## Dry-run honesty
 

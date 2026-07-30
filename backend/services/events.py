@@ -117,6 +117,8 @@ _SOFT_FEATURE_RE = re.compile(
 )
 
 _STREAM_NAME = ".news_stream.json"
+# Durable never-reuse ledger — survives stream trim / Google News id churn / X re-hits.
+_USED_NAME = ".news_used.json"
 # Bump wipes old 14-day / Ars / stale Anthropic-settlement cache on next load.
 _STREAM_SCHEMA = "cool-tech-v2"
 _STREAM_MAX_ITEMS = 18  # few posts/day — tiny working set
@@ -126,6 +128,8 @@ _X_SLOTS = 1
 _X_MIN_SCORE = 40
 # Drop anything older than this (publish time, else ingest time). Never post week-old wire.
 _MAX_STORY_AGE_HOURS = 72
+# Keep used ledger bounded (ids + fingerprints); oldest dropped when over cap.
+_USED_MAX_ENTRIES = 400
 
 
 def _now() -> str:
@@ -134,6 +138,365 @@ def _now() -> str:
 
 def _stream_path() -> Path:
     return art_store.art_root() / _STREAM_NAME
+
+
+def _used_path() -> Path:
+    return art_store.art_root() / _USED_NAME
+
+
+def _story_fingerprint(text: str) -> str:
+    """Stable content key so Google News guid/link churn and X re-hits still match.
+
+    Uses the first ~12 normalized words so trailing ellipsis / caption expansion /
+    curly quotes do not create a different key for the same clip.
+    """
+    s = (text or "").lower()
+    # Normalize typography that commonly differs across X vs gallery truncation
+    for a, b in (
+        ("\u2019", "'"),
+        ("\u2018", "'"),
+        ("\u201c", '"'),
+        ("\u201d", '"'),
+        ("\u2014", " "),
+        ("\u2013", " "),
+        ("\u2026", " "),
+    ):
+        s = s.replace(a, b)
+    s = re.sub(r"\W+", " ", s).strip()
+    s = re.sub(r"\s+", " ", s)
+    if not s:
+        return ""
+    # Strip outlet suffixes that flip between Google News mirrors
+    s = re.sub(
+        r"\b(the\s+)?(washington post|reuters|cnbc|bloomberg|barron s|yahoo finance|"
+        r"the guardian|wired|ars technica|space com|bgr com|techcrunch)\b",
+        " ",
+        s,
+    )
+    s = re.sub(r"\s+", " ", s).strip()
+    words = s.split()
+    if not words:
+        return ""
+    head = " ".join(words[:12])
+    return hashlib.sha1(head.encode("utf-8")).hexdigest()[:16]
+
+
+def _item_fingerprint(item: dict[str, Any]) -> str:
+    return _story_fingerprint(
+        item.get("title") or item.get("line") or item.get("text") or ""
+    )
+
+
+def _empty_used() -> dict[str, Any]:
+    return {
+        "ids": {},  # id -> {used_at, run_id, title, posted, source}
+        "fps": {},  # fingerprint -> same
+        "seeded_from_gallery": False,
+        "updated_at": None,
+    }
+
+
+def _load_used() -> dict[str, Any]:
+    path = _used_path()
+    if not path.is_file():
+        return _empty_used()
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            return _empty_used()
+        data.setdefault("ids", {})
+        data.setdefault("fps", {})
+        data.setdefault("seeded_from_gallery", False)
+        if not isinstance(data["ids"], dict):
+            data["ids"] = {}
+        if not isinstance(data["fps"], dict):
+            data["fps"] = {}
+        return data
+    except (json.JSONDecodeError, OSError):
+        return _empty_used()
+
+
+def _trim_used(used: dict[str, Any]) -> None:
+    """Bound ledger size; keep newest by used_at."""
+    for key in ("ids", "fps"):
+        bucket = used.get(key) or {}
+        if len(bucket) <= _USED_MAX_ENTRIES:
+            continue
+        ranked = sorted(
+            bucket.items(),
+            key=lambda kv: str((kv[1] or {}).get("used_at") or ""),
+            reverse=True,
+        )
+        used[key] = dict(ranked[:_USED_MAX_ENTRIES])
+
+
+def _save_used(used: dict[str, Any]) -> None:
+    import os
+
+    path = _used_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    _trim_used(used)
+    used["updated_at"] = _now()
+    payload = json.dumps(used, indent=2, ensure_ascii=False) + "\n"
+    fd, tmp = tempfile.mkstemp(dir=str(path.parent), suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(payload)
+        os.replace(tmp, path)
+    except Exception:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
+def _is_story_used(item: dict[str, Any], used: dict[str, Any] | None = None) -> bool:
+    """True if this wire item (or near-duplicate title) is in the durable used ledger."""
+    used = used if used is not None else _load_used()
+    iid = item.get("id")
+    if iid and str(iid) in (used.get("ids") or {}):
+        return True
+    fp = _item_fingerprint(item)
+    if fp and fp in (used.get("fps") or {}):
+        return True
+    return False
+
+
+def _record_used_entries(
+    used: dict[str, Any],
+    *,
+    item_id: str | None,
+    title: str,
+    run_id: str | None,
+    source: str | None,
+    posted: bool,
+) -> None:
+    now = _now()
+    entry = {
+        "used_at": now,
+        "run_id": run_id,
+        "title": (title or "")[:200],
+        "source": source,
+        "posted": bool(posted),
+    }
+    if item_id:
+        prev = (used.get("ids") or {}).get(str(item_id)) or {}
+        if prev.get("posted"):
+            entry["posted"] = True
+        if prev.get("used_at") and not posted:
+            # Keep earliest used_at; refresh run if newer post
+            entry["used_at"] = prev["used_at"]
+        used.setdefault("ids", {})[str(item_id)] = entry
+    fp = _story_fingerprint(title)
+    if fp:
+        prev_fp = (used.get("fps") or {}).get(fp) or {}
+        merged = dict(entry)
+        if prev_fp.get("posted"):
+            merged["posted"] = True
+        if prev_fp.get("used_at") and not posted:
+            merged["used_at"] = prev_fp["used_at"]
+        if item_id:
+            merged["id"] = str(item_id)
+        used.setdefault("fps", {})[fp] = merged
+
+
+def mark_stories_used(
+    items: list[dict[str, Any]] | None = None,
+    *,
+    run_id: str | None = None,
+    posted: bool = False,
+    titles: list[str] | None = None,
+    item_ids: list[str] | None = None,
+) -> dict[str, Any]:
+    """Permanently retire stories so later runs cannot re-pick them."""
+    used = _load_used()
+    n = 0
+    for item in items or []:
+        title = (
+            item.get("title")
+            or item.get("line")
+            or item.get("text")
+            or item.get("primary_title")
+            or ""
+        )
+        _record_used_entries(
+            used,
+            item_id=item.get("id"),
+            title=title,
+            run_id=run_id or item.get("consumed_by_run"),
+            source=item.get("source"),
+            posted=posted,
+        )
+        n += 1
+    if item_ids or titles:
+        ids = list(item_ids or [])
+        ts = list(titles or [])
+        # Pair when possible; otherwise record each alone
+        for i, iid in enumerate(ids):
+            title = ts[i] if i < len(ts) else ""
+            _record_used_entries(
+                used,
+                item_id=iid,
+                title=title,
+                run_id=run_id,
+                source=None,
+                posted=posted,
+            )
+            n += 1
+        for title in ts[len(ids) :]:
+            _record_used_entries(
+                used,
+                item_id=None,
+                title=title,
+                run_id=run_id,
+                source=None,
+                posted=posted,
+            )
+            n += 1
+    if n:
+        _save_used(used)
+        log.info(
+            "news used ledger +%s (ids=%s fps=%s posted=%s run=%s)",
+            n,
+            len(used.get("ids") or {}),
+            len(used.get("fps") or {}),
+            posted,
+            run_id,
+        )
+    return used
+
+
+def mark_run_stories_used(meta: dict[str, Any], *, posted: bool = False) -> None:
+    """Retire the wire story recorded on a gallery run (generate complete or X post)."""
+    if not meta:
+        return
+    tap = meta.get("events_tap") or {}
+    items: list[dict[str, Any]] = []
+    headlines = tap.get("headlines") or []
+    ids = list(tap.get("item_ids") or [])
+    for i, hid in enumerate(ids):
+        h = headlines[i] if i < len(headlines) and isinstance(headlines[i], dict) else {}
+        items.append(
+            {
+                "id": hid,
+                "title": h.get("title")
+                or tap.get("primary_title")
+                or (meta.get("events") or "")[:160],
+                "source": h.get("source") or tap.get("primary_source"),
+            }
+        )
+    if not items and tap.get("primary_title"):
+        items.append(
+            {
+                "id": ids[0] if ids else None,
+                "title": tap.get("primary_title"),
+                "source": tap.get("primary_source"),
+            }
+        )
+    # Caption / stream slug fingerprint catches near-dupes with no item_id
+    extra_titles = []
+    for key in ("stream_slug", "caption", "x_caption_posted"):
+        t = (meta.get(key) or "").strip()
+        if t:
+            extra_titles.append(t[:200])
+    if tap.get("primary_title"):
+        extra_titles.append(str(tap["primary_title"]))
+    mark_stories_used(
+        items,
+        run_id=meta.get("run_id"),
+        posted=posted or bool(meta.get("x_post_id")),
+        titles=extra_titles,
+    )
+
+
+def seed_used_from_gallery(*, force: bool = False) -> dict[str, Any]:
+    """One-time (or force) backfill from complete/posted gallery runs."""
+    used = _load_used()
+    if used.get("seeded_from_gallery") and not force:
+        return used
+    root = art_store.art_root()
+    # Batch into one save for speed
+    used = _empty_used() if force else used
+    seeded_runs = 0
+    try:
+        dirs = sorted(
+            (p for p in root.iterdir() if p.is_dir() and (p / "meta.json").is_file()),
+            reverse=True,
+        )
+    except OSError:
+        dirs = []
+    for d in dirs[:500]:
+        try:
+            meta = json.loads((d / "meta.json").read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+        if meta.get("status") not in ("complete", "done") and not meta.get("x_post_id"):
+            continue
+        if meta.get("dry_run") or (meta.get("events_source") or "").startswith("dry"):
+            continue
+        tap = meta.get("events_tap") or {}
+        ids = list(tap.get("item_ids") or [])
+        headlines = tap.get("headlines") or []
+        primary = tap.get("primary_title") or ""
+        posted = bool(meta.get("x_post_id"))
+        run_id = meta.get("run_id") or d.name
+        had = False
+        for i, hid in enumerate(ids):
+            h = headlines[i] if i < len(headlines) and isinstance(headlines[i], dict) else {}
+            title = h.get("title") or primary or ""
+            if not hid and not title:
+                continue
+            _record_used_entries(
+                used,
+                item_id=hid,
+                title=title,
+                run_id=run_id,
+                source=h.get("source") or tap.get("primary_source"),
+                posted=posted,
+            )
+            had = True
+        if primary:
+            _record_used_entries(
+                used,
+                item_id=ids[0] if ids else None,
+                title=primary,
+                run_id=run_id,
+                source=tap.get("primary_source"),
+                posted=posted,
+            )
+            had = True
+        for key in ("stream_slug", "caption", "x_caption_posted"):
+            t = (meta.get(key) or "").strip()
+            if t:
+                _record_used_entries(
+                    used,
+                    item_id=None,
+                    title=t[:200],
+                    run_id=run_id,
+                    source=None,
+                    posted=posted,
+                )
+                had = True
+        if had:
+            seeded_runs += 1
+    used["seeded_from_gallery"] = True
+    _save_used(used)
+    log.info(
+        "news used ledger seeded from gallery runs=%s ids=%s fps=%s",
+        seeded_runs,
+        len(used.get("ids") or {}),
+        len(used.get("fps") or {}),
+    )
+    return used
+
+
+def ensure_used_ledger() -> dict[str, Any]:
+    """Load used ledger; seed from gallery once if empty/unseeded."""
+    used = _load_used()
+    if not used.get("seeded_from_gallery"):
+        return seed_used_from_gallery()
+    return used
 
 
 def _local(tag: str) -> str:
@@ -512,8 +875,19 @@ async def ingest_feeds(*, force: bool = False) -> dict[str, Any]:
 def _tap_unconsumed(
     items: list[dict[str, Any]], n: int, lane: str | None
 ) -> list[dict[str, Any]]:
-    """Pick newest unconsumed stories (by publish time). Never oldest-first."""
-    free = [i for i in items if not i.get("consumed_at") and _is_fresh(i)]
+    """Pick newest unused stories (by publish time). Never oldest-first.
+
+    Filters stream consumed_at AND the durable used ledger (ids + title fingerprints)
+    so posted/generated clips cannot return after stream trim or Google News id churn.
+    """
+    used = ensure_used_ledger()
+    free = [
+        i
+        for i in items
+        if _is_fresh(i)
+        and not i.get("consumed_at")
+        and not _is_story_used(i, used)
+    ]
     if lane:
         lane_free = [i for i in free if (i.get("lane") or "") == lane]
         # Only stay in-lane when that lane still has fresh stories
@@ -524,20 +898,31 @@ def _tap_unconsumed(
 
 
 def _mark_consumed(chosen: list[dict[str, Any]], run_id: str) -> None:
-    """Mark RSS stream items consumed. X-only items are skipped (no stream id)."""
+    """Mark stream rows consumed AND permanently retire in the used ledger.
+
+    X-search items are not in the RSS stream file, but they ARE recorded in the
+    durable ledger so the same post id / title cannot be re-picked.
+    """
     stream = _load_stream()
     ids = {c["id"] for c in chosen if c.get("id") and c.get("source") != "x-search"}
-    if not ids:
-        stream["taps"] = int(stream.get("taps") or 0) + 1
-        _save_stream(stream)
-        return
     now = _now()
+    if ids:
+        for item in stream.get("items") or []:
+            if item.get("id") in ids:
+                item["consumed_at"] = now
+                item["consumed_by_run"] = run_id
+    # Also mark stream rows that match used fingerprints (id churn siblings)
+    used_preview = _load_used()
     for item in stream.get("items") or []:
-        if item.get("id") in ids:
+        if item.get("consumed_at"):
+            continue
+        if _is_story_used(item, used_preview):
             item["consumed_at"] = now
-            item["consumed_by_run"] = run_id
+            item["consumed_by_run"] = run_id or item.get("consumed_by_run")
     stream["taps"] = int(stream.get("taps") or 0) + 1
     _save_stream(stream)
+    # Durable never-reuse (RSS + X + title fingerprints)
+    mark_stories_used(chosen, run_id=run_id, posted=False)
 
 
 def format_bullets(lines: Iterable[str]) -> str:
@@ -547,13 +932,17 @@ def format_bullets(lines: Iterable[str]) -> str:
 def stream_stats() -> dict[str, Any]:
     stream = _load_stream()
     items = stream.get("items") or []
+    used = _load_used()
     by_lane: dict[str, int] = {}
     fresh_unconsumed = 0
     newest_pub: str | None = None
+    def _blocked(i: dict[str, Any]) -> bool:
+        return bool(i.get("consumed_at")) or _is_story_used(i, used)
+
     for i in items:
-        if i.get("consumed_at"):
-            continue
         if not _is_fresh(i):
+            continue
+        if _blocked(i):
             continue
         fresh_unconsumed += 1
         lane = i.get("lane") or "unknown"
@@ -563,15 +952,19 @@ def stream_stats() -> dict[str, Any]:
             newest_pub = fk
     return {
         "total": len(items),
-        "unconsumed": sum(1 for i in items if not i.get("consumed_at")),
+        "unconsumed": sum(1 for i in items if not _blocked(i)),
         "fresh_unconsumed": fresh_unconsumed,
-        "consumed": sum(1 for i in items if i.get("consumed_at")),
+        "consumed": sum(1 for i in items if _blocked(i)),
         "taps": stream.get("taps") or 0,
         "updated_at": stream.get("updated_at"),
         "newest_story_at": newest_pub,
         "max_story_age_hours": _MAX_STORY_AGE_HOURS,
         "unconsumed_by_lane": by_lane,
         "path": str(_stream_path()),
+        "used_path": str(_used_path()),
+        "used_ids": len(used.get("ids") or {}),
+        "used_fps": len(used.get("fps") or {}),
+        "used_seeded": bool(used.get("seeded_from_gallery")),
         "pack_size": _PACK_SIZE,
         "tap_size": _PACK_SIZE,
         "feeds": [f[0] for f in _RSS_FEEDS],
@@ -766,6 +1159,9 @@ async def get_events(
     lane = lane_map.get(lane_raw, lane_raw)
     mode = (settings.EVENTS_SOURCE or "stream").lower().strip()
 
+    # Durable used ledger first — seed once from gallery so past posts never re-fire
+    used = ensure_used_ledger()
+
     # --- lean RSS (TTL-cached; force refresh if nothing fresh left) ---
     stats = await ingest_feeds()
     stream = _load_stream()
@@ -817,7 +1213,15 @@ async def get_events(
         # Always consult X when enabled — official SpaceX/Tesla/NVIDIA/xAI posts
         # beat "photo of the day" Google News titles even when RSS is full.
         try:
-            x_hits = x_search.pick_top_stories(lane, n=_X_SLOTS + 1)
+            raw_x = x_search.pick_top_stories(lane, n=_X_SLOTS + 6)
+            # Drop already-used / already-posted X posts (this was the main leak)
+            x_hits = [h for h in raw_x if not _is_story_used(h, used)]
+            if raw_x and not x_hits:
+                log.info(
+                    "X search returned %s hits but all already used lane=%s",
+                    len(raw_x),
+                    lane,
+                )
             if not x_hits and force_x_mode:
                 log.info("X search empty in force-x mode lane=%s", lane)
         except Exception as e:
@@ -826,9 +1230,13 @@ async def get_events(
 
     recycled = False
     if not rss_pool and not x_hits:
-        # Only recycle still-fresh stories; newest first (never oldest consumed)
+        # Last resort: only recycle fresh stream rows that are NOT in the used ledger.
+        # Never re-open a posted/generated story just because the rotating stream is empty.
         recycled_pool = [
-            i for i in items if i.get("consumed_at") and _is_fresh(i)
+            i
+            for i in items
+            if _is_fresh(i)
+            and not _is_story_used(i, used)
         ]
         lane_recycled = [
             i for i in recycled_pool if (i.get("lane") or "") == lane
@@ -837,11 +1245,15 @@ async def get_events(
         recycled_pool.sort(key=_freshness_key, reverse=True)
         rss_pool = recycled_pool[:_PACK_SIZE]
         recycled = bool(rss_pool)
+        # Do NOT clear consumed_at on used-ledger rows — only true free leftovers
         for c in rss_pool:
             c["consumed_at"] = None
             c["consumed_by_run"] = None
 
     pack = _build_wire_pack(x_hits, rss_pool, _PACK_SIZE)
+    # Final guard: never ship a pack member already in the used ledger
+    if pack:
+        pack = [c for c in pack if not _is_story_used(c, used)]
 
     if pack:
         _mark_consumed(pack, rid)

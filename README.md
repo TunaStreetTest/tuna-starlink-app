@@ -30,7 +30,7 @@ Downloads: `planethack_<run_id>.png`.
 | `planet-core` | space | Planetary mainframe / orbital compute |
 | `data-tunnel` | ai | Speed data tunnel (classic vanishing-point) |
 | `signal-cathedral` | space | Starlink / RF signal cathedral |
-| `rootkit-city` | gpu | GPU die / datacenter circuit city |
+| `rootkit-city` | gpu | Dense digital city inside the computer — GPU/CPU/data towers |
 
 Studio dropdown for manual runs (schedule **off** by default).  
 Share new styles: [`docs/STYLE-SEEDS.md`](docs/STYLE-SEEDS.md).
@@ -188,35 +188,35 @@ DRY_RUN=1 ART_STORAGE_PATH=./art python worker/run_once.py --style data-tunnel
 
 ## Build stats (whole repo)
 
-Nine Grok Build sessions, model **grok-4.5**.  
-Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2](docs/STATS-SESSION-2.md) · [S3](docs/STATS-SESSION-3.md) · [S4](docs/STATS-SESSION-4.md) · [S5](docs/STATS-SESSION-5.md) · [S6](docs/STATS-SESSION-6.md) · [S7](docs/STATS-SESSION-7.md) · [S8](docs/STATS-SESSION-8.md) · [S9](docs/STATS-SESSION-9.md).
+Ten Grok Build sessions, model **grok-4.5**.  
+Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2](docs/STATS-SESSION-2.md) · [S3](docs/STATS-SESSION-3.md) · [S4](docs/STATS-SESSION-4.md) · [S5](docs/STATS-SESSION-5.md) · [S6](docs/STATS-SESSION-6.md) · [S7](docs/STATS-SESSION-7.md) · [S8](docs/STATS-SESSION-8.md) · [S9](docs/STATS-SESSION-9.md) · [S10](docs/STATS-SESSION-10.md).
 
 ### Lines of code (current repo)
 
 | Area | Lines |
 |---|---:|
-| Python (`backend/`, `worker/`, `scripts/`) | **3,829** |
+| Python (`backend/`, `worker/`, `scripts/`) | **4,270** |
 | Frontend (`frontend/src`) | **905** |
-| Style seeds + compose YAML | **170** |
-| **Application code** | **~4,904** |
-| Docs (`docs/`, README, GROK) | **2,143** |
+| Style seeds + compose YAML | **175** |
+| **Application code** | **~5,350** |
+| Docs (`docs/`, README, GROK) | **2,244** |
 | Makefile / Dockerfile / `.env.example` / samples | **133** |
-| **All product files** | **~7,180** |
+| **All product files** | **~7,727** |
 
-(Excludes `node_modules`, `.venv`, generated `art/`, lockfiles.) S8→S9 ≈ **+3** app / **~+114** product (source-only captions + primary X wire).
+(Excludes `node_modules`, `.venv`, generated `art/`, lockfiles.) S9→S10 ≈ **+446** app / **~+547** product (dense Rootkit City + durable news used ledger).
 
-### Combined session activity (S1–S9)
+### Combined session activity (S1–S10)
 
 | Metric | Value |
 |---|---:|
-| Active engineering time | **~10.3–11.6 hours** (excludes idle) |
-| User turns | **~118–119** |
-| Assistant messages | **~558** |
-| Tool calls | **~1,188** |
+| Active engineering time | **~10.7–12.2 hours** (excludes idle) |
+| User turns | **~121–122** |
+| Assistant messages | **~588** |
+| Tool calls | **~1,268** |
 | Compactions | **2** |
-| Files touched (sum of snapshots) | **~151** |
-| Agent lines added | **~9,258** |
-| Agent lines removed | **~1,586** |
+| Files touched (sum of snapshots) | **~161** |
+| Agent lines added | **~9,773** |
+| Agent lines removed | **~1,650** |
 
 ### Tokens
 

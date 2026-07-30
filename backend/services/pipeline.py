@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import traceback
 from datetime import datetime, timezone
 from typing import Any
 
 from config import settings
 from services import art_store, events as events_svc, styles, xai_chat, xai_imagine
+
+log = logging.getLogger("tuna-starlink.pipeline")
 
 _lock = asyncio.Lock()
 _current: dict[str, Any] | None = None
@@ -163,6 +166,15 @@ async def run_generate(style_id: str | None = None, force: bool = False) -> dict
         meta["updated_at"] = ended.isoformat()
         art_store.save_run(meta)
         _current = dict(meta)
+
+        # Retire wire story for this complete run (X + RSS; durable ledger).
+        # get_events already marks on tap; this re-asserts after success and
+        # covers any path that skipped mid-tap persistence.
+        if not settings.DRY_RUN:
+            try:
+                events_svc.mark_run_stories_used(meta, posted=False)
+            except Exception:
+                log.warning("mark_run_stories_used failed run=%s", run_id, exc_info=True)
 
         if settings.AUTO_PUBLISH and not settings.DRY_RUN:
             meta["phase"] = "publish"

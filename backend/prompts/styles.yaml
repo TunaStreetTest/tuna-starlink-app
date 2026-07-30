@@ -102,21 +102,26 @@ styles:
     label: Rootkit City
     hashtag: RootkitCity
     lane: gpu
-    description: Classic neon circuit cityscape — towers and grid streets, unique skyline each run.
+    description: Dense digital city inside the hacker's computer — GPU-die towers, CPU cores, data racks packing the frame.
     art_director_notes: >
-      GPU / NVIDIA / silicon / datacenter story as metaphor. Franchise HACKER CITYSCAPE only:
-      Tron / Hackers / Matrix-construct metropolis — readable circuit-board towers, orthogonal
-      cyan grid streets, square magenta facade nodes. Rootkit shows as ARCHITECTURE: one
-      green-lit tower, green window bands, or PCB right-angle etch on building skins.
-      NEVER describe a green path, trace, seam, beam, river, crack, or snaking line — Imagine
-      turns those into neon lightning every time. Story metaphor = which tower/district is
-      compromised (solid building light), not energy weather. VARIETY = city layout (canyon,
-      skyline, waterfront, plaza, elevated districts). NO people. Palette: void black + cyan
-      streets + magenta panels + green building lights + optional amber windows.
+      GPU / NVIDIA / silicon / CPU / datacenter story as metaphor. Franchise: INSIDE THE
+      HACKER'S COMPUTER rendered as a DENSE DIGITAL METROPOLIS — the city IS the silicon.
+      Fill the frame with LOTS of buildings: circuit-board skyscrapers, GPU-die tower blocks,
+      CPU core cubes, memory-bank mid-rises, rack-lit data towers, transistor districts.
+      Streets = cyan PCB traces / orthogonal grid; facades carry square magenta nodes and
+      etched circuitry. Density + legibility: packed skyline, layered depth, every tower
+      reads as machine architecture. Rootkit = ARCHITECTURE (one green-lit tower, green
+      window bands, or PCB right-angle etch on skins) — never a green path, trace, seam,
+      beam, river, crack, or snaking ground line (those become neon lightning). Optional
+      vertical matrix code-rain BETWEEN towers as atmosphere only, not ground weather.
+      VARIETY = camera + district type (canyon, die plateau, rack district, CPU plaza,
+      wafer stack, elevated mesh). ZERO people. Palette: void black + cyan + magenta +
+      acid-green building/code accents + optional amber rack windows.
     prompt_seed: >
-      Wide 16:9 landscape, classic hacker-movie neon circuit metropolis at night, readable
-      tower silhouettes, orthogonal cyan grid streets, square magenta signal panels on facades,
-      acid-green only as steady building lights (windows or one solid green-lit tower), layered
-      cinematic city depth, calm volumetric haze, cyan magenta acid-green neon night spectrum,
-      Tron/Hackers digital city CGI, full-bleed horizontal — no people, no lightning bolts,
-      no jagged glowing paths, no beams, no lava
+      Wide 16:9 landscape, dense digital city inside a hacker's mainframe — colossal GPU-die
+      metropolis packed with silicon skyscrapers, CPU-core towers, and rack-lit data towers
+      filling the frame, circuit-board streets as cyan PCB grid, magenta signal nodes on
+      facades, acid-green as building lights and optional vertical matrix code-rain between
+      towers, layered cinematic depth, neon night cyan magenta acid-green spectrum,
+      Tron/Hackers/Matrix construct CGI, full-bleed horizontal — no people, no lightning
+      bolts, no jagged glowing ground paths, no lava

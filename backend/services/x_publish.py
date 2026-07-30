@@ -164,6 +164,14 @@ def publish_run(run_id: str, with_comments: bool = False) -> dict[str, Any]:
     meta["x_replies"] = []
     art_store.save_run(meta)
 
+    # Permanent retire — posted wire must never be re-picked on the next generate
+    try:
+        from services import events as events_svc
+
+        events_svc.mark_run_stories_used(meta, posted=True)
+    except Exception as e:
+        log.warning("failed to mark posted story used run=%s: %s", run_id, e)
+
     return {
         "ok": True,
         "already_posted": False,

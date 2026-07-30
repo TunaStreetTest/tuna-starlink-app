@@ -39,32 +39,34 @@ _DATA_SPACE_SCENES = (
     "holographic telemetry arcs; no people; no satellite swarm.",
 )
 
-# Per-run cityscape recipes for rootkit-city — classic hacker skyline.
-# Green lives on ARCHITECTURE (windows, one tower, PCB etch), never as a path/beam/bolt.
+# Per-run cityscape recipes for rootkit-city — dense digital city INSIDE the computer.
+# Lots of buildings: GPU-die towers, CPU cores, data racks. Green on ARCHITECTURE or
+# vertical matrix code-rain between towers — never a ground path / bolt / beam.
 _ROOTKIT_CITY_SCENES = (
-    "SCENE: classic neon circuit skyline — readable tower blocks on a dark cyan grid street "
-    "plane; square magenta node panels on facades; acid-green only as steady window strips "
-    "on a few towers; calm night city haze; hard orthogonal geometry only.",
-    "SCENE: low street-level canyon between colossal circuit skyscrapers; vanishing-point "
-    "cyan grid road (straight grid lines, not jagged); layered readable architecture; "
-    "one mid-ground tower lit entirely in acid-green facade panels as the rootkit hero.",
-    "SCENE: elevated overpass view of a sprawling die-grid metropolis; mixed tower heights "
-    "(spires, cubes, lattice stacks); cyan streets; magenta window clusters; "
-    "green appears as PCB-style right-angle circuit etchings on building skins only.",
-    "SCENE: waterfront circuit city — towers meet a dark reflective canal; cyan/magenta "
-    "neon reflections; one green-lit machine tower at the docks; quiet night atmosphere.",
-    "SCENE: dense mid-rise district, high oblique angle — hexagonal block layout, "
-    "cyan grid arteries as streets, magenta roof nodes; rootkit = one green-glowing "
-    "district block (solid building lights), not a line through the city.",
-    "SCENE: night skyline silhouette variety against a soft planetary data-horizon; "
-    "hero is architecture; cyan edge light on towers; sparse green window bands; "
-    "still cityscape, no energy weather.",
-    "SCENE: floating upper districts linked by thin straight light bridges over lower sprawl; "
-    "Tron/Hackers city — hard edges, legible towers, controlled neon; "
-    "acid-green only on bridge rail lights and a few facade panels.",
-    "SCENE: root-access plaza — dark cyan plaza grid, ring of surrounding towers; "
-    "hero is a single cubic green-glass core building in the plaza center "
-    "(solid architecture, not a glowing crack or beam).",
+    "SCENE: dense GPU-die metropolis packing the frame — silicon skyscrapers and CPU-core "
+    "cubes rise from a cyan PCB street grid; magenta facade nodes; acid-green window bands "
+    "on select towers; optional vertical matrix code-rain in the canyons between buildings.",
+    "SCENE: low street-level canyon deep inside the mainframe — colossal circuit-board "
+    "towers and rack-lit data spires crowd both sides; vanishing-point cyan grid road; "
+    "one mid-ground tower fully acid-green as the rootkit hero; dense layered architecture.",
+    "SCENE: elevated view over a sprawling die-grid city — mixed heights of GPU blocks, "
+    "memory-bank mid-rises, lattice CPU stacks; every tower etched with circuitry; "
+    "cyan streets; magenta roof clusters; green as PCB right-angle etch on skins only.",
+    "SCENE: CPU core district — cubic processor towers with pin-grid bases and cache-ring "
+    "balconies; dense surrounding data towers; reflective black silicon plaza; "
+    "one green-glass core building anchors the story; no ground energy paths.",
+    "SCENE: dense rack-city high oblique — server-tower rows and transistor districts "
+    "packed wall-to-wall; cyan grid arteries; magenta signal panels; rootkit = one "
+    "green-glowing district block (solid building lights); vertical code-rain optional.",
+    "SCENE: wafer-stack skyline — layered translucent silicon plates as megablocks, "
+    "dense tower forests on each tier; cyan edge light; sparse green window bands; "
+    "frame filled with buildings, never empty sky or lone object.",
+    "SCENE: floating mesh districts of data towers linked by thin straight light bridges "
+    "over a lower sprawl of circuit mid-rises; packed skyline; Tron/Hackers density; "
+    "acid-green only on select facade panels and bridge rail lights.",
+    "SCENE: root-access CPU plaza — dark cyan grid floor, ring of dense surrounding "
+    "GPU/data towers filling every edge of the frame; hero is a single cubic green-glass "
+    "CPU core building at center (solid architecture, not a glowing crack or beam).",
 )
 
 
@@ -215,7 +217,9 @@ def _sanitize_rootkit_brief(brief: str) -> str:
         (r"\b(lightning|bolt|bolts|storm|storms)\b", "glow"),
         (r"\b(vertical\s+)?beams?\b", "tower lights"),
         (r"\b(jagged|crack|cracks|crackling)\b", "angular"),
-        (r"\b(molten|lava|phosphor\s+rain)\b", "neon haze"),
+        # Keep "matrix code-rain" / vertical glyph streams; only kill ground-path weather.
+        (r"\b(molten|lava)\b", "neon haze"),
+        (r"\bphosphor\s+rain\b", "matrix code-rain"),
         (r"\bdigital\s+river\b", "green-lit district"),
         (r"\bgreen\s+river\b", "green-lit block"),
         (r"\bcentral boulevard\b", "central district"),
@@ -274,8 +278,10 @@ def build_imagine_prompt(art_brief: str, style: dict[str, Any]) -> str:
     elif style_id in ("rootkit-city", "rootkit_city"):
         parts.append(_rootkit_city_scene(brief or seed))
         parts.append(
-            "Cityscape only: orthogonal towers and grid streets; acid-green as building "
-            "lights only — no glowing ground paths, bolts, or vertical energy shafts."
+            "Dense digital city inside the computer: packed silicon/GPU/CPU data towers "
+            "filling the frame; cyan PCB grid streets; acid-green as building lights or "
+            "vertical matrix code-rain between towers only — no glowing ground paths, "
+            "lightning bolts, or jagged energy weather."
         )
     elif seed and shot and seed not in shot:
         # Short style anchor when SHOT is present (seed is fallback lead otherwise).
