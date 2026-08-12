@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -6,16 +6,86 @@ import { Card, CardTitle } from "@/components/ui/Card";
 import { api, type GalleryRun } from "@/lib/api";
 import { cn, formatBytes } from "@/lib/utils";
 
+type FsEl = HTMLElement & {
+  webkitRequestFullscreen?: () => Promise<void> | void;
+};
+type FsDoc = Document & {
+  webkitFullscreenElement?: Element | null;
+  webkitExitFullscreen?: () => Promise<void> | void;
+};
+
+function fsElement(): Element | null {
+  const d = document as FsDoc;
+  return document.fullscreenElement ?? d.webkitFullscreenElement ?? null;
+}
+
+async function requestFs(el: HTMLElement): Promise<void> {
+  const node = el as FsEl;
+  if (node.requestFullscreen) {
+    await node.requestFullscreen();
+    return;
+  }
+  if (node.webkitRequestFullscreen) {
+    await node.webkitRequestFullscreen();
+  }
+}
+
+async function exitFs(): Promise<void> {
+  if (!fsElement()) return;
+  const d = document as FsDoc;
+  if (document.exitFullscreen) {
+    await document.exitFullscreen();
+    return;
+  }
+  if (d.webkitExitFullscreen) await d.webkitExitFullscreen();
+}
+
 /** Tiled gallery with detail modal (includes Post to X). Used on Studio. */
 export function Gallery({ refreshKey = 0 }: { refreshKey?: number }) {
   const [runs, setRuns] = useState<GalleryRun[]>([]);
   const [modalId, setModalId] = useState<string | null>(null);
+  const [fullscreen, setFullscreen] = useState(false);
   const [detail, setDetail] = useState<Record<string, unknown> | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [xBusy, setXBusy] = useState(false);
   const [xMsg, setXMsg] = useState<string | null>(null);
   const [xReady, setXReady] = useState(false);
+  const stageRef = useRef<HTMLDivElement>(null);
+
+  const stack = useMemo(() => runs.filter((r) => r.has_image), [runs]);
+  const stackIdx = useMemo(
+    () => (modalId ? stack.findIndex((r) => r.run_id === modalId) : -1),
+    [stack, modalId],
+  );
+  const canPrev = stackIdx > 0;
+  const canNext = stackIdx >= 0 && stackIdx < stack.length - 1;
+
+  const goStack = useCallback(
+    (dir: -1 | 1) => {
+      const next = stackIdx + dir;
+      if (next < 0 || next >= stack.length) return;
+      setModalId(stack[next].run_id);
+    },
+    [stack, stackIdx],
+  );
+
+  const openFullscreen = useCallback(() => {
+    const el = stageRef.current;
+    if (el) {
+      // Must be visible in this user-gesture turn or requestFullscreen paints black.
+      el.classList.remove("invisible", "pointer-events-none");
+      void requestFs(el).catch(() => {
+        /* overlay still covers the viewport if the API is blocked */
+      });
+    }
+    setFullscreen(true);
+  }, []);
+
+  const closeFullscreen = useCallback(() => {
+    setFullscreen(false);
+    void exitFs().catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -45,6 +115,8 @@ export function Gallery({ refreshKey = 0 }: { refreshKey?: number }) {
     if (!modalId) {
       setDetail(null);
       setXMsg(null);
+      setFullscreen(false);
+      void exitFs().catch(() => undefined);
       return;
     }
     let alive = true;
@@ -62,15 +134,54 @@ export function Gallery({ refreshKey = 0 }: { refreshKey?: number }) {
     };
   }, [modalId]);
 
-  // Escape closes modal
+  // Escape: leave fullscreen first, then close modal. Arrows walk the stack.
   useEffect(() => {
     if (!modalId) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setModalId(null);
+      if (e.key === "Escape") {
+        if (fullscreen || fsElement()) closeFullscreen();
+        else setModalId(null);
+        return;
+      }
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        goStack(-1);
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        goStack(1);
+      } else if ((e.key === "f" || e.key === "F") && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        if (fullscreen || fsElement()) closeFullscreen();
+        else openFullscreen();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [modalId]);
+  }, [modalId, fullscreen, goStack, openFullscreen, closeFullscreen]);
+
+  // Stay in sync if the user hits Esc / the browser exits native fullscreen.
+  useEffect(() => {
+    const onFs = () => {
+      if (!fsElement()) setFullscreen(false);
+    };
+    document.addEventListener("fullscreenchange", onFs);
+    document.addEventListener("webkitfullscreenchange", onFs);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFs);
+      document.removeEventListener("webkitfullscreenchange", onFs);
+    };
+  }, []);
+
+  // Preload neighbors so left/right in fullscreen feels instant.
+  useEffect(() => {
+    if (!fullscreen || stackIdx < 0) return;
+    for (const i of [stackIdx - 1, stackIdx + 1]) {
+      const run = stack[i];
+      if (!run) continue;
+      const img = new Image();
+      img.src = api.imageUrl(run.run_id);
+    }
+  }, [fullscreen, stack, stackIdx]);
 
   // Main X body = Generative Stream (single headline), not a mood poem.
   const postBody =
@@ -116,7 +227,8 @@ export function Gallery({ refreshKey = 0 }: { refreshKey?: number }) {
           {err && <p className="text-xs text-bad">{err}</p>}
         </div>
         <p className="text-xs text-muted mb-3">
-          Click a tile for details, copy post, or Post to X.
+          Click a tile for details. Fullscreen takes the whole monitor —
+          ← → walk the stack.
         </p>
 
         {runs.length === 0 && (
@@ -199,13 +311,21 @@ export function Gallery({ refreshKey = 0 }: { refreshKey?: number }) {
             <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 {hasImage ? (
-                  <a href={api.imageUrl(modalId)} target="_blank" rel="noreferrer">
+                  <button
+                    type="button"
+                    onClick={openFullscreen}
+                    className="block w-full group relative"
+                    title="Fullscreen"
+                  >
                     <img
                       src={api.imageUrl(modalId)}
                       alt={`Planet Hack ${modalId}`}
                       className="w-full max-h-[60vh] object-contain rounded border border-border bg-bg"
                     />
-                  </a>
+                    <span className="pointer-events-none absolute bottom-2 right-2 text-[10px] uppercase tracking-wide text-white/80 bg-black/55 px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition">
+                      Fullscreen
+                    </span>
+                  </button>
                 ) : (
                   <div className="h-48 flex items-center justify-center border border-dashed border-border rounded text-muted text-sm">
                     {detail ? "No image" : "Loading…"}
@@ -235,6 +355,13 @@ export function Gallery({ refreshKey = 0 }: { refreshKey?: number }) {
                 )}
 
                 <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="ghost"
+                    onClick={openFullscreen}
+                    disabled={!hasImage}
+                  >
+                    Fullscreen
+                  </Button>
                   <Button
                     variant="ghost"
                     onClick={() => window.open(api.imageUrl(modalId), "_blank")}
@@ -344,6 +471,96 @@ export function Gallery({ refreshKey = 0 }: { refreshKey?: number }) {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Always mounted while a piece is open so requestFullscreen stays a user gesture. */}
+      {modalId && hasImage && (
+        <div
+          ref={stageRef}
+          className={cn(
+            "fixed inset-0 z-[60] h-screen w-screen bg-black flex items-center justify-center",
+            fullscreen ? "visible" : "invisible pointer-events-none",
+          )}
+          role="dialog"
+          aria-modal={fullscreen}
+          aria-label="Fullscreen gallery"
+          onClick={closeFullscreen}
+        >
+          <img
+            src={api.imageUrl(modalId)}
+            alt={`Planet Hack ${modalId}`}
+            className="h-full w-full object-contain select-none"
+            onClick={(e) => e.stopPropagation()}
+          />
+
+          <button
+            type="button"
+            aria-label="Previous image"
+            disabled={!canPrev}
+            onClick={(e) => {
+              e.stopPropagation();
+              goStack(-1);
+            }}
+            className={cn(
+              "absolute left-3 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full",
+              "border border-white/25 bg-black/50 text-white text-2xl leading-none",
+              "hover:bg-black/75 hover:border-white/50 transition",
+              "disabled:opacity-25 disabled:cursor-not-allowed",
+            )}
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            aria-label="Next image"
+            disabled={!canNext}
+            onClick={(e) => {
+              e.stopPropagation();
+              goStack(1);
+            }}
+            className={cn(
+              "absolute right-3 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full",
+              "border border-white/25 bg-black/50 text-white text-2xl leading-none",
+              "hover:bg-black/75 hover:border-white/50 transition",
+              "disabled:opacity-25 disabled:cursor-not-allowed",
+            )}
+          >
+            ›
+          </button>
+
+          <button
+            type="button"
+            aria-label="Exit fullscreen"
+            onClick={(e) => {
+              e.stopPropagation();
+              closeFullscreen();
+            }}
+            className="absolute top-3 right-3 px-3 py-1.5 rounded text-sm text-white/90 border border-white/25 bg-black/50 hover:bg-black/75"
+          >
+            Close
+          </button>
+
+          <div
+            className="absolute bottom-3 left-1/2 -translate-x-1/2 max-w-[90vw] px-3 py-1.5 rounded bg-black/60 text-white/85 text-xs font-mono text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {(detail?.style_label as string) ||
+              runs.find((r) => r.run_id === modalId)?.style_label ||
+              "Piece"}
+            {" · "}
+            {modalId}
+            {stackIdx >= 0 && (
+              <span className="text-white/55">
+                {" "}
+                · {stackIdx + 1} / {stack.length}
+              </span>
+            )}
+            <span className="hidden sm:inline text-white/40">
+              {" "}
+              · ← → · Esc
+            </span>
           </div>
         </div>
       )}

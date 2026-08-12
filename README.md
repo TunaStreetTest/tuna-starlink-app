@@ -150,7 +150,7 @@ That writes access tokens into `backend/.env.local`. Restart the backend after a
 
 Stored on each run: `x_url`, `x_post_id`, `stream_slug`, `events_source` in `meta.json`.
 
-**Studio** → gallery tile → modal → **Post to X**, or enable `AUTO_PUBLISH=true` after generate.
+**Studio** → gallery tile → modal → **Fullscreen** (whole monitor, ← → stack) or **Post to X**, or enable `AUTO_PUBLISH=true` after generate.
 
 ---
 
@@ -188,42 +188,42 @@ DRY_RUN=1 ART_STORAGE_PATH=./art python worker/run_once.py --style data-tunnel
 
 ## Build stats (whole repo)
 
-Eleven Grok Build sessions (S1–S10 **grok-4.5**, S11 **grok-4.6**).  
-Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2](docs/STATS-SESSION-2.md) · [S3](docs/STATS-SESSION-3.md) · [S4](docs/STATS-SESSION-4.md) · [S5](docs/STATS-SESSION-5.md) · [S6](docs/STATS-SESSION-6.md) · [S7](docs/STATS-SESSION-7.md) · [S8](docs/STATS-SESSION-8.md) · [S9](docs/STATS-SESSION-9.md) · [S10](docs/STATS-SESSION-10.md) · [S11](docs/STATS-SESSION-11.md).
+Twelve Grok Build sessions (S1–S10 **grok-4.5**, S11–S12 **grok-4.6**).  
+Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2](docs/STATS-SESSION-2.md) · [S3](docs/STATS-SESSION-3.md) · [S4](docs/STATS-SESSION-4.md) · [S5](docs/STATS-SESSION-5.md) · [S6](docs/STATS-SESSION-6.md) · [S7](docs/STATS-SESSION-7.md) · [S8](docs/STATS-SESSION-8.md) · [S9](docs/STATS-SESSION-9.md) · [S10](docs/STATS-SESSION-10.md) · [S11](docs/STATS-SESSION-11.md) · [S12](docs/STATS-SESSION-12.md).
 
 ### Lines of code (current repo)
 
 | Area | Lines |
 |---|---:|
 | Python (`backend/`, `worker/`, `scripts/`) | **4,560** |
-| Frontend (`frontend/src`) | **905** |
+| Frontend (`frontend/src`) | **1,122** |
 | Style seeds + compose YAML | **169** |
-| **Application code** | **~5,634** |
-| Docs (`docs/`, README, GROK) | **2,360** |
+| **Application code** | **~5,851** |
+| Docs (`docs/`, README, GROK) | **2,469** |
 | Makefile / Dockerfile / `.env.example` / samples | **133** |
-| **All product files** | **~8,127** |
+| **All product files** | **~8,453** |
 
-(Excludes `node_modules`, `.venv`, generated `art/`, lockfiles.) S10→S11 ≈ **+284** app / **~+400** product (event wire + caption holes + slim Imagine compose).
+(Excludes `node_modules`, `.venv`, generated `art/`, lockfiles.) S11→S12 ≈ **+217** app / **~+326** product (native gallery fullscreen + stack walk).
 
-### Combined session activity (S1–S11)
+### Combined session activity (S1–S12)
 
 | Metric | Value |
 |---|---:|
-| Active engineering time | **~11.0–12.6 hours** (excludes idle) |
-| User turns | **~123–124** |
-| Assistant messages | **~620** |
-| Tool calls | **~1,368** |
+| Active engineering time | **~11.3–13.0 hours** (excludes idle) |
+| User turns | **~126–127** |
+| Assistant messages | **~649** |
+| Tool calls | **~1,427** |
 | Compactions | **2** |
-| Files touched (sum of snapshots) | **~171** |
-| Agent lines added | **~10,227** |
-| Agent lines removed | **~1,807** |
+| Files touched (sum of snapshots) | **~173** |
+| Agent lines added | **~10,647** |
+| Agent lines removed | **~1,865** |
 
 ### Tokens
 
 | What | Value |
 |---|---:|
 | Context window | **500,000** |
-| Context in use at Session 11 wrap | **~126,238** (~**25%**) |
+| Context in use at Session 12 wrap | **~170,918** (~**34%**) |
 | Lifetime billed in/out tokens | **Not exposed** — xAI / Grok Build dashboard |
 
 `contextTokensUsed` is **window occupancy**, not the sum of every turn.
@@ -232,7 +232,7 @@ Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2]
 
 | Item | Estimate |
 |---|---:|
-| Live gallery Imagine images | **87** (22 quality ~$0.05 + rest ~$0.02) ≈ **~$2.00–2.40** |
+| Live gallery Imagine images | **88** (23 quality ~$0.05 + rest ~$0.02) ≈ **~$2.05–2.45** |
 | Experiment images (non-field) | **~17** × ~$0.02 ≈ **~$0.34** |
 | X Recent Search | **Primary-only when enabled** (official brands; event + fluff gated) |
 | Unattended schedule | **OFF** (service keeps API up; generate is manual) |
@@ -261,6 +261,7 @@ Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2]
 | [`docs/STATS-SESSION-9.md`](docs/STATS-SESSION-9.md) | Session 9 tallies (source-only captions + primary X) |
 | [`docs/STATS-SESSION-10.md`](docs/STATS-SESSION-10.md) | Session 10 tallies (dense Rootkit + news ledger) |
 | [`docs/STATS-SESSION-11.md`](docs/STATS-SESSION-11.md) | Session 11 tallies (magical stills + event wire) |
+| [`docs/STATS-SESSION-12.md`](docs/STATS-SESSION-12.md) | Session 12 tallies (native fullscreen + stack walk) |
 | [`GROK.md`](GROK.md) | Agent rules |
 
 ---
