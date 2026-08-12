@@ -14,32 +14,33 @@ Rolling tallies for **tuna-starlink-app**. Per-session write-ups:
 | **8** | [`STATS-SESSION-8.md`](STATS-SESSION-8.md) | 2026-07-29 | Rootkit cityscape · kill lightning motif · Grok 4.5 art director |
 | **9** | [`STATS-SESSION-9.md`](STATS-SESSION-9.md) | 2026-07-29 | Source-only captions · primary X brands · no news invent |
 | **10** | [`STATS-SESSION-10.md`](STATS-SESSION-10.md) | 2026-07-30 | Dense Rootkit City · durable never-reuse news ledger |
+| **11** | [`STATS-SESSION-11.md`](STATS-SESSION-11.md) | 2026-08-12 | Magical franchise stills · event wire · caption holes |
 
 **Repo:** https://github.com/TunaStreetTest/tuna-starlink-app  
-**Model:** grok-4.5  
+**Model:** grok-4.6 (S11); earlier sessions grok-4.5
 
 ---
 
 ## Whole-repo lines of code (current)
 
-Counted at Session 10 wrap (**2026-07-30**). Excludes `node_modules`, `.venv`, `art/` outputs, `package-lock.json`, `frontend/dist`.
+Counted at Session 11 wrap (**2026-08-12**). Excludes `node_modules`, `.venv`, `art/` outputs, `package-lock.json`, `frontend/dist`.
 
 | Area | Lines |
 |---|---:|
-| Python (`backend/`, `worker/`, `scripts/`) | **4,270** |
+| Python (`backend/`, `worker/`, `scripts/`) | **4,560** |
 | Frontend (`frontend/src` — ts/tsx/css) | **905** |
-| Style seeds + compose (`styles.yaml`, `docker-compose.yml`) | **175** |
-| **Application code subtotal** | **~5,350** |
-| Docs (`docs/*.md`, `README.md`, `GROK.md`) | **2,244** |
+| Style seeds + compose (`styles.yaml`, `docker-compose.yml`) | **169** |
+| **Application code subtotal** | **~5,634** |
+| Docs (`docs/*.md`, `README.md`, `GROK.md`) | **2,360** |
 | Makefile, Dockerfile, `.env.example`, samples | **133** |
-| **All product files** | **~7,727** |
+| **All product files** | **~8,127** |
 
 ### Growth across sessions
 
-| | S1 | S2 | S3 | S4 | S5 | S6 | S7 | S8 | S9 | S10 (now) |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Application code | ~3,135 | ~3,934 | ~4,256 | ~4,591 | ~4,687 | ~4,781 | ~4,751 | ~4,901 | ~4,904 | **~5,350** |
-| All product files | ~3,999 | ~5,330 | ~5,794 | ~6,244 | ~6,521 | ~6,610 | ~6,802 | ~7,066 | ~7,180 | **~7,727** |
+| | S1 | S2 | S3 | S4 | S5 | S6 | S7 | S8 | S9 | S10 | S11 (now) |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Application code | ~3,135 | ~3,934 | ~4,256 | ~4,591 | ~4,687 | ~4,781 | ~4,751 | ~4,901 | ~4,904 | ~5,350 | **~5,634** |
+| All product files | ~3,999 | ~5,330 | ~5,794 | ~6,244 | ~6,521 | ~6,610 | ~6,802 | ~7,066 | ~7,180 | ~7,727 | **~8,127** |
 
 | Δ | App | All product |
 |---|---:|---:|
@@ -51,36 +52,37 @@ Counted at Session 10 wrap (**2026-07-30**). Excludes `node_modules`, `.venv`, `
 | S6 → S7 | ~−30 | ~+192 |
 | S7 → S8 | ~+150 | ~+264 |
 | S8 → S9 | ~+3 | ~+114 |
-| S9 → S10 | **~+446** | **~+547** |
+| S9 → S10 | ~+446 | ~+547 |
+| S10 → S11 | **~+284** | **~+400** |
 
-*(S10: dense Rootkit City craft + durable news used ledger in `events.py`.)*
+*(S11: `wire_quality.py` + event/caption filters + tests; Imagine compose got shorter.)*
 
 ### By language (product tree, current)
 
 | Ext | Lines |
 |---|---:|
-| `.py` | 4,270 |
-| `.md` | 2,244 |
+| `.py` | 4,560 |
+| `.md` | 2,360 |
 | `.tsx` / `.ts` / `.css` | 905 |
-| `.yaml` / `.yml` | 175 |
+| `.yaml` / `.yml` | 169 |
 | other | ~133 |
 
 ---
 
-## Combined Grok session activity (S1–S10)
+## Combined Grok session activity (S1–S11)
 
 | Metric | Value |
 |---|---:|
-| **Active engineering time (S1–S10)** | **~10.7–12.2 h** (~10.3–11.6 + ~0.4–0.6) |
-| User messages | **~121–122** (118–119 + ~3) |
-| Assistant messages | **~588** (558 + ~30) |
-| Tool calls | **~1,268** (1,188 + ~80) |
+| **Active engineering time (S1–S11)** | **~11.0–12.6 h** (~10.7–12.2 + ~0.3–0.4) |
+| User messages | **~123–124** (121–122 + ~2) |
+| Assistant messages | **~620** (588 + ~32) |
+| Tool calls | **~1,368** (1,268 + ~100) |
 | Compactions | **2** |
-| Files touched (agent, sum of snapshots) | **~161** (151 + 10; overlap possible) |
-| Agent lines added | **~9,773** |
-| Agent lines removed | **~1,650** |
+| Files touched (agent, sum of snapshots) | **~171** (161 + 10; overlap possible) |
+| Agent lines added | **~10,227** |
+| Agent lines removed | **~1,807** |
 | Context window | **500,000** |
-| Context in use at S10 wrap | **~86,700** (~**17%**) |
+| Context in use at S11 wrap | **~126,238** (~**25%**) |
 
 **Note:** Report **active engineering time** only — wall clock includes idle.
 
@@ -90,15 +92,15 @@ Counted at Session 10 wrap (**2026-07-30**). Excludes `node_modules`, `.venv`, `
 
 | Item | Estimate |
 |---|---:|
-| Live gallery Imagine PNGs (`art/*/art.png`) | **80** (mix ~$0.02 standard + ~$0.05 quality) ≈ **~$1.75–2.10** |
+| Live gallery Imagine PNGs (`art/*/art.png`) | **87** (22 quality ~$0.05 + rest ~$0.02) ≈ **~$2.00–2.40** |
 | Experiment / develop images (earlier) | **~17** × ~$0.02 ≈ **~$0.34** |
-| X posts recorded in meta | **~47** |
-| X Recent Search | **Primary-only when enabled** (official brands; TTL 120m). Used ledger blocks re-picks. |
+| X posts recorded in meta | **57** |
+| X Recent Search | **Primary-only when enabled** (official brands; TTL 120m). Event + fluff gated. Used ledger blocks re-picks. |
 | Unattended schedule | **OFF** (systemd keeps API up; generate manual) |
-| Wire | Lean cool-tech RSS + optional primary X; newest-first; **durable never-reuse ledger**; soft photo-of-day blocked; 72h max age |
+| Wire | Lean cool-tech RSS + optional primary X; **visualizable events only**; durable never-reuse ledger; 72h max age |
 | Styles | `data-space`, `planet-core`, `data-tunnel`, `signal-cathedral`, `rootkit-city` |
-| Art director | **Grok 4.5** (`XAI_ART_MODEL`) → SHOT paragraph; **caption is source-only** (no expand) |
-| Imagine | `grok-imagine-image-quality` @ **1K** (skip 2K); craft > resolution |
+| Art director | **Grok 4.5** (`XAI_ART_MODEL`) → 2–5 sentence SHOT; **caption is source-only** (handles → names) |
+| Imagine | `grok-imagine-image-quality` @ **1K** (skip 2K); SHOT + short lock; craft > resolution |
 | Grok Build agent tokens | **Not exposed** — dashboard |
 
 ---
@@ -109,16 +111,18 @@ Counted at Session 10 wrap (**2026-07-30**). Excludes `node_modules`, `.venv`, `
 Studio (single page)
   → Generate (style pick) + gallery tiles → modal → Post to X
   → wire: primary X brands (when search on) else cool-tech RSS
-  → single story — caption = source text only (no invent)
+  → single story — visualizable event only (launch / chip / model; no games/IR)
+  → caption = source text only (no invent); @handles → names; full clip to 280
   → used ledger: posted/generated clips never re-picked
-  → Grok 4.5 art director (SHOT: one poetic plate; no people; dual light)
+  → Grok 4.5 art director (SHOT: 2–5 sentences, one poetic plate; no people)
+  → Imagine prompt = SHOT + short lock (no cube-farm recipe stack)
   → xAI Imagine 16:9 quality @ 1K
   → X main: source-only stream body, no hashtags, no reply
 ```
 
 **Trust bar:** X caption never invents facts past the wire.  
 **Craft bar:** one impossible architecture + photoreal materials + dual warm/cool light.  
-**Rootkit City:** dense digital city inside the computer (GPU/CPU/data towers); green = building lights or vertical code-rain — never path/bolt lightning.  
+**Rootkit City:** one luminous digital-city hero inside the computer (glass-silicon keep / canyon); green = building lights or vertical code-rain — never path/bolt lightning; never a packed server-rack farm.  
 **Wire reuse:** `art/.news_used.json` — ids + title fingerprints; seed from gallery; mark on tap / complete / post.  
 **Data Space:** deep space; few satellites max.  
 **Data Tunnel:** busy packet tunnel.  

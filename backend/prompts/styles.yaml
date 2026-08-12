@@ -5,7 +5,7 @@
 series:
   name: Planet Hack
   tagline: Cool tech from the wire, remixed as matrix CGI.
-  # Kept for style metadata / UI; compose path now leads with art-director SHOT paragraph.
+  # Kept for style metadata / UI; compose path leads with the art-director SHOT only.
   shared_lock: >
     Premium 3D digital CGI, wide 16:9 VFX still. Zero humans. One impossible non-human
     hero structure with photoreal materials and dual warm/cool light. Neon accents ok;
@@ -102,26 +102,20 @@ styles:
     label: Rootkit City
     hashtag: RootkitCity
     lane: gpu
-    description: Dense digital city inside the hacker's computer — GPU-die towers, CPU cores, data racks packing the frame.
+    description: Luminous digital city inside the computer — one neon-etched megastructure, not a packed server farm.
     art_director_notes: >
-      GPU / NVIDIA / silicon / CPU / datacenter story as metaphor. Franchise: INSIDE THE
-      HACKER'S COMPUTER rendered as a DENSE DIGITAL METROPOLIS — the city IS the silicon.
-      Fill the frame with LOTS of buildings: circuit-board skyscrapers, GPU-die tower blocks,
-      CPU core cubes, memory-bank mid-rises, rack-lit data towers, transistor districts.
-      Streets = cyan PCB traces / orthogonal grid; facades carry square magenta nodes and
-      etched circuitry. Density + legibility: packed skyline, layered depth, every tower
-      reads as machine architecture. Rootkit = ARCHITECTURE (one green-lit tower, green
-      window bands, or PCB right-angle etch on skins) — never a green path, trace, seam,
-      beam, river, crack, or snaking ground line (those become neon lightning). Optional
-      vertical matrix code-rain BETWEEN towers as atmosphere only, not ground weather.
-      VARIETY = camera + district type (canyon, die plateau, rack district, CPU plaza,
-      wafer stack, elevated mesh). ZERO people. Palette: void black + cyan + magenta +
-      acid-green building/code accents + optional amber rack windows.
+      GPU / NVIDIA / silicon / CPU story as metaphor. Franchise: INSIDE THE COMPUTER as a
+      luminous digital city — the city IS the silicon. ONE hero structure (a canyon tower,
+      a GPU-die citadel, a glass-silicon keep, a wafer acropolis) with breathing room and
+      atmospheric haze. Facades are neon-etched glass and circuit, not dark metal cubes.
+      Streets = cyan PCB traces; magenta nodes; optional vertical matrix code-rain as
+      atmosphere only. Green = building lights or code-rain — never a ground path, bolt,
+      beam, or river (those become neon lightning). ZERO people. NOT a packed server-rack
+      farm. NOT wall-to-wall cubes filling every edge. Palette: void black + cyan + magenta
+      + acid-green accents + optional amber rack-glow. Wonder over density.
     prompt_seed: >
-      Wide 16:9 landscape, dense digital city inside a hacker's mainframe — colossal GPU-die
-      metropolis packed with silicon skyscrapers, CPU-core towers, and rack-lit data towers
-      filling the frame, circuit-board streets as cyan PCB grid, magenta signal nodes on
-      facades, acid-green as building lights and optional vertical matrix code-rain between
-      towers, layered cinematic depth, neon night cyan magenta acid-green spectrum,
-      Tron/Hackers/Matrix construct CGI, full-bleed horizontal — no people, no lightning
-      bolts, no jagged glowing ground paths, no lava
+      Wide 16:9 cinematic VFX still of a luminous digital city inside a computer —
+      one impossible neon-etched megastructure of glass and silicon, cyan streets receding
+      into haze, magenta nodes, optional vertical code-rain as atmosphere, dual amber
+      rack-glow and ice-cyan signal light, epic scale, finished plate, no people,
+      no packed server racks, no lightning

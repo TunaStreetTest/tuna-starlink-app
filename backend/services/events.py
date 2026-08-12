@@ -25,6 +25,13 @@ import httpx
 
 from config import settings
 from services import art_store
+from services.wire_quality import (
+    is_fluff,
+    is_visualizable_event,
+    length_bonus,
+    longest_source_text,
+    wire_accept,
+)
 
 log = logging.getLogger("tuna-starlink.events")
 
@@ -124,7 +131,7 @@ _STREAM_SCHEMA = "cool-tech-v2"
 _STREAM_MAX_ITEMS = 18  # few posts/day — tiny working set
 _ITEMS_PER_FEED = 5
 _PACK_SIZE = 1  # single story only — full text drives stream + image
-_X_SLOTS = 1
+_X_SLOTS = 4  # let ranker pick the longest visualizable official clip
 _X_MIN_SCORE = 40
 # Drop anything older than this (publish time, else ingest time). Never post week-old wire.
 _MAX_STORY_AGE_HOURS = 72
@@ -587,6 +594,8 @@ def _is_cool_tech(title: str, summary: str = "") -> bool:
     blob = f"{title} {summary}"
     if _BLOCK_RE.search(blob):
         return False
+    if is_fluff(blob):
+        return False
     return bool(_COOL_TECH_RE.search(blob))
 
 
@@ -646,6 +655,9 @@ def _parse_rss_items(
             continue
         # Soft features mislead the caption (photo-of-the-day "floating" ≠ orbital news)
         if _SOFT_FEATURE_RE.search(f"{title} {desc}"):
+            continue
+        # Games / IR / academic marketing / non-events
+        if not wire_accept(f"{title} {desc}"):
             continue
         # Reject stub titles ("SpaceX - SpaceX") and ultra-thin blurbs
         if len(title) < 28 or title.count(" ") < 4:
@@ -887,6 +899,9 @@ def _tap_unconsumed(
         if _is_fresh(i)
         and not i.get("consumed_at")
         and not _is_story_used(i, used)
+        and wire_accept(
+            f"{i.get('title') or ''} {i.get('summary') or i.get('line') or ''}"
+        )
     ]
     if lane:
         lane_free = [i for i in free if (i.get("lane") or "") == lane]
@@ -980,23 +995,8 @@ def _dedupe_key(text: str) -> str:
 
 
 def _pack_line(item: dict[str, Any]) -> str:
-    """Single-story source text: title + summary only (caption will not invent past this)."""
-    title = (item.get("title") or "").strip()
-    summary = re.sub(r"https?://\S+", "", (item.get("summary") or "").strip())
-    summary = re.sub(r"\s+", " ", summary).strip()
-    line = re.sub(r"https?://\S+", "", (item.get("line") or item.get("text") or "").strip())
-    line = re.sub(r"\s+", " ", line).strip()
-
-    # Prefer longest clean string that is still only wire text
-    if title and summary and summary.lower() not in title.lower():
-        body = f"{title} — {summary}"
-    elif line and len(line) >= len(title):
-        body = line
-    elif title and line and title.lower() not in line.lower():
-        body = f"{title} — {line}"
-    else:
-        body = line or title
-    return body[:900]
+    """Single-story source text: longest wire string (caption will not invent past this)."""
+    return longest_source_text(item)[:900]
 
 
 # Core brands we post about — strong boost so dull edge stories lose to the real wire.
@@ -1024,17 +1024,20 @@ def _primary_rank(item: dict[str, Any]) -> int:
         score += 25
     if _SOFT_FEATURE_RE.search(title):
         score -= 80
+    blob = f"{title} {item.get('summary') or item.get('line') or item.get('text') or ''}"
+    if is_fluff(blob):
+        score -= 120
+    if not is_visualizable_event(blob):
+        score -= 80
     # Official account posts are already cool-tech by construction — don't
     # punish short "still afloat…" SpaceX updates for omitting the brand name.
     if not is_primary_acct and not _is_cool_tech(
         title, item.get("summary") or item.get("line") or ""
     ):
         score -= 100
-    n = len(title)
-    if 40 <= n <= 140:
-        score += 10
-    elif n > 180:
-        score -= 8
+    # Prefer a fuller official sentence over a 1-line LAUNCH!
+    body = item.get("text") or item.get("line") or title
+    score += length_bonus(len(body))
 
     # Freshness still matters — few posts/day → newest story
     age = _age_hours(item)
@@ -1071,6 +1074,9 @@ def _build_wire_pack(
             break
         if (h.get("score") or 0) < _X_MIN_SCORE:
             continue
+        blob = h.get("text") or h.get("line") or h.get("title") or ""
+        if not wire_accept(blob):
+            continue
         key = _dedupe_key(h.get("title") or h.get("line") or h.get("text") or "")
         if not key or key in seen:
             continue
@@ -1096,6 +1102,8 @@ def _build_wire_pack(
             break
         title = h.get("title") or h.get("line") or ""
         if _SOFT_FEATURE_RE.search(title):
+            continue
+        if not wire_accept(f"{title} {h.get('summary') or h.get('line') or ''}"):
             continue
         key = _dedupe_key(title)
         if not key or key in seen:

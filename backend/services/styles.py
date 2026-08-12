@@ -39,34 +39,23 @@ _DATA_SPACE_SCENES = (
     "holographic telemetry arcs; no people; no satellite swarm.",
 )
 
-# Per-run cityscape recipes for rootkit-city — dense digital city INSIDE the computer.
-# Lots of buildings: GPU-die towers, CPU cores, data racks. Green on ARCHITECTURE or
-# vertical matrix code-rain between towers — never a ground path / bolt / beam.
+# Per-run cityscape hints for rootkit-city — ONE luminous hero, not a packed cube farm.
+# Fed to the art director only (not dumped into the Imagine prompt).
+# Green on ARCHITECTURE or vertical code-rain — never a ground path / bolt / beam.
 _ROOTKIT_CITY_SCENES = (
-    "SCENE: dense GPU-die metropolis packing the frame — silicon skyscrapers and CPU-core "
-    "cubes rise from a cyan PCB street grid; magenta facade nodes; acid-green window bands "
-    "on select towers; optional vertical matrix code-rain in the canyons between buildings.",
-    "SCENE: low street-level canyon deep inside the mainframe — colossal circuit-board "
-    "towers and rack-lit data spires crowd both sides; vanishing-point cyan grid road; "
-    "one mid-ground tower fully acid-green as the rootkit hero; dense layered architecture.",
-    "SCENE: elevated view over a sprawling die-grid city — mixed heights of GPU blocks, "
-    "memory-bank mid-rises, lattice CPU stacks; every tower etched with circuitry; "
-    "cyan streets; magenta roof clusters; green as PCB right-angle etch on skins only.",
-    "SCENE: CPU core district — cubic processor towers with pin-grid bases and cache-ring "
-    "balconies; dense surrounding data towers; reflective black silicon plaza; "
-    "one green-glass core building anchors the story; no ground energy paths.",
-    "SCENE: dense rack-city high oblique — server-tower rows and transistor districts "
-    "packed wall-to-wall; cyan grid arteries; magenta signal panels; rootkit = one "
-    "green-glowing district block (solid building lights); vertical code-rain optional.",
-    "SCENE: wafer-stack skyline — layered translucent silicon plates as megablocks, "
-    "dense tower forests on each tier; cyan edge light; sparse green window bands; "
-    "frame filled with buildings, never empty sky or lone object.",
-    "SCENE: floating mesh districts of data towers linked by thin straight light bridges "
-    "over a lower sprawl of circuit mid-rises; packed skyline; Tron/Hackers density; "
-    "acid-green only on select facade panels and bridge rail lights.",
-    "SCENE: root-access CPU plaza — dark cyan grid floor, ring of dense surrounding "
-    "GPU/data towers filling every edge of the frame; hero is a single cubic green-glass "
-    "CPU core building at center (solid architecture, not a glowing crack or beam).",
+    "One luminous circuit-board canyon: a single neon-etched megatower as hero, "
+    "glass-silicon facades, cyan streets receding into haze, magenta nodes, "
+    "optional vertical code-rain as atmosphere only.",
+    "Elevated view of one impossible GPU-die citadel rising from a dark wafer plain — "
+    "breathing room around the hero, amber rack-glow inside, ice-cyan signal light outside.",
+    "Street-level look up a soaring silicon cathedral-tower, circuit traces as stained "
+    "architecture, a small empty plaza at its base for scale, haze between planes.",
+    "A floating glass-silicon ring-city around a dark core, one green-glass keep at "
+    "center, cyan bridges as thin accents, magenta window clusters, lots of night sky.",
+    "Reflective black silicon plaza with one cubic green-glass CPU keep; surrounding "
+    "towers recede into fog — the keep is the story, not a wall of racks.",
+    "A wafer-plate acropolis: translucent stacked dies as terraces, one hero spire, "
+    "gold limb light on edges, cyan etch in the depths, atmospheric depth of field.",
 )
 
 
@@ -198,6 +187,17 @@ def _rootkit_city_scene(art_brief: str) -> str:
     return _scene_pick(art_brief, _ROOTKIT_CITY_SCENES, "rootkit-city")
 
 
+def scene_hint(style_id: str | None, salt: str) -> str:
+    """Composition hint for the art director — not appended to the Imagine prompt."""
+    sid = str(style_id or "")
+    key = salt or sid
+    if sid in ("data-space", "data_space"):
+        return _scene_pick(key, _DATA_SPACE_SCENES, "data-space")
+    if sid in ("rootkit-city", "rootkit_city"):
+        return _scene_pick(key, _ROOTKIT_CITY_SCENES, "rootkit-city")
+    return ""
+
+
 def _sanitize_rootkit_brief(brief: str) -> str:
     """Rewrite path/bolt metaphors so Imagine does not paint neon lightning."""
     import re
@@ -250,10 +250,11 @@ def _extract_shot_paragraph(art_brief: str) -> str:
 
 
 def build_imagine_prompt(art_brief: str, style: dict[str, Any]) -> str:
-    """Compose Imagine prompt: SHOT paragraph leads; seed/lock are light guardrails.
+    """Compose Imagine prompt: SHOT paragraph is the prompt.
 
-    Best Grok Imagine stills win on ONE poetic architecture + materials + dual light,
-    not a stack of competing rule blocks. Keep franchise locks short.
+    Best Grok Imagine stills win on ONE poetic architecture + materials + dual light.
+    Do not stack scene recipes, density locks, and hard-rule essays after the SHOT —
+    that is how Rootkit became a dark packed server farm.
     """
     seed = (style.get("prompt_seed") or "").strip()
     brief = (art_brief or "").strip()
@@ -265,40 +266,11 @@ def build_imagine_prompt(art_brief: str, style: dict[str, Any]) -> str:
     if style_id in ("rootkit-city", "rootkit_city"):
         shot = _sanitize_rootkit_brief(shot)
 
-    # Lead with the cinematic SHOT — this is what quality Imagine work looks like.
-    parts: list[str] = []
-    if shot:
-        parts.append(shot)
-    elif seed:
-        parts.append(seed)
-
-    # Light style geometry cue (not a second full prompt).
-    if style_id in ("data-space", "data_space"):
-        parts.append(_data_space_scene(brief or seed))
-    elif style_id in ("rootkit-city", "rootkit_city"):
-        parts.append(_rootkit_city_scene(brief or seed))
-        parts.append(
-            "Dense digital city inside the computer: packed silicon/GPU/CPU data towers "
-            "filling the frame; cyan PCB grid streets; acid-green as building lights or "
-            "vertical matrix code-rain between towers only — no glowing ground paths, "
-            "lightning bolts, or jagged energy weather."
-        )
-    elif seed and shot and seed not in shot:
-        # Short style anchor when SHOT is present (seed is fallback lead otherwise).
-        first_line = seed.split("\n", 1)[0].strip()
-        if first_line:
-            parts.append(first_line)
-
-    # Dual-light material bar (from showcase DNA), not a neon dump checklist.
-    parts.append(
-        "Finished ultra-premium VFX still, wide 16:9, photoreal materials (glass, metal, "
-        "silicon micro-detail), dual light (warm practical + cool digital), deep atmospheric "
-        "depth of field, epic scale, legible architecture. No people or human silhouettes. "
-        "No lava, no lightning-bolt weather, no scrapyard noise soup."
+    lead = shot or seed
+    lock = (
+        "Wide 16:9 finished VFX still. Photoreal materials, dual warm/cool light, "
+        "atmospheric depth, epic scale. Zero humans. No logos or readable text. "
+        "Neon accents subordinate to one hero structure. No lightning-bolt weather, "
+        "no lava, no dark packed server-rack farm."
     )
-    # Franchise hard rules — keep short so SHOT stays the hero.
-    parts.append(
-        "HARD: pure machine/architecture CGI only — zero humans; no logos, flags, or "
-        "readable text; neon accents allowed but subordinate to the one hero structure."
-    )
-    return "\n\n".join(p for p in parts if p)
+    return "\n\n".join(p for p in (lead, lock) if p)

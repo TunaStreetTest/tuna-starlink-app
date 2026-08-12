@@ -17,6 +17,12 @@ import time
 from typing import Any
 
 from config import settings
+from services.wire_quality import (
+    expand_handles,
+    is_fluff,
+    length_bonus,
+    wire_accept,
+)
 
 log = logging.getLogger("tuna-starlink.x_search")
 
@@ -196,7 +202,8 @@ def _clean_line(text: str) -> str:
     t = re.sub(r"\s+", " ", t).strip()
     # strip trailing media-only residue
     t = re.sub(r"\s*[|•]\s*$", "", t)
-    return t
+    # Expand @handles to names before any later strip — no grammar holes.
+    return expand_handles(t)
 
 
 def _matches_lane(text: str, lane: str) -> bool:
@@ -244,10 +251,7 @@ def _headline_bonus(text: str) -> int:
         if _NEWSY_RE.search(t) and not re.search(r"spotting|frog|watch until", t, re.I):
             score += 12
     n = len(t)
-    if 55 <= n <= 220:
-        score += 12
-    elif 40 <= n < 55 or 220 < n <= 280:
-        score += 6
+    score += length_bonus(n)
     # declarative title shape: starts with capital letter/word, few first-person
     if re.match(r"^[A-Z\"“']", t) and not re.search(r"\bI\b", t[:40]):
         score += 8
@@ -302,9 +306,15 @@ def _run_query(
         # Soft features still junk; other junk filters softer on primary
         if _SOFT_FEATURE_RE.search(text):
             continue
+        # Games / IR / academic marketing — even from official brand accounts.
+        if is_fluff(text):
+            continue
         if not primary and _is_junk(text):
             continue
         if primary and _OPINION_RE.search(text.strip()):
+            continue
+        # Official accounts still need a visualizable event (launch, chip, model).
+        if not wire_accept(text):
             continue
         score = _quality_score(text, likes, rts, replies, quotes)
         if primary:
@@ -316,8 +326,8 @@ def _run_query(
             {
                 "id": tid,
                 "text": text,
-                "line": text[:220],
-                "title": text[:160],
+                "line": text,  # full wire — do not clip here (caption budget is 280)
+                "title": text[:200],
                 "score": score,
                 "likes": likes,
                 "retweets": rts,

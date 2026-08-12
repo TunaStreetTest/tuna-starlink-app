@@ -10,63 +10,53 @@ import re
 import httpx
 
 from config import settings
+from services.wire_quality import expand_handles
 from services.xai_client import client
 
 # Quality bar from bookmarked Grok Imagine work (e.g. @imagine library-vortex,
 # premium cyber cityscapes): ONE impossible poetic architecture, photoreal materials,
 # dual warm/cool light, scale contrast, atmospheric depth — not a neon checklist.
 ART_DIRECTOR_SYSTEM = """You are the lead art director for "Planet Hack" (@tunastarlink).
-Your job is to write a Grok Imagine prompt brief that hits the same bar as the best
-Grok Imagine showcase stills: breathtaking scale, impossible architecture that still
-reads as a finished VFX plate, micro-detailed materials, dual light, emotional wonder.
+Write a Grok Imagine brief that hits the same CRAFT bar as the best @imagine showcase
+stills: one impossible poetic architecture, photoreal materials, dual light, wonder.
 
-STUDY THE BAR (do not copy subjects — copy CRAFT):
-- One impossible poetic structure (infinite spiral library into circuit cosmos, floating
-  digital planet over a reflective cyber plaza, etc.) — ONE idea, not five.
-- Photoreal material craft: grain, glass refraction, metal micro-scratches, speculars,
-  readable depth of field, atmospheric haze, starfield breathing room.
-- Dual light: warm practical glow (amber / soft gold) PLUS cool digital signal light
-  (cyan / ice / magenta accents) — not every neon color dumped at full saturation.
-- Scale contrast: vast architecture + a tiny non-human scale cue (empty plaza, lone craft
-  glint, single terminal node) so the frame feels epic.
-- Density with legibility: rich detail that is still readable, never scrapyard soup.
+CRAFT (copy this, not the subjects):
+- ONE idea. One camera. One hero structure. Breathing room around it.
+- Photoreal materials: glass refraction, metal grain, silicon micro-etches, speculars,
+  readable depth of field, atmospheric haze. Luminous — not a dark metal warehouse.
+- Dual light: one warm practical (amber / soft gold) PLUS one cool digital (cyan / ice /
+  magenta accent). Neon is subordinate, never the subject.
+- Scale contrast: vast architecture + one tiny non-human cue (empty plaza, lone craft
+  glint, single terminal node).
 
-SERIES CONSTRAINTS (non-negotiable):
-- Wide 16:9 cinematic still. Premium 3D CGI / finished VFX — not oil paint, not SaaS ad.
-- ZERO humans / silhouettes / androids / faces. Architecture, machines, light, data only.
-- No readable logos, flags, headlines, UI chrome, or real city maps.
-- Cool-tech wire metaphor only (SpaceX / GPU / AI / silicon / orbital) from the PRIMARY story.
-- Neon night DNA is allowed (cyan / magenta / acid-green accents on void black) but
-  SUBORDINATE to materials, scale, and the one poetic idea. Never "neon lightning path"
-  weather. Never lava rivers. Never equal-triad color soup as the hero.
+SERIES LOCK:
+- Wide 16:9 finished VFX still. Zero humans / silhouettes / faces.
+- No logos, flags, readable UI, lightning-bolt weather, lava, scrapyard soup.
+- Metaphor the PRIMARY wire story only (SpaceX / GPU / AI / silicon / orbital).
 
-STYLE HINTS:
-- Rootkit City: DENSE digital city INSIDE the hacker's computer — the city IS the silicon.
-  Pack the frame with lots of buildings: GPU-die skyscrapers, CPU-core towers, memory banks,
-  rack-lit data spires, circuit-board mid-rises. Streets = cyan PCB grid. Facades etched
-  with circuitry + magenta nodes. Optional vertical matrix code-rain BETWEEN towers.
-  Green only as building lights / one tower / PCB etch / code-rain — never a glowing ground path.
+STYLE (one hero, not a packed catalog):
+- Rootkit City: a luminous digital city INSIDE the computer. One neon-etched megastructure
+  or canyon as the hero — glass-silicon facades, cyan streets, magenta nodes, optional
+  vertical code-rain as atmosphere. Green = building lights or code-rain, never a ground path.
+  NOT a dark packed server-rack farm. NOT wall-to-wall cubes.
 - Data Tunnel: vanishing-point conduit of architecture and light, kinetic but legible.
-- Signal Cathedral: monumental engineered nave of light and structure.
-- Planet Core: interior planetary mainframe scale — never a lone rock in empty space.
+- Signal Cathedral: monumental engineered nave of light and glass.
+- Planet Core: interior planetary mainframe — never a lone rock in empty space.
 - Data Space: exterior deep space — planets, stars, geometric craft; few satellites max.
 
 OUTPUT ONLY this structure (no markdown fences):
 
-SHOT: <80–140 words. This is the Imagine prompt core. One camera angle, one hero structure,
-one story metaphor as visual architecture, materials, dual light, atmosphere, scale.
-Write like a senior VFX art director describing a single finished plate. No bullet lists
-inside SHOT. No people.>
+SHOT: <2–5 sentences, ~40–80 words. This IS the Imagine prompt. Natural prose, not tags.
+One plate: camera + hero + materials + dual light + atmosphere. No people. No lists.>
 HERO: <one line — non-human structure only>
 METAPHOR: <one line — how the PRIMARY story becomes architecture / light / machine>
 LIGHT: <one line — warm source + cool digital source; which leads>
 MOOD: <3–6 words>
-AVOID: <short — specific failure modes for this shot, e.g. neon lightning paths, empty void>
+AVOID: <short — this shot's failure modes, e.g. dark server cubes, neon lightning>
 
 Rules:
-- Metaphor from the PRIMARY (first) wire story only.
-- Prefer ONE strong composition over many competing effects.
-- Materials and light sell "astounding" more than stacking more neon objects.
+- Prefer wonder and materials over stacking more objects.
+- If a composition hint is given, use it as the ONE idea — do not add a second city.
 """
 
 # Generative Stream is the main X post body: source text only, no LLM invent.
@@ -87,17 +77,27 @@ async def craft_art_brief(events: str, style: dict) -> str:
             f"AVOID: neon lightning paths, empty black void, scrapyard soup"
         )
 
+    from services import styles as styles_svc
+
+    hint = styles_svc.scene_hint(style.get("id"), events)
+    hint_block = ""
+    if hint:
+        hint_block = (
+            f"\nThis run's composition hint (use as the ONE idea — do not stack extras):\n"
+            f"{hint}\n"
+        )
+
     user = f"""Shot type: {style.get('label')} — {style.get('description')}
 
 Shot notes:
 {style.get('art_director_notes')}
-
+{hint_block}
 Wire pack (PRIMARY = first bullet — metaphorize that one only; others are mood only):
 {events}
 
 Write SHOT/HERO/METAPHOR/LIGHT/MOOD/AVOID now.
-SHOT must be Imagine-ready: one poetic impossible architecture idea, materials, dual light,
-scale, atmosphere. ZERO people. No logos or readable text."""
+SHOT is 2–5 sentences of Imagine-ready prose: one poetic impossible architecture,
+materials, dual light, atmosphere. ZERO people. No logos or readable text."""
 
     model = (settings.XAI_ART_MODEL or settings.XAI_CHAT_MODEL).strip()
     if settings.EDGE_TEXT == "lemonade":
@@ -113,7 +113,8 @@ scale, atmosphere. ZERO people. No logos or readable text."""
 
 def _clean_headline_piece(s: str) -> str:
     """Normalize one headline for Generative Stream (no hashtags/URLs)."""
-    s = re.sub(r"#\w+", "", (s or "").strip())
+    s = expand_handles((s or "").strip())
+    s = re.sub(r"#\w+", "", s)
     s = re.sub(
         r"^(the poster|someone|this user|the author)\s+(reported|said|shared|posted)\s+",
         "",
@@ -132,7 +133,8 @@ def _clean_headline_piece(s: str) -> str:
         flags=re.I,
     ).strip()
     s = re.sub(r"https?://\S+", "", s)
-    s = re.sub(r"@\w+", "", s)
+    # Unknown leftover @handles: keep the word, drop only the @ (no grammar holes).
+    s = re.sub(r"@(\w+)", r"\1", s)
     s = re.sub(r"\s+", " ", s).strip(" ·|-–—")
     if s and s[0].islower():
         s = s[0].upper() + s[1:]
@@ -194,7 +196,8 @@ async def craft_stream_slug(
         if not line:
             continue
         line = re.sub(r"https?://\S+", "", line).strip()
-        line = re.sub(r"@\w+", "", line).strip()
+        line = expand_handles(line)
+        line = re.sub(r"@(\w+)", r"\1", line).strip()
         line = re.sub(r"\s+", " ", line)
         if line:
             source = line
