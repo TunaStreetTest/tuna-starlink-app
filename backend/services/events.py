@@ -1141,7 +1141,7 @@ async def get_events(
     """
     Return (events_text, source_label, tap_meta) for a lean wire pack.
 
-    Primary story is bullet #1 (art metaphor + Generative Stream lead).
+    Primary story is bullet #1 (art metaphor + Tuna Starlink post facts).
     """
     if settings.DRY_RUN:
         stamp = datetime.now(timezone.utc).strftime("%H%M%S")
@@ -1313,13 +1313,6 @@ async def get_events(
             tap_meta["x_search_skipped"] = x_skipped
         return format_bullets(lines), src, tap_meta
 
-    return (
-        format_bullets(
-            [
-                "NVIDIA AI GPUs and open-weight LLMs reshape the compute stack "
-                "while SpaceX pads stack the next Starship flight — pure tech wire.",
-            ]
-        ),
-        "fallback-static",
-        {"fresh": False, "lane": lane, "style_id": style_id, "tap_size": 1},
+    raise RuntimeError(
+        "no event worth a plate — wire empty after fluff/event filters"
     )

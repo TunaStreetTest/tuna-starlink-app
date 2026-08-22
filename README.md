@@ -15,10 +15,10 @@ Each run:
 
 1. **Ingest** lean cool-tech RSS (**3 feeds**, last ~3 days) into `art/.news_stream.json` — drop stories older than **72h**; block soft “photo of the day” features
 2. **Single story** — prefer **official X brand posts** (SpaceX / Tesla / NVIDIA / xAI …) when `X_SEARCH_ENABLED`; else newest RSS. Only **visualizable events** (launch, splashdown, chip/silicon, model release) — not games, IR, or academic marketing
-3. **Art director** (Grok) metaphors that story into **one poetic plate** — neon subordinate to materials
+3. **Art director** (Grok) metaphors that story into **one neon-night matrix plate** (cyan / magenta / acid-green on void black — not god-ray “heaven” CGI)
 4. **Imagine** (`grok-imagine-image-quality`, ~$0.05 1K / ~$0.07 2K, landscape 16:9)
 5. Save `art/<run_id>/art.png` + `meta.json`
-6. **X post** from Studio tile modal (or `AUTO_PUBLISH`) — image + **source-only** Generative Stream body (full wire text clipped to ~280, @handles expanded to names, **no LLM invent**, **no hashtags**, no reply)
+6. **X post** from Studio tile modal (or `AUTO_PUBLISH`) — image + **Tuna Starlink caption** (~500–1,200 chars: the event, why it matters, the plate as neon art). Facts stay source-only (no invented dates/orbits). **No hashtags**, no reply. Giveaways / air-show ads / IR do not generate.
 
 Downloads: `planethack_<run_id>.png`.
 
@@ -145,7 +145,7 @@ That writes access tokens into `backend/.env.local`. Restart the backend after a
 
 | Step | Content |
 |---|---|
-| Main | Image + **Generative Stream** — one story, fill ~280 chars, **no hashtags** |
+| Main | Image + **Tuna Starlink caption** — event + take + plate, ~500–1,200 chars, **no hashtags** |
 | Reply | none |
 
 Stored on each run: `x_url`, `x_post_id`, `stream_slug`, `events_source` in `meta.json`.
@@ -178,7 +178,7 @@ No background fires. Click **Generate** when you want a piece; with `AUTO_PUBLIS
 | GET | `/api/gallery` | runs |
 | GET | `/api/gallery/{id}/image` | PNG (`planethack_<id>.png`) |
 | GET | `/api/publish/status` | X credentials ready? |
-| POST | `/api/publish/x` | `{ "run_id": "…" }` — image + Generative Stream body |
+| POST | `/api/publish/x` | `{ "run_id": "…" }` — image + Tuna Starlink caption |
 
 ```bash
 DRY_RUN=1 ART_STORAGE_PATH=./art python worker/run_once.py --style data-tunnel
@@ -188,42 +188,42 @@ DRY_RUN=1 ART_STORAGE_PATH=./art python worker/run_once.py --style data-tunnel
 
 ## Build stats (whole repo)
 
-Twelve Grok Build sessions (S1–S10 **grok-4.5**, S11–S12 **grok-4.6**).  
-Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2](docs/STATS-SESSION-2.md) · [S3](docs/STATS-SESSION-3.md) · [S4](docs/STATS-SESSION-4.md) · [S5](docs/STATS-SESSION-5.md) · [S6](docs/STATS-SESSION-6.md) · [S7](docs/STATS-SESSION-7.md) · [S8](docs/STATS-SESSION-8.md) · [S9](docs/STATS-SESSION-9.md) · [S10](docs/STATS-SESSION-10.md) · [S11](docs/STATS-SESSION-11.md) · [S12](docs/STATS-SESSION-12.md).
+Thirteen Grok Build sessions (S1–S10 **grok-4.5**, S11–S13 **grok-4.6**).  
+Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2](docs/STATS-SESSION-2.md) · [S3](docs/STATS-SESSION-3.md) · [S4](docs/STATS-SESSION-4.md) · [S5](docs/STATS-SESSION-5.md) · [S6](docs/STATS-SESSION-6.md) · [S7](docs/STATS-SESSION-7.md) · [S8](docs/STATS-SESSION-8.md) · [S9](docs/STATS-SESSION-9.md) · [S10](docs/STATS-SESSION-10.md) · [S11](docs/STATS-SESSION-11.md) · [S12](docs/STATS-SESSION-12.md) · [S13](docs/STATS-SESSION-13.md).
 
 ### Lines of code (current repo)
 
 | Area | Lines |
 |---|---:|
-| Python (`backend/`, `worker/`, `scripts/`) | **4,560** |
+| Python (`backend/`, `worker/`, `scripts/`) | **4,778** |
 | Frontend (`frontend/src`) | **1,122** |
-| Style seeds + compose YAML | **169** |
-| **Application code** | **~5,851** |
-| Docs (`docs/`, README, GROK) | **2,469** |
+| Style seeds + compose YAML | **168** |
+| **Application code** | **~6,068** |
+| Docs (`docs/`, README, GROK) | **2,587** |
 | Makefile / Dockerfile / `.env.example` / samples | **133** |
-| **All product files** | **~8,453** |
+| **All product files** | **~8,788** |
 
-(Excludes `node_modules`, `.venv`, generated `art/`, lockfiles.) S11→S12 ≈ **+217** app / **~+326** product (native gallery fullscreen + stack walk).
+(Excludes `node_modules`, `.venv`, generated `art/`, lockfiles.) S12→S13 ≈ **+217** app / **~+335** product (Tuna Starlink captions + Imagine API + neon-on-materials).
 
-### Combined session activity (S1–S12)
+### Combined session activity (S1–S13)
 
 | Metric | Value |
 |---|---:|
-| Active engineering time | **~11.3–13.0 hours** (excludes idle) |
-| User turns | **~126–127** |
-| Assistant messages | **~649** |
-| Tool calls | **~1,427** |
+| Active engineering time | **~12.5–14.6 hours** (excludes idle) |
+| User turns | **~133–134** |
+| Assistant messages | **~736** |
+| Tool calls | **~1,661** |
 | Compactions | **2** |
-| Files touched (sum of snapshots) | **~173** |
-| Agent lines added | **~10,647** |
-| Agent lines removed | **~1,865** |
+| Files touched (sum of snapshots) | **~191** |
+| Agent lines added | **~11,492** |
+| Agent lines removed | **~2,048** |
 
 ### Tokens
 
 | What | Value |
 |---|---:|
 | Context window | **500,000** |
-| Context in use at Session 12 wrap | **~170,918** (~**34%**) |
+| Context in use at Session 13 wrap | **~207,360** (~**41%**) |
 | Lifetime billed in/out tokens | **Not exposed** — xAI / Grok Build dashboard |
 
 `contextTokensUsed` is **window occupancy**, not the sum of every turn.
@@ -232,7 +232,7 @@ Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2]
 
 | Item | Estimate |
 |---|---:|
-| Live gallery Imagine images | **88** (23 quality ~$0.05 + rest ~$0.02) ≈ **~$2.05–2.45** |
+| Live gallery Imagine images | **105** (40 quality ~$0.05 + rest ~$0.02) ≈ **~$2.85–3.30** |
 | Experiment images (non-field) | **~17** × ~$0.02 ≈ **~$0.34** |
 | X Recent Search | **Primary-only when enabled** (official brands; event + fluff gated) |
 | Unattended schedule | **OFF** (service keeps API up; generate is manual) |
@@ -262,6 +262,7 @@ Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2]
 | [`docs/STATS-SESSION-10.md`](docs/STATS-SESSION-10.md) | Session 10 tallies (dense Rootkit + news ledger) |
 | [`docs/STATS-SESSION-11.md`](docs/STATS-SESSION-11.md) | Session 11 tallies (magical stills + event wire) |
 | [`docs/STATS-SESSION-12.md`](docs/STATS-SESSION-12.md) | Session 12 tallies (native fullscreen + stack walk) |
+| [`docs/STATS-SESSION-13.md`](docs/STATS-SESSION-13.md) | Session 13 tallies (Tuna Starlink posts + Imagine API) |
 | [`GROK.md`](GROK.md) | Agent rules |
 
 ---

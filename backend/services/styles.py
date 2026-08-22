@@ -16,46 +16,45 @@ _STYLES_FILE = Path(__file__).resolve().parent.parent / "prompts" / "styles.yaml
 _LANE_DEFAULT = "space"
 _HASHTAG_DEFAULT = "PlanetHack"
 
-# Per-run scene recipes for data-space (spatial variety; keep satellite counts low)
+# Per-run scene recipes for data-space — cinematic craft + planet + neon rings (July 28).
+# Never a centered HUD globe / circuit-board Earth.
 _DATA_SPACE_SCENES = (
-    "SCENE: single large holographic data-planet as hero, cracked wireframe continents, "
-    "thin orbital data rings, deep indigo void, soft gold limb light, no ship, "
-    "no satellite swarm.",
-    "SCENE: multi-planet system — three to five worlds at different depths and sizes, "
-    "one closer hero planet with data-ring, others receding, no ship, no satellite swarm.",
-    "SCENE: bright star (or binary) dominates the frame with lens-flare energy; "
-    "one small data-planet as secondary; star is the emotional hero; no satellite swarm.",
-    "SCENE: SpaceX-inspired geometric starship as pure machine silhouette "
-    "(stainless stacked body, abstract grid fins, engine plume light) — no logos, "
-    "no crew windows with people, alone against deep space; at most 1–3 distant craft glints.",
-    "SCENE: SpaceX-inspired geometric starship near a large data-planet, "
-    "orbital approach composition, plume and planet limb light, no people, "
-    "no dense satellite mesh.",
-    "SCENE: dark planet with sparse orbital infrastructure — only a few (3–8) small "
-    "satellite points of light on a thin ring, NOT hundreds; planet is the hero.",
-    "SCENE: planetary system edge-on with a bright accretion-like data disk and "
-    "one ringed world; cinematic scale; optional single tiny geometric ship as accent only.",
-    "SCENE: two planets in conjunction (near-overlap) with a star rising between them; "
-    "holographic telemetry arcs; no people; no satellite swarm.",
+    "SCENE: 3/4 fly-by, metal machine-craft LARGE in the foreground with cyan seam-light, "
+    "Earth behind with night-side city lights, thick cyan-magenta data rings, volumetric "
+    "magenta/green plume, starfield. No Tron outlines, no HUD, no circuit globe.",
+    "SCENE: Falcon/Starship-inspired metal booster climbing past night-side Earth; city lights "
+    "on continents; cyan packet rings; craft fills a third of the frame. Real materials. "
+    "No press photo, no targeting reticle, no glow-stick shuttle.",
+    "SCENE: high oblique on Earth with one massive cyan-magenta telemetry ring as a belt; "
+    "a single metal craft cutting across the ring; real oceans and city lights, "
+    "not PCB continents, not Tron.",
+    "SCENE: craft-forward — metal vehicle in the lower-right, Earth and rings receding; "
+    "cyan seam-light, magenta ring light, volumetric green exhaust, starfield depth.",
+    "SCENE: close 3/4 on the craft body (heat-tile / stainless) with Earth limb and a neon "
+    "ring behind it; light wrapping metal; no floating crystals, no clipart globe, no outlines.",
+    "SCENE: rings-forward — luminous cyan-magenta packet streams ellipse around Earth, "
+    "one metal craft riding the ring; planet still looks like a planet.",
 )
 
-# Per-run cityscape hints for rootkit-city — ONE luminous hero, not a packed cube farm.
+_DATA_SPACE_LAUNCH_SCENES = _DATA_SPACE_SCENES[:4]
+
+# Per-run cityscape hints for rootkit-city — ONE neon hero on a PCB grid, not fog/space habitat.
 # Fed to the art director only (not dumped into the Imagine prompt).
 # Green on ARCHITECTURE or vertical code-rain — never a ground path / bolt / beam.
 _ROOTKIT_CITY_SCENES = (
     "One luminous circuit-board canyon: a single neon-etched megatower as hero, "
-    "glass-silicon facades, cyan streets receding into haze, magenta nodes, "
-    "optional vertical code-rain as atmosphere only.",
-    "Elevated view of one impossible GPU-die citadel rising from a dark wafer plain — "
-    "breathing room around the hero, amber rack-glow inside, ice-cyan signal light outside.",
-    "Street-level look up a soaring silicon cathedral-tower, circuit traces as stained "
-    "architecture, a small empty plaza at its base for scale, haze between planes.",
-    "A floating glass-silicon ring-city around a dark core, one green-glass keep at "
-    "center, cyan bridges as thin accents, magenta window clusters, lots of night sky.",
+    "glass-silicon facades, cyan streets, magenta nodes, optional vertical code-rain. "
+    "Void black sky, saturated neon, no fogged silver, no god-rays.",
+    "Elevated view of one impossible GPU-die citadel on a dark wafer-PCB plain — "
+    "amber window dots inside, ice-cyan streets outside, magenta panels. No orbital void.",
+    "Street-level look up a soaring silicon tower, circuit traces as stained neon "
+    "architecture, a small empty plaza at its base, packed cyan/magenta grid around it.",
     "Reflective black silicon plaza with one cubic green-glass CPU keep; surrounding "
-    "towers recede into fog — the keep is the story, not a wall of racks.",
+    "neon towers on a PCB grid — the keep is the story, not a wall of racks, not a ring in space.",
     "A wafer-plate acropolis: translucent stacked dies as terraces, one hero spire, "
-    "gold limb light on edges, cyan etch in the depths, atmospheric depth of field.",
+    "cyan etch in the depths, magenta nodes, acid-green building lights, void black sky.",
+    "Circuit-grid city at night: stacked neon towers on a cyan PCB street grid, "
+    "magenta window clusters, optional code-rain, no people, no packed server racks, no heaven haze.",
 )
 
 
@@ -192,7 +191,11 @@ def scene_hint(style_id: str | None, salt: str) -> str:
     sid = str(style_id or "")
     key = salt or sid
     if sid in ("data-space", "data_space"):
-        return _scene_pick(key, _DATA_SPACE_SCENES, "data-space")
+        pool = _DATA_SPACE_SCENES
+        blob = (salt or "").lower()
+        if any(w in blob for w in ("falcon", "starship", "starlink", "launch", "booster")):
+            pool = _DATA_SPACE_LAUNCH_SCENES
+        return _scene_pick(key, pool, "data-space")
     if sid in ("rootkit-city", "rootkit_city"):
         return _scene_pick(key, _ROOTKIT_CITY_SCENES, "rootkit-city")
     return ""
@@ -267,10 +270,20 @@ def build_imagine_prompt(art_brief: str, style: dict[str, Any]) -> str:
         shot = _sanitize_rootkit_brief(shot)
 
     lead = shot or seed
-    lock = (
-        "Wide 16:9 finished VFX still. Photoreal materials, dual warm/cool light, "
-        "atmospheric depth, epic scale. Zero humans. No logos or readable text. "
-        "Neon accents subordinate to one hero structure. No lightning-bolt weather, "
-        "no lava, no dark packed server-rack farm."
-    )
+    if style_id in ("data-space", "data_space"):
+        lock = (
+            "Wide 16:9 cinematic CGI. Real metal and planet surface; neon is LIGHT on "
+            "those materials and the rings. Craft has presence. Zero humans, no logos, "
+            "no readable text. No Tron outlines, no glow-stick shuttle, no HUD reticle, "
+            "no circuit-board globe, no floating crystals, no clipart Earth, no god-rays, "
+            "no press-photo Starship with no neon."
+        )
+    else:
+        lock = (
+            "Wide 16:9 neon-night CGI on void black. Real materials; cyan, magenta, and "
+            "acid-green as illumination on metal-glass, not outline stickers. Zero humans, "
+            "no logos, no readable text. No Tron line-art, no After Effects tunnel preset, "
+            "no god-rays, no church haze, no National Geographic postcard, no lightning, "
+            "no lava, no packed server-rack farm."
+        )
     return "\n\n".join(p for p in (lead, lock) if p)

@@ -155,10 +155,12 @@ async def run_generate(style_id: str | None = None, force: bool = False) -> dict
         art_store.save_run(meta, image_bytes=image_bytes)
         _current = dict(meta)
 
-        # 4) Generative Stream = X post body (single story, full text, no poem, no hashtags)
+        # 4) Ledger facts (source-only) + Tuna Starlink X body (voice, facts from wire)
         stream_slug = await xai_chat.craft_stream_slug(events)
+        caption = await xai_chat.craft_tuna_post(events, style, art_brief)
         meta["stream_slug"] = stream_slug
-        meta["caption"] = stream_slug
+        meta["caption"] = caption
+        meta["post_chars"] = len(caption or "")
         meta["phase"] = "done"
         meta["status"] = "complete"
         ended = datetime.now(timezone.utc)

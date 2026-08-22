@@ -17,7 +17,7 @@ async def publish_status():
         "credentials_ready": x_publish.x_credentials_ready(),
         "handle": __import__("config", fromlist=["settings"]).settings.X_ACCOUNT_HANDLE,
         "flow": {
-            "main": "image + single headline Generative Stream (full 280, no hashtags)",
+            "main": "image + Tuna Starlink caption (longer form, no hashtags)",
             "comment_1": "none",
         },
     }

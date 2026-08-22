@@ -51,7 +51,11 @@ _FLUFF_RE = re.compile(
     r"free access to (our )?frontier|"
     r"\b\d{1,3},?\d{3} researchers\b|"
     r"photo of the day|picture of the day|image of the day|"
-    r"looks absolutely|stunning photos?|don'?t miss these|you may like"
+    r"looks absolutely|stunning photos?|don'?t miss these|you may like|"
+    r"giveaway|enter to win|win this|free pc drop|pc drop|"
+    r"steigerdynamics|#?rtxpowersplay|"
+    r"air show|aerospace technology expo|make plans to join us|"
+    r"responsible scaling policy|risk reports?"
     r")",
     re.I,
 )

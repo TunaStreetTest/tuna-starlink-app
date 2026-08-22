@@ -191,7 +191,7 @@ Survives container exits; Docker Desktop must be running.
 1. Open `http://127.0.0.1:8091` (Docker) or `:8010` (native/service)  
 2. Health: **xai** + **x** green  
 3. Studio → Run once  
-4. Gallery → confirm PNG + Generative Stream body  
+4. Gallery → confirm PNG + Tuna Starlink caption  
 5. If `AUTO_PUBLISH=true`, check **@tunastarlink**  
 
 Starlink tip: each run downloads **one image** (~0.5 MB). No model weights over the link.
@@ -215,7 +215,7 @@ Starlink tip: each run downloads **one image** (~0.5 MB). No model weights over 
 
 ## 7. X post behavior
 
-- **Main:** image + **Generative Stream** body (one cool-tech story, fill ~280, **no hashtags**)  
+- **Main:** image + **Tuna Starlink caption** (event + take + plate, ~500–1,200 chars, **no hashtags**)  
 - **Reply:** none  
 - Art-director brief stays in local `meta.json` / gallery only  
 

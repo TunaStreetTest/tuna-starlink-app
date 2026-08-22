@@ -2,7 +2,7 @@
 
 ## Scope
 
-FastAPI + React control plane: news stream, Grok art director, xAI Imagine (16:9), gallery, X post to **@tunastarlink** (caption + news-keyword reply), hourly schedule with **random style**.
+FastAPI + React control plane: news stream, Grok art director, xAI Imagine (16:9 neon matrix CGI), gallery, X post to **@tunastarlink** (Tuna Starlink caption on the image; facts from the wire).
 
 ## Secrets
 

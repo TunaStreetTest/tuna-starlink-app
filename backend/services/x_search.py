@@ -326,7 +326,7 @@ def _run_query(
             {
                 "id": tid,
                 "text": text,
-                "line": text,  # full wire — do not clip here (caption budget is 280)
+                "line": text,  # full wire — do not clip here (post writer uses the whole line)
                 "title": text[:200],
                 "score": score,
                 "likes": likes,

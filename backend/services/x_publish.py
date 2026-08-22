@@ -1,4 +1,4 @@
-"""X publish — image + single-headline Generative Stream body (no hashtags, no reply)."""
+"""X publish — image + Tuna Starlink body (longer form, no hashtags, no reply)."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from config import settings
 from services import art_store
 
 log = logging.getLogger("tuna-starlink.x_publish")
-_TWEET_MAX = 280
+_TWEET_MAX = 4000
 
 
 def x_credentials_ready() -> bool:
@@ -37,32 +37,21 @@ def _clip(text: str, limit: int = _TWEET_MAX) -> str:
 
 
 def build_main_post(meta: dict[str, Any] | None = None) -> str:
-    """Main X body: Generative Stream text, full 280 budget, no hashtags."""
+    """Main X body: Tuna Starlink caption. Facts already sourced at generate time."""
     meta = meta or {}
-    from services.xai_chat import _clean_headline_piece
+    from services.xai_chat import _clean_post_body
 
-    # Prefer stream_slug (already filled toward 280 at generate time)
-    body = (meta.get("stream_slug") or meta.get("caption") or "").strip()
+    body = (meta.get("caption") or meta.get("stream_slug") or "").strip()
     if not body:
         for line in (meta.get("events") or "").splitlines():
             line = line.strip().lstrip("-• ").strip()
             if line:
                 body = line
                 break
-    body = _clean_headline_piece(body)
-    body = re.sub(r"#\w+", "", body)
-    body = re.sub(r"https?://\S+", "", body)
-    body = re.sub(r"@\w+", "", body)
-    body = re.sub(r"\s+", " ", body).strip()
     if not body:
         body = "A live story from the wire."
-    body = _clip(body, _TWEET_MAX)
-    if body and body[-1] not in ".!?…":
-        if len(body) + 1 <= _TWEET_MAX:
-            body = body + "."
-        else:
-            body = _clip(body, _TWEET_MAX - 1) + "."
-    return body
+    body = _clean_post_body(body, _TWEET_MAX)
+    return body or "A live story from the wire."
 
 
 def _client_pair():
@@ -94,11 +83,12 @@ def _create_main_tweet(
     media = api_v1.media_upload(img_path)
     media_id = media.media_id
     base = _clip(re.sub(r"#\w+", "", text or "").strip(), _TWEET_MAX)
-    candidates = [
-        base,
-        _clip(base.rstrip(".!") + " ·", _TWEET_MAX) if base else base,
-        _clip((base[:200] + " — live wire.") if base else "Live wire.", _TWEET_MAX),
-    ]
+    candidates = [base]
+    if len(base) > 280:
+        # Account may not have long-post; last fallback is a 280 clip of the same body.
+        candidates.append(_clip(base, 280))
+    elif base:
+        candidates.append(_clip(base.rstrip(".!") + " ·", 280))
 
     last_err: BaseException | None = None
     for i, body in enumerate(candidates):
@@ -125,7 +115,7 @@ def _create_main_tweet(
 
 
 def publish_run(run_id: str, with_comments: bool = False) -> dict[str, Any]:
-    """Upload art.png + single-headline Generative Stream body. No reply by default."""
+    """Upload art.png + Tuna Starlink body. No reply by default."""
     meta = art_store.load_run(run_id)
     if not meta:
         raise FileNotFoundError(f"run not found: {run_id}")
@@ -138,7 +128,7 @@ def publish_run(run_id: str, with_comments: bool = False) -> dict[str, Any]:
 
     post_text = build_main_post(meta)
     if not post_text:
-        raise RuntimeError("run has no Generative Stream headline")
+        raise RuntimeError("run has no X caption")
 
     if meta.get("x_post_id") and not meta.get("x_force_repost"):
         return {
@@ -188,14 +178,14 @@ def publish_run(run_id: str, with_comments: bool = False) -> dict[str, Any]:
 
 
 def reply_to_existing(run_id: str) -> dict[str, Any]:
-    """No-op: single-post contract (no Generative Stream reply)."""
+    """No-op: single-post contract (no reply)."""
     meta = art_store.load_run(run_id)
     if not meta:
         raise FileNotFoundError(f"run not found: {run_id}")
     return {
         "ok": True,
         "skipped": True,
-        "note": "replies disabled — main post is the Generative Stream headline",
+        "note": "replies disabled — main post is the Tuna Starlink caption",
         "run_id": run_id,
         "x_url": meta.get("x_url"),
     }
@@ -221,6 +211,6 @@ def preview_post(run_id: str) -> dict[str, Any]:
         "events_source": meta.get("events_source"),
         "limits": {
             "chars_per_tweet": _TWEET_MAX,
-            "note": "Main: single headline Generative Stream, full 280, no hashtags, no reply.",
+            "note": "Main: Tuna Starlink caption on the image, long-form, no hashtags, no reply.",
         },
     }

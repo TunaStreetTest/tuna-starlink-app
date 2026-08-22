@@ -1,15 +1,16 @@
 # Planet Hack — digital series for @tunastarlink
 # Cool-tech wire: SpaceX / GPU / AI model releases only.
-# Visual DNA: neon-night matrix CGI — cyan / magenta / acid-green color spectrum on void black.
+# Visual DNA: neon-night matrix CGI — cyan / magenta / acid-green ON void black.
+# Heaven filter is banned: no god-rays, no photoreal Earth postcards, no silver VFX.
 
 series:
   name: Planet Hack
-  tagline: Cool tech from the wire, remixed as matrix CGI.
+  tagline: Cool tech from the wire, remixed as neon matrix CGI — digital art from Starlink.
   # Kept for style metadata / UI; compose path leads with the art-director SHOT only.
   shared_lock: >
-    Premium 3D digital CGI, wide 16:9 VFX still. Zero humans. One impossible non-human
-    hero structure with photoreal materials and dual warm/cool light. Neon accents ok;
-    no lightning paths, lava, logos, flags, or readable text.
+    Neon-night matrix CGI, wide 16:9. Void black. Saturated cyan, magenta, and
+    acid-green are the color of the scene. Zero humans. No logos, flags, readable
+    text, lightning, lava, god-ray cathedral haze, or photoreal Earth/Starship postcards.
 
 default: data-tunnel
 
@@ -18,46 +19,46 @@ styles:
     label: Data Space
     hashtag: DataSpace
     lane: space
-    description: Deep-space spatial view — planets, stars, SpaceX-inspired craft; varies per run.
+    description: Cinematic neon space art — craft, planet, cyan-magenta data rings.
     art_director_notes: >
-      SpaceX / orbital / launch story as metaphor only. EXTERIOR deep-space shot
-      (not a tunnel, not a city street). VARIETY IS REQUIRED — each run picks a different
-      spatial setup (single planet, multi-planet system, star-forward, or geometric
-      SpaceX-inspired starship as pure machine silhouette). Hero is NEVER a person —
-      no pilots, no windows with faces, no little astronauts.
-      SpaceX vibe = clean stainless / heat-tile geometry, stacked stages, grid fins as
-      abstract shapes, plume/engine light — NO logos, NO real branding text.
-      Atmosphere: holographic data-rings with cyan/magenta telemetry arcs, sparse orbital
-      glints (a few satellites max — NEVER hundreds or a dense Starlink swarm), nebula fog.
-      Camera: wide cinematic 16:9, epic scale, finished VFX still.
-      Color: deep indigo void + soft gold limb light + ice-white stars, with electric cyan
-      and magenta data overlays as real luminous color (not monochrome metal only).
+      SpaceX / Starlink / orbital story as cinematic digital art FROM orbit — the July 28 look:
+      a machine-craft with PRESENCE flying past a real planet wrapped in cyan-magenta data rings.
+      Camera is 3/4, low, or fly-by. NEVER a centered product-shot globe. NEVER a HUD.
+      For a launch/Starlink wire the CRAFT is the hero and LARGE in frame: real metal
+      panels, cyan signal light along seams, volumetric magenta/green plume. Earth may look
+      like Earth from orbit (oceans, night-side city lights) with neon telemetry OVER it —
+      do not replace continents with a circuit board. Rings are luminous packet streams, not UI.
+      Hero is NEVER a person. No crew windows with faces. No logos.
+      Starfield + nebula depth. Color: void black + electric cyan + hot magenta + acid-green.
+      BAN: Tron tube-outlines, glow-stick shuttle, HUD reticles, circuit-board globe,
+      floating crystals, clipart Earth, god-rays, press-photo Starship with no neon.
     prompt_seed: >
-      Wide 16:9 ultra-premium cinematic deep-space CGI (spatial exterior view),
-      finished VFX still, vast scale and depth, volumetric nebula and sharp starfield,
-      holographic cyan and magenta data rings and telemetry arcs (not readable text),
-      soft gold planet-limb light, only a few distant orbital craft if any —
-      never a dense satellite swarm, no people, no human silhouettes, no corporate logos
+      Wide 16:9 cinematic CGI, 3/4 fly-by of a large machine-craft with real metal panels
+      and cyan signal light along seams, night-side Earth with city lights behind, thick
+      cyan-magenta data rings wrapping the planet, volumetric magenta-green engine plume,
+      starfield and nebula depth, finished still — not Tron outlines, not a glow-stick
+      shuttle, not a HUD globe, not a press photo, no people, no logos
 
   planet-core:
     label: Planet Core
     hashtag: PlanetCore
     lane: space
-    description: Planetary mainframe core — Starship-scale orbital compute, matrix Earth.
+    description: Planetary mainframe — wireframe Earth jacked into a neon lattice.
     art_director_notes: >
-      SpaceX / orbital / Starlink story as metaphor only. INTERIOR of a planetary-scale
-      computer core (not a lonely planet in black space). Hero: wireframe data-Earth OR
-      glowing root node jacked into the core — NEVER a human figure. Orbital data rings,
-      mesh light veins, volumetric god-rays, controlled glyph dust. Density mid-high.
-      Palette: soft gold Earth-limb + electric cyan structure + magenta signal threads +
-      acid-green root accents on deep indigo shadows — full neon spectrum, not monochrome.
-      Mood: launch pressure. Camera: low-angle deep interior, wide FOV, 16:9 full-bleed.
+      SpaceX / orbital / Starlink story as metaphor. INTERIOR of a planetary-scale
+      computer core — a jacked wireframe data-Earth in a neon lattice of rings and
+      conduits (the July 22 look), NEVER a washed photoreal globe in god-rays, NEVER
+      a lone rock in empty space. Hero: neon wireframe Earth OR glowing root node.
+      Density mid-high. Palette: electric cyan structure + magenta signal threads +
+      acid-green root accents on void black — full neon spectrum.
+      Mood: launch pressure, hacker climax. Camera: low-angle interior, wide 16:9.
+      BAN: pale gold wash, church god-rays, silver CGI, empty void postcard.
     prompt_seed: >
-      Wide 16:9 ultra-premium cinematic CGI, deep interior of a planetary-scale computer core,
-      cracked holographic wireframe Earth as the only hero (no people), layered orbital data rings,
-      cyan-magenta signal veins and gold limb light through data fog, acid-green root accents,
-      volumetric god-rays, sharp metal-glass micro-detail, vast scale, finished VFX still,
-      full-bleed horizontal — luminous neon spectrum night, not empty void, not monochrome
+      Wide 16:9 neon-night matrix CGI, interior of a planetary-scale computer core,
+      cracked holographic wireframe Earth as the only hero (no people), layered neon
+      data rings in cyan and magenta, acid-green root conduits, void black depths,
+      sharp metal-glass grid, full-bleed horizontal — saturated neon night, not god-rays,
+      not a washed globe, not empty space
 
   data-tunnel:
     label: Data Tunnel
@@ -65,57 +66,55 @@ styles:
     lane: ai
     description: Speed tunnel — vanishing-point conduit packed with flowing neon data.
     art_director_notes: >
-      AI / infrastructure story as metaphor. Strong tunnel axis, motion, far glow.
-      Geometric conduit walls with readable energy structure — kinetic and saturated,
-      not sparse black pipe. HIGH density of DATA IN MOTION: packed packet streams,
-      luminous torrents racing toward the vanishing point, layered side-channel flows,
-      glowing glyph dust, debris particles — the tunnel should feel busy and alive.
-      Palette: full neon spectrum — cyan walls, magenta accents, acid-green sparks on void black.
+      AI / infrastructure story as metaphor. Strong tunnel axis, motion, far glow that is
+      NEON not a white sun. PHYSICAL conduit: metal-glass ribs, then packed DATA IN MOTION
+      (the July 24 look) — packet torrents, glyph dust, volumetric haze. Not a vector template.
+      Palette: full neon spectrum — cyan, magenta, acid-green on void black.
       Camera: extreme FOV vanishing point, 16:9 full-bleed. No people.
+      BAN: After Effects tunnel preset, Tron line-art, silver heaven corridor, white-hot sun, god-rays.
     prompt_seed: >
-      Wide 16:9 landscape, high-speed cyberspace data tunnel, strong vanishing point,
-      dense torrents of luminous data packets streaming through the conduit,
-      walls of glowing pixel columns, layered cyan magenta acid-green energy flows,
-      motion streaks, side-channel streams, far root-light bloom, kinetic depth,
-      volumetric haze, extreme FOV, full-bleed horizontal — busy packed neon data traffic
+      Wide 16:9 cinematic CGI, high-speed cyberspace data tunnel with metal-glass conduit
+      ribs, strong vanishing point, dense torrents of cyan magenta acid-green packets,
+      volumetric haze, motion streaks, far neon bloom (not a white sun), kinetic depth,
+      finished still — busy packed neon traffic, not a vector After Effects tunnel,
+      no Tron outlines, no god-rays
 
   signal-cathedral:
     label: Signal Cathedral
     hashtag: SignalCathedral
     lane: space
-    description: Signal megastructure — RF cathedral of engineered light and neon glass.
+    description: Signal megastructure — RF cathedral of neon glass, not church light.
     art_director_notes: >
-      Starlink / RF / space-comms story as metaphor. Colossal cathedral interior: soaring beams,
-      dish geometry, stained-glass panels of pure signal (no people in pews, no priests).
-      Dense atmosphere of light shafts, not empty air. Vertical architecture in horizontal frame.
-      Palette: soft gold + amethyst/magenta + electric cyan beams on charcoal void —
-      stained-glass neon spectrum, not grey monochrome. Mood: transmission, awe.
-      Quality: monumental scale, clean geometry, rich glass caustics.
+      Starlink / RF / space-comms story as metaphor. Colossal cathedral interior: soaring
+      beams, dish geometry, stained-glass panels of PURE SIGNAL in cyan/magenta/green
+      (no people in pews). Dense neon, not empty air. Vertical architecture in horizontal frame.
+      Palette: electric cyan + magenta-amethyst + acid-green on charcoal/void —
+      stained-glass NEON, not gold shafts through fog.
+      BAN: volumetric god-ray church haze, empty nave, pale wash, photoreal stone.
     prompt_seed: >
-      Wide 16:9 ultra-premium cinematic CGI, colossal digital signal cathedral interior,
-      soaring engineered beams and parabolic dish geometry, volumetric soft-gold cyan and
-      magenta-amethyst light through signal-glass panels, cool white beams with acid-green
-      edge sparks, charcoal void depths, monumental scale, sharp architectural detail,
-      finished VFX still, full-bleed horizontal — luminous color spectrum, no people
+      Wide 16:9 neon-night matrix CGI, colossal digital signal cathedral interior,
+      soaring engineered beams and parabolic dish geometry, cyan magenta acid-green
+      signal-glass panels (stained neon, not church windows), charcoal void depths,
+      monumental scale, sharp architectural grid, full-bleed horizontal — luminous neon
+      spectrum, no god-rays, no empty nave fog, no people
 
   rootkit-city:
     label: Rootkit City
     hashtag: RootkitCity
     lane: gpu
-    description: Luminous digital city inside the computer — one neon-etched megastructure, not a packed server farm.
+    description: Luminous digital city inside the computer — neon-etched megastructure, not fogged glass in space.
     art_director_notes: >
       GPU / NVIDIA / silicon / CPU story as metaphor. Franchise: INSIDE THE COMPUTER as a
-      luminous digital city — the city IS the silicon. ONE hero structure (a canyon tower,
-      a GPU-die citadel, a glass-silicon keep, a wafer acropolis) with breathing room and
-      atmospheric haze. Facades are neon-etched glass and circuit, not dark metal cubes.
-      Streets = cyan PCB traces; magenta nodes; optional vertical matrix code-rain as
-      atmosphere only. Green = building lights or code-rain — never a ground path, bolt,
-      beam, or river (those become neon lightning). ZERO people. NOT a packed server-rack
-      farm. NOT wall-to-wall cubes filling every edge. Palette: void black + cyan + magenta
-      + acid-green accents + optional amber rack-glow. Wonder over density.
+      luminous digital city — the city IS the silicon. ONE hero structure (canyon tower,
+      GPU-die citadel, glass-silicon keep, wafer acropolis) on a PCB street grid.
+      Facades are neon-etched — cyan streets, magenta nodes, acid-green as BUILDING LIGHT
+      or vertical code-rain, never a ground path. ZERO people. NOT a packed server-rack
+      farm. NOT a floating habitat in empty space. NOT fogged silver glass.
+      Palette: void black + cyan + magenta + acid-green + optional amber window dots.
+      BAN: god-rays, lots of night sky, orbital ring-city, washed teal fog.
     prompt_seed: >
-      Wide 16:9 cinematic VFX still of a luminous digital city inside a computer —
-      one impossible neon-etched megastructure of glass and silicon, cyan streets receding
-      into haze, magenta nodes, optional vertical code-rain as atmosphere, dual amber
-      rack-glow and ice-cyan signal light, epic scale, finished plate, no people,
-      no packed server racks, no lightning
+      Wide 16:9 neon-night matrix CGI of a luminous digital city inside a computer —
+      one impossible neon-etched megastructure of glass and silicon on a cyan PCB street
+      grid, magenta nodes, optional vertical code-rain, acid-green building lights,
+      void black sky, saturated cyan magenta green, no people, no packed server racks,
+      no lightning, no god-rays, no floating orbital habitat

@@ -8,7 +8,7 @@ See also `CREATIVE-BRIEF.md`.
 2. **Art director** — Grok rewrites them into a visual brief (metaphors only).
 3. **Compose** — brief + series lock + shot seed (`styles.yaml`).
 4. **Imagine** — `grok-imagine-image-quality`, landscape 16:9; one PNG (~$0.05 1K / ~$0.07 2K).
-5. **Caption** — social post line + `#PlanetHack`.
+5. **Caption** — Tuna Starlink X body (~500–1,200 chars). Facts from the wire only.
 6. **Store** — `art/<run_id>/art.png` + `meta.json`.
 7. **X** (optional / auto) — image + caption; one reply with news keywords.
 

@@ -64,6 +64,25 @@ def _placeholder_png(run_id: str, style_label: str) -> bytes:
     return buf.getvalue()
 
 
+def imagine_generate_kwargs(prompt: str) -> dict[str, Any]:
+    """OpenAI-SDK kwargs for xAI Imagine. Never send `size` — it 400s."""
+    kwargs: dict[str, Any] = {
+        "model": settings.XAI_IMAGE_MODEL,
+        "prompt": prompt,
+        "n": 1,
+    }
+    extra: dict[str, Any] = {}
+    aspect = (settings.XAI_IMAGE_ASPECT_RATIO or "").strip()
+    resolution = (settings.XAI_IMAGE_RESOLUTION or "").strip().lower()
+    if aspect:
+        extra["aspect_ratio"] = aspect
+    if resolution in ("1k", "2k"):
+        extra["resolution"] = resolution
+    if extra:
+        kwargs["extra_body"] = extra
+    return kwargs
+
+
 def generate_image(prompt: str, run_id: str, style_label: str) -> tuple[bytes, dict[str, Any]]:
     """Return (png_bytes, stats). stats includes egress_bytes for Starlink panel."""
     if settings.DRY_RUN:
@@ -75,42 +94,28 @@ def generate_image(prompt: str, run_id: str, style_label: str) -> tuple[bytes, d
         }
 
     c = client()
-    # Force landscape — without this, "looking up cathedral" prompts often return
-    # 9:16 portrait and render as a thin middle bar in the UI / on X.
-    kwargs: dict[str, Any] = {
-        "model": settings.XAI_IMAGE_MODEL,
-        "prompt": prompt,
-        "n": 1,
-    }
-    size = (settings.XAI_IMAGE_SIZE or "").strip()
-    aspect = (settings.XAI_IMAGE_ASPECT_RATIO or "").strip()
-    resolution = (settings.XAI_IMAGE_RESOLUTION or "").strip().lower()
-    extra: dict[str, Any] = {}
-    if size:
-        kwargs["size"] = size
-    if aspect:
-        extra["aspect_ratio"] = aspect
-    if resolution in ("1k", "2k"):
-        extra["resolution"] = resolution
-    if extra:
-        kwargs["extra_body"] = extra
+    # xAI Imagine: aspect_ratio + resolution only. OpenAI `size` (e.g. 1792x1024)
+    # 400s the request; the old retry then dropped 16:9/1k and still billed.
+    kwargs = imagine_generate_kwargs(prompt)
 
     try:
         resp = c.images.generate(**kwargs)
     except Exception as e:
-        # Retry once without size/aspect/resolution — this is a second billable image call.
-        # Only fire when the first request was rejected (bad params), not on timeout mid-gen.
         import logging
 
         logging.getLogger("tuna-starlink.imagine").warning(
-            "Imagine first attempt failed (%s); one retry without size/aspect/resolution",
-            type(e).__name__,
+            "Imagine first attempt failed (%s): %s", type(e).__name__, e
         )
-        resp = c.images.generate(
-            model=settings.XAI_IMAGE_MODEL,
-            prompt=prompt + "\n\nAspect: wide cinematic 16:9 landscape, full-frame horizontal composition.",
-            n=1,
-        )
+        # Keep aspect + resolution. Only drop them if extra_body itself was rejected.
+        retry = {
+            "model": settings.XAI_IMAGE_MODEL,
+            "prompt": prompt + "\n\nAspect: wide cinematic 16:9 landscape, full-frame horizontal composition.",
+            "n": 1,
+            "extra_body": dict((kwargs.get("extra_body") or {})),
+        }
+        if not retry["extra_body"]:
+            retry.pop("extra_body")
+        resp = c.images.generate(**retry)
     item = resp.data[0]
     url = getattr(item, "url", None)
     b64 = getattr(item, "b64_json", None)

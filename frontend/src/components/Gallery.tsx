@@ -183,9 +183,9 @@ export function Gallery({ refreshKey = 0 }: { refreshKey?: number }) {
     }
   }, [fullscreen, stack, stackIdx]);
 
-  // Main X body = Generative Stream (single headline), not a mood poem.
+  // Main X body = Tuna Starlink caption (longer form). Ledger line is stream_slug.
   const postBody =
-    String(detail?.stream_slug || detail?.caption || "").trim() ||
+    String(detail?.caption || detail?.stream_slug || "").trim() ||
     String(detail?.events || "")
       .split("\n")[0]
       ?.replace(/^[-•]\s*/, "")
@@ -337,9 +337,9 @@ export function Gallery({ refreshKey = 0 }: { refreshKey?: number }) {
                 {postBody && (
                   <div>
                     <div className="text-xs text-muted mb-1">
-                      Generative Stream (X post · {postBody.length}/280)
+                      X post · {postBody.length} chars
                     </div>
-                    <p className="text-sm border border-border rounded p-3 bg-bg leading-relaxed">
+                    <p className="text-sm border border-border rounded p-3 bg-bg leading-relaxed whitespace-pre-wrap max-h-56 overflow-y-auto">
                       {postBody}
                     </p>
                   </div>
@@ -416,7 +416,7 @@ export function Gallery({ refreshKey = 0 }: { refreshKey?: number }) {
                   </p>
                 )}
                 <p className="text-xs text-muted">
-                  X: image + Generative Stream headline (no hashtags, no reply)
+                  X: image + Tuna Starlink caption (no hashtags, no reply)
                 </p>
 
                 {(detail?.has_field ||

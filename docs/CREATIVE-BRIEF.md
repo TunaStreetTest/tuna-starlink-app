@@ -8,11 +8,11 @@
 
 ## Aesthetic (non-negotiable)
 
-- Hacker-movie climax: **inside the computer / hacking the planet**
-- Quality bar: best Grok Imagine showcase stills — **one** impossible poetic architecture,
-  photoreal materials, dual warm/cool light, epic scale, atmospheric depth
-- Neon accents (cyan / magenta / acid-green) subordinate to materials + composition
-- **Not:** oil paint, neon lightning weather, lava, scrapyard soup, people, readable UI text
+- Hacker-movie climax: **inside the computer / hacking the planet**, plus **digital art from space** (Data Space)
+- Quality bar: neon-night matrix CGI — **one** impossible architecture, void black,
+  saturated cyan / magenta / acid-green as the color of the scene
+- **Not:** god-ray “heaven” filter, photoreal Earth/Starship postcards, silver VFX,
+  oil paint, neon lightning weather, lava, scrapyard soup, people, readable UI text
 
 ## Pipeline
 
@@ -21,7 +21,7 @@
 2. Grok 4.5 art dir   → SHOT paragraph (one poetic plate) + light meta
 3. Compose            → SHOT leads; short style/hard locks only
 4. Imagine            → grok-imagine-image-quality (~$0.05 @ 1K; skip 2K for now)
-5. Fast caption       → stream slug
+5. Tuna Starlink post → longer X body (facts from wire; voice is the studio)
 ```
 
 ## Shot presets
