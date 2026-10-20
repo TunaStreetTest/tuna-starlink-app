@@ -1,0 +1,24 @@
+# Apex only. A www site block needs a DNS record or certificate issuance fails.
+{$PUBLIC_HOST} {
+	encode zstd gzip
+	root * /srv/site
+
+	handle /media/* {
+		header Cache-Control "public, max-age=86400"
+		file_server
+	}
+
+	handle /api/* {
+		respond "not found" 404
+	}
+
+	handle /feed.json {
+		header Cache-Control "no-cache"
+		file_server
+	}
+
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
+}

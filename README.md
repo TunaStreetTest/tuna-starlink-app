@@ -80,6 +80,18 @@ docker compose up --build
 
 Beelink install: [`docs/BEELINK-INSTALL.md`](docs/BEELINK-INSTALL.md).
 
+### Public television
+
+`public/` is the site visitors see: a tube set in space, tuned to finished plates. It does not generate or post. Prompts and keys stay on the studio machine.
+
+```bash
+make public-feed       # art/ → public/public/feed.json and media/*.jpg
+make install-public    # pnpm install
+make public            # http://127.0.0.1:5175
+```
+
+A live box is refreshed with `scripts/push-public.sh`. It reads `deploy/public/.env` (`PUBLIC_HOST`, `PUBLIC_SSH`), which is not committed. Static files only — Caddy, no API keys.
+
 ---
 
 ## Full `.env` / `backend/.env.local`

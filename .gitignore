@@ -8,6 +8,13 @@ backend/.venv/
 # Node
 frontend/node_modules/
 frontend/dist/
+public/node_modules/
+public/dist/
+public/public/feed.json
+public/public/media/
+
+# Droplet env (hostname and IP stay out of git)
+deploy/public/.env
 
 # Env / secrets
 .env
