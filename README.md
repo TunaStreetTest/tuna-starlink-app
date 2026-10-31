@@ -82,7 +82,7 @@ Beelink install: [`docs/BEELINK-INSTALL.md`](docs/BEELINK-INSTALL.md).
 
 ### Public television
 
-`public/` is the site visitors see: a tube set in space, tuned to finished plates. It does not generate or post. Prompts and keys stay on the studio machine.
+`public/` is the site visitors see: a tube set in space, tuned to finished plates. It does not generate or post. Prompts and keys stay on the studio machine. Click the picture to open that plate full size. The two knobs on the right cheek are the only channel change: `<` older, `>` newer.
 
 ```bash
 make public-feed       # art/ → public/public/feed.json and media/*.jpg
@@ -200,42 +200,43 @@ DRY_RUN=1 ART_STORAGE_PATH=./art python worker/run_once.py --style data-tunnel
 
 ## Build stats (whole repo)
 
-Thirteen Grok Build sessions (S1–S10 **grok-4.5**, S11–S13 **grok-4.6**).  
-Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2](docs/STATS-SESSION-2.md) · [S3](docs/STATS-SESSION-3.md) · [S4](docs/STATS-SESSION-4.md) · [S5](docs/STATS-SESSION-5.md) · [S6](docs/STATS-SESSION-6.md) · [S7](docs/STATS-SESSION-7.md) · [S8](docs/STATS-SESSION-8.md) · [S9](docs/STATS-SESSION-9.md) · [S10](docs/STATS-SESSION-10.md) · [S11](docs/STATS-SESSION-11.md) · [S12](docs/STATS-SESSION-12.md) · [S13](docs/STATS-SESSION-13.md).
+Fourteen Grok Build sessions (S1–S10 **grok-4.5**, S11–S13 **grok-4.6**, S14 **grok-4.7**).  
+Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2](docs/STATS-SESSION-2.md) · [S3](docs/STATS-SESSION-3.md) · [S4](docs/STATS-SESSION-4.md) · [S5](docs/STATS-SESSION-5.md) · [S6](docs/STATS-SESSION-6.md) · [S7](docs/STATS-SESSION-7.md) · [S8](docs/STATS-SESSION-8.md) · [S9](docs/STATS-SESSION-9.md) · [S10](docs/STATS-SESSION-10.md) · [S11](docs/STATS-SESSION-11.md) · [S12](docs/STATS-SESSION-12.md) · [S13](docs/STATS-SESSION-13.md) · [S14](docs/STATS-SESSION-14.md).
 
 ### Lines of code (current repo)
 
 | Area | Lines |
 |---|---:|
-| Python (`backend/`, `worker/`, `scripts/`) | **4,778** |
+| Python (`backend/`, `worker/`, `scripts/`) | **5,071** |
 | Frontend (`frontend/src`) | **1,122** |
 | Style seeds + compose YAML | **168** |
-| **Application code** | **~6,068** |
-| Docs (`docs/`, README, GROK) | **2,587** |
-| Makefile / Dockerfile / `.env.example` / samples | **133** |
-| **All product files** | **~8,788** |
+| **Application code** | **~6,361** |
+| Docs (`docs/`, README, GROK) | **2,725** |
+| Makefile / Dockerfile / `.env.example` / samples | **147** |
+| **All product files** | **~9,233** |
+| Public television (`public/src`, outside the helper) | **1,381** |
 
-(Excludes `node_modules`, `.venv`, generated `art/`, lockfiles.) S12→S13 ≈ **+217** app / **~+335** product (Tuna Starlink captions + Imagine API + neon-on-materials).
+(Excludes `node_modules`, `.venv`, generated `art/`, lockfiles, `public/dist`.) S13→S14 ≈ **+293** app / **~+445** product. The app delta is the public-feed exporter. The visitor site itself is the 1,381-line row.
 
-### Combined session activity (S1–S13)
+### Combined session activity (S1–S14)
 
 | Metric | Value |
 |---|---:|
-| Active engineering time | **~12.5–14.6 hours** (excludes idle) |
-| User turns | **~133–134** |
-| Assistant messages | **~736** |
-| Tool calls | **~1,661** |
+| Active engineering time | **~12.9–15.2 hours** (excludes idle) |
+| User turns | **~140–141** |
+| Assistant messages | **~809** |
+| Tool calls | **~1,797** |
 | Compactions | **2** |
-| Files touched (sum of snapshots) | **~191** |
-| Agent lines added | **~11,492** |
-| Agent lines removed | **~2,048** |
+| Files touched (sum of snapshots) | **~191** (S14 signal was 0; git touched 5 public files) |
+| Agent lines added | **~11,492** (S14 signal was 0) |
+| Agent lines removed | **~2,048** (S14 signal was 0) |
 
 ### Tokens
 
 | What | Value |
 |---|---:|
-| Context window | **500,000** |
-| Context in use at Session 13 wrap | **~207,360** (~**41%**) |
+| Context window (S14) | **256,000** |
+| Context in use at Session 14 wrap | **130,903** (~**51%**) |
 | Lifetime billed in/out tokens | **Not exposed** — xAI / Grok Build dashboard |
 
 `contextTokensUsed` is **window occupancy**, not the sum of every turn.
@@ -244,7 +245,7 @@ Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2]
 
 | Item | Estimate |
 |---|---:|
-| Live gallery Imagine images | **105** (40 quality ~$0.05 + rest ~$0.02) ≈ **~$2.85–3.30** |
+| Live gallery Imagine images | **116** (51 quality ~$0.05 + 65 ~$0.02) ≈ **~$3.85** |
 | Experiment images (non-field) | **~17** × ~$0.02 ≈ **~$0.34** |
 | X Recent Search | **Primary-only when enabled** (official brands; event + fluff gated) |
 | Unattended schedule | **OFF** (service keeps API up; generate is manual) |
@@ -275,6 +276,7 @@ Index: [`docs/STATS.md`](docs/STATS.md) · [S1](docs/STATS-SESSION-1.md) · [S2]
 | [`docs/STATS-SESSION-11.md`](docs/STATS-SESSION-11.md) | Session 11 tallies (magical stills + event wire) |
 | [`docs/STATS-SESSION-12.md`](docs/STATS-SESSION-12.md) | Session 12 tallies (native fullscreen + stack walk) |
 | [`docs/STATS-SESSION-13.md`](docs/STATS-SESSION-13.md) | Session 13 tallies (Tuna Starlink posts + Imagine API) |
+| [`docs/STATS-SESSION-14.md`](docs/STATS-SESSION-14.md) | Session 14 tallies (public television plate + knobs) |
 | [`GROK.md`](GROK.md) | Agent rules |
 
 ---

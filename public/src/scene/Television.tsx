@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import { RoundedBox } from "@react-three/drei";
 import {
   AdditiveBlending,
+  CanvasTexture,
   DoubleSide,
   Group,
   Mesh,
@@ -26,15 +27,102 @@ const tmp = new Vector3();
 
 type Props = {
   url: string | null;
-  onTune: () => void;
+  canOlder: boolean;
+  canNewer: boolean;
+  onOpen: () => void;
+  onOlder: () => void;
+  onNewer: () => void;
 };
+
+/** White chevron on a clear plate. Material color tints it. */
+function chevronMap(dir: -1 | 1): CanvasTexture {
+  const canvas = document.createElement("canvas");
+  canvas.width = 128;
+  canvas.height = 128;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("channel mark");
+  ctx.clearRect(0, 0, 128, 128);
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 16;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  if (dir < 0) {
+    ctx.moveTo(88, 26);
+    ctx.lineTo(40, 64);
+    ctx.lineTo(88, 102);
+  } else {
+    ctx.moveTo(40, 26);
+    ctx.lineTo(88, 64);
+    ctx.lineTo(40, 102);
+  }
+  ctx.stroke();
+  const tex = new CanvasTexture(canvas);
+  tex.colorSpace = SRGBColorSpace;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+function ChannelKnob({
+  position,
+  map,
+  enabled,
+  onPress,
+}: {
+  position: [number, number, number];
+  map: CanvasTexture;
+  enabled: boolean;
+  onPress: () => void;
+}) {
+  const press = (event: ThreeEvent<MouseEvent>) => {
+    event.stopPropagation();
+    if (enabled) onPress();
+  };
+
+  return (
+    <group position={position}>
+      {/* rotation.x = -π/2 aims the cylinder cap at the camera (+z). */}
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        onClick={press}
+        onPointerOver={(event) => {
+          event.stopPropagation();
+          document.body.style.cursor = enabled ? "pointer" : "";
+        }}
+        onPointerOut={() => {
+          document.body.style.cursor = "";
+        }}
+      >
+        <cylinderGeometry args={[0.044, 0.048, 0.032, 20]} />
+        <meshStandardMaterial
+          color={enabled ? "#d7dee4" : "#8e969c"}
+          metalness={0.88}
+          roughness={0.22}
+        />
+      </mesh>
+      <mesh position={[0, 0, 0.018]} raycast={() => null}>
+        <circleGeometry args={[0.03, 20]} />
+        <meshBasicMaterial color={enabled ? "#12181c" : "#3c4448"} toneMapped={false} />
+      </mesh>
+      <mesh position={[0, 0, 0.02]} raycast={() => null}>
+        <planeGeometry args={[0.046, 0.046]} />
+        <meshBasicMaterial
+          map={map}
+          color={enabled ? "#7ef0ff" : "#4e585e"}
+          transparent
+          toneMapped={false}
+        />
+      </mesh>
+    </group>
+  );
+}
 
 /**
  * Walnut portable, screen on local +z. The camera starts on +z, so the face
  * points at the lens and the right ear is world +x.
- * Cylinder knobs: rotation.x = -π/2 aims the cylinder's +y at the camera (+z).
+ * The two right-cheek knobs are the only channel controls: < older, > newer.
  */
-export function Television({ url, onTune }: Props) {
+export function Television({ url, canOlder, canNewer, onOpen, onOlder, onNewer }: Props) {
   const rightEar = useRef<Group>(null);
   const anchor = useRef<Mesh>(null);
   const dishFace = useRef<MeshStandardMaterial>(null);
@@ -45,6 +133,8 @@ export function Television({ url, onTune }: Props) {
   const wood = useMemo(() => makeWood(), []);
   const grille = useMemo(() => makeGrille(), []);
   const glowMap = useMemo(() => makeGlow(), []);
+  const olderMark = useMemo(() => chevronMap(-1), []);
+  const newerMark = useMemo(() => chevronMap(1), []);
   const screenGeo = useMemo(() => curvedScreenGeometry(0.92, 0.66), []);
   const screenMat = useMemo(() => createScreenMaterial(), []);
 
@@ -53,12 +143,14 @@ export function Television({ url, onTune }: Props) {
       wood.dispose();
       grille.dispose();
       glowMap.dispose();
+      olderMark.dispose();
+      newerMark.dispose();
       screenGeo.dispose();
       const map = screenMat.uniforms.uMap.value as { dispose?: () => void };
       map.dispose?.();
       screenMat.dispose();
     };
-  }, [wood, grille, glowMap, screenGeo, screenMat]);
+  }, [wood, grille, glowMap, olderMark, newerMark, screenGeo, screenMat]);
 
   useEffect(() => {
     if (!url) return;
@@ -117,18 +209,7 @@ export function Television({ url, onTune }: Props) {
   });
 
   return (
-    <group
-      onClick={(event) => {
-        event.stopPropagation();
-        onTune();
-      }}
-      onPointerOver={() => {
-        document.body.style.cursor = "pointer";
-      }}
-      onPointerOut={() => {
-        document.body.style.cursor = "";
-      }}
-    >
+    <group>
       <RoundedBox args={[1.28, 0.94, 0.46]} radius={0.055} smoothness={4} position={[0, 0.02, 0]}>
         <meshStandardMaterial map={wood} roughness={0.62} metalness={0.05} color="#ffffff" />
       </RoundedBox>
@@ -138,7 +219,21 @@ export function Television({ url, onTune }: Props) {
         <meshStandardMaterial color="#120e0c" roughness={0.45} metalness={0.08} />
       </mesh>
 
-      <mesh position={[-0.06, 0.08, 0.236]} geometry={screenGeo} material={screenMat} />
+      <mesh
+        position={[-0.06, 0.08, 0.236]}
+        geometry={screenGeo}
+        material={screenMat}
+        onClick={(event) => {
+          event.stopPropagation();
+          if (url) onOpen();
+        }}
+        onPointerOver={() => {
+          if (url) document.body.style.cursor = "pointer";
+        }}
+        onPointerOut={() => {
+          document.body.style.cursor = "";
+        }}
+      />
 
       <mesh position={[-0.06, 0.08, 0.2]}>
         <planeGeometry args={[1.35, 1.05]} />
@@ -158,14 +253,8 @@ export function Television({ url, onTune }: Props) {
         <meshStandardMaterial map={grille} roughness={0.85} metalness={0.05} />
       </mesh>
 
-      <mesh position={[0.46, -0.02, 0.24]} rotation={[-Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.045, 0.05, 0.045, 18]} />
-        <meshStandardMaterial color="#d5dbe1" metalness={0.88} roughness={0.2} />
-      </mesh>
-      <mesh position={[0.46, -0.16, 0.24]} rotation={[-Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.03, 0.034, 0.04, 16]} />
-        <meshStandardMaterial color="#c5ccd2" metalness={0.9} roughness={0.18} />
-      </mesh>
+      <ChannelKnob position={[0.46, -0.02, 0.24]} map={olderMark} enabled={canOlder} onPress={onOlder} />
+      <ChannelKnob position={[0.46, -0.16, 0.24]} map={newerMark} enabled={canNewer} onPress={onNewer} />
       <mesh position={[0.46, -0.3, 0.24]}>
         <sphereGeometry args={[0.012, 12, 12]} />
         <meshStandardMaterial ref={led} color="#ffb15a" emissive="#ff8a2a" emissiveIntensity={0.8} />

@@ -17,32 +17,34 @@ Rolling tallies for **tuna-starlink-app**. Per-session write-ups:
 | **11** | [`STATS-SESSION-11.md`](STATS-SESSION-11.md) | 2026-08-12 | Magical franchise stills · event wire · caption holes |
 | **12** | [`STATS-SESSION-12.md`](STATS-SESSION-12.md) | 2026-08-12 | Studio native fullscreen + stack walk |
 | **13** | [`STATS-SESSION-13.md`](STATS-SESSION-13.md) | 2026-08-22 | Tuna Starlink long posts · heaven/Tron kill · Imagine API |
+| **14** | [`STATS-SESSION-14.md`](STATS-SESSION-14.md) | 2026-10-30/31 | Public television: new plates, full-size popout, knob channel controls |
 
 **Repo:** https://github.com/TunaStreetTest/tuna-starlink-app  
-**Model:** grok-4.6 (S11–S13); earlier sessions grok-4.5
+**Model:** grok-4.7 (S14); grok-4.6 (S11–S13); earlier sessions grok-4.5
 
 ---
 
 ## Whole-repo lines of code (current)
 
-Counted at Session 13 wrap (**2026-08-22**). Excludes `node_modules`, `.venv`, `art/` outputs, `package-lock.json`, `frontend/dist`.
+Counted at Session 14 wrap (**2026-10-31**). Excludes `node_modules`, `.venv`, `art/` outputs, `package-lock.json`, `frontend/dist`, `public/dist`. The helper does **not** count `public/src`; that site is a separate row so it is not invisible.
 
 | Area | Lines |
 |---|---:|
-| Python (`backend/`, `worker/`, `scripts/`) | **4,778** |
+| Python (`backend/`, `worker/`, `scripts/`) | **5,071** |
 | Frontend (`frontend/src` — ts/tsx/css) | **1,122** |
 | Style seeds + compose (`styles.yaml`, `docker-compose.yml`) | **168** |
-| **Application code subtotal** | **~6,068** |
-| Docs (`docs/*.md`, `README.md`, `GROK.md`) | **2,587** |
-| Makefile, Dockerfile, `.env.example`, samples | **133** |
-| **All product files** | **~8,788** |
+| **Application code subtotal** | **~6,361** |
+| Docs (`docs/*.md`, `README.md`, `GROK.md`) | **2,725** |
+| Makefile, Dockerfile, `.env.example`, samples | **147** |
+| **All product files (helper)** | **~9,233** |
+| Public television (`public/src` ts/tsx/css, outside the helper) | **1,381** |
 
 ### Growth across sessions
 
-| | S1 | S2 | S3 | S4 | S5 | S6 | S7 | S8 | S9 | S10 | S11 | S12 | S13 (now) |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Application code | ~3,135 | ~3,934 | ~4,256 | ~4,591 | ~4,687 | ~4,781 | ~4,751 | ~4,901 | ~4,904 | ~5,350 | ~5,634 | ~5,851 | **~6,068** |
-| All product files | ~3,999 | ~5,330 | ~5,794 | ~6,244 | ~6,521 | ~6,610 | ~6,802 | ~7,066 | ~7,180 | ~7,727 | ~8,127 | ~8,453 | **~8,788** |
+| | S1 | S2 | S3 | S4 | S5 | S6 | S7 | S8 | S9 | S10 | S11 | S12 | S13 | S14 (now) |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Application code | ~3,135 | ~3,934 | ~4,256 | ~4,591 | ~4,687 | ~4,781 | ~4,751 | ~4,901 | ~4,904 | ~5,350 | ~5,634 | ~5,851 | ~6,068 | **~6,361** |
+| All product files | ~3,999 | ~5,330 | ~5,794 | ~6,244 | ~6,521 | ~6,610 | ~6,802 | ~7,066 | ~7,180 | ~7,727 | ~8,127 | ~8,453 | ~8,788 | **~9,233** |
 
 | Δ | App | All product |
 |---|---:|---:|
@@ -58,35 +60,37 @@ Counted at Session 13 wrap (**2026-08-22**). Excludes `node_modules`, `.venv`, `
 | S10 → S11 | ~+284 | ~+400 |
 | S11 → S12 | ~+217 | ~+326 |
 | S12 → S13 | **~+217** | **~+335** |
+| S13 → S14 | **~+293** | **~+445** |
 
-*(S13: Tuna Starlink caption + fluff gates + Imagine `size` fix + neon-on-materials lock.)*
+*(S14 helper growth is the public-feed exporter already in `6009c09`, plus these stats. `public/src` is 1,381 lines and is not inside the helper total.)*
 
 ### By language (product tree, current)
 
 | Ext | Lines |
 |---|---:|
-| `.py` | 4,778 |
-| `.md` | 2,587 |
-| `.tsx` / `.ts` / `.css` | 1,122 |
+| `.py` | 5,071 |
+| `.md` | 2,725 |
+| `.tsx` / `.ts` / `.css` (`frontend/src`) | 1,122 |
+| `.tsx` / `.ts` / `.css` (`public/src`, outside helper) | 1,381 |
 | `.yaml` / `.yml` | 168 |
-| other | ~133 |
+| other | ~147 |
 
 ---
 
-## Combined Grok session activity (S1–S13)
+## Combined Grok session activity (S1–S14)
 
 | Metric | Value |
 |---|---:|
-| **Active engineering time (S1–S13)** | **~12.5–14.6 h** (~11.3–13.0 + ~1.2–1.6) |
-| User messages | **~133–134** (126–127 + 7) |
-| Assistant messages | **~736** (649 + 87) |
-| Tool calls | **~1,661** (1,427 + 234) |
+| **Active engineering time (S1–S14)** | **~12.9–15.2 h** (~12.5–14.6 + ~0.4–0.6) |
+| User messages | **~140–141** (133–134 + 7) |
+| Assistant messages | **~809** (736 + 73) |
+| Tool calls | **~1,797** (1,661 + 136) |
 | Compactions | **2** |
-| Files touched (agent, sum of snapshots) | **~191** (173 + 18; overlap possible) |
-| Agent lines added | **~11,492** (10,647 + 845) |
-| Agent lines removed | **~2,048** (1,865 + 183) |
-| Context window | **500,000** |
-| Context in use at S13 wrap | **~207,360** (~**41%**) |
+| Files touched (agent, sum of snapshots) | **~191** (S14 signal was 0; git touched 5 public files) |
+| Agent lines added | **~11,492** (S14 signal was 0; git diff +217/−39 plus `Popout.tsx`) |
+| Agent lines removed | **~2,048** (S14 signal was 0; git diff removed 39) |
+| Context window at S14 | **256,000** (S1–S13 wraps recorded 500,000) |
+| Context in use at S14 wrap | **130,903** (~**51%**) |
 
 **Note:** Report **active engineering time** only — wall clock includes idle.
 
@@ -96,9 +100,9 @@ Counted at Session 13 wrap (**2026-08-22**). Excludes `node_modules`, `.venv`, `
 
 | Item | Estimate |
 |---|---:|
-| Live gallery Imagine PNGs (`art/*/art.png`) | **105** (40 quality ~$0.05 + rest ~$0.02) ≈ **~$2.85–3.30** |
+| Live gallery Imagine PNGs (`art/*/art.png`) | **116** (51 quality ~$0.05 + 65 ~$0.02) ≈ **~$3.85** |
 | Experiment / develop images (earlier) | **~17** × ~$0.02 ≈ **~$0.34** |
-| X posts recorded in meta | **59** |
+| X posts recorded in meta | **70** |
 | X Recent Search | **Primary-only when enabled** (official brands; TTL 120m). Event + fluff gated (giveaway / air-show / risk-report too). Used ledger blocks re-picks. |
 | Unattended schedule | **OFF** (systemd keeps API up; generate manual) |
 | Wire | Lean cool-tech RSS + optional primary X; **visualizable events only**; durable never-reuse ledger; 72h max age |
@@ -126,6 +130,11 @@ Studio (single page)
   → Imagine prompt = SHOT + short lock (no Tron outlines, no HUD globe, no heaven)
   → xAI Imagine 16:9 quality @ 1K (aspect_ratio + resolution)
   → X main: Tuna Starlink caption on the image, no hashtags, no reply
+
+Public television (planethack.space)
+  → finished plates only; no generate, no keys
+  → click the picture → full-size plate
+  → right-cheek knobs are the only channel change (< older, > newer)
 ```
 
 **Trust bar:** X caption never invents facts past the wire. Identity (studio runs on Starlink) is allowed; extra news is not.  

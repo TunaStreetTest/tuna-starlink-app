@@ -4,6 +4,7 @@ import { acquire } from "./acquire";
 import { useFeed, type Post } from "./feed";
 import { Stage } from "./scene/Scene";
 import { LowerThird } from "./ui/LowerThird";
+import { Popout } from "./ui/Popout";
 import { useReducedMotion } from "./useMedia";
 
 export default function App() {
@@ -12,6 +13,7 @@ export default function App() {
   const [channelId, setChannelId] = useState<string | null>(null);
   const [generation, setGeneration] = useState(0);
   const [hint, setHint] = useState(false);
+  const [plateOpen, setPlateOpen] = useState(false);
   const postsRef = useRef<Post[]>([]);
   const channelRef = useRef<string | null>(null);
   const newestRef = useRef<string | null>(null);
@@ -79,20 +81,15 @@ export default function App() {
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
-      if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
+      if (!plateOpen) return;
+      if (event.key === "Escape" || event.key === "Backspace") {
         event.preventDefault();
-        go(1);
-      } else if (event.key === "ArrowRight" || event.key === "ArrowUp") {
-        event.preventDefault();
-        go(-1);
-      } else if (event.key === "Escape" || event.key === "Backspace") {
-        event.preventDefault();
-        goLive();
+        setPlateOpen(false);
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [go, goLive]);
+  }, [plateOpen]);
 
   useEffect(() => {
     const posts = postsRef.current;
@@ -105,11 +102,21 @@ export default function App() {
   }, [channelId, feed.posts]);
 
   const post = feed.posts.find((item) => item.id === channelId) ?? null;
+  const index = feed.posts.findIndex((item) => item.id === channelId);
+  const canOlder = index >= 0 && index < feed.posts.length - 1;
+  const canNewer = index > 0;
   const emptyLabel = feed.loaded ? "No signal" : "Acquiring";
 
   return (
     <div className="stage">
-      <Stage url={post?.image ?? null} onTune={() => go(1)} />
+      <Stage
+        url={post?.image ?? null}
+        canOlder={canOlder}
+        canNewer={canNewer}
+        onOpen={() => post && setPlateOpen(true)}
+        onOlder={() => go(1)}
+        onNewer={() => go(-1)}
+      />
       <div className="vignette" />
       <LowerThird
         post={post}
@@ -118,6 +125,9 @@ export default function App() {
         onLive={goLive}
         generation={generation}
       />
+      {plateOpen && post ? (
+        <Popout post={post} onClose={() => setPlateOpen(false)} />
+      ) : null}
     </div>
   );
 }

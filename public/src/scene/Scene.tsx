@@ -28,13 +28,26 @@ function FrameCamera() {
 
 type StageProps = {
   url: string | null;
-  onTune: () => void;
+  canOlder: boolean;
+  canNewer: boolean;
+  onOpen: () => void;
+  onOlder: () => void;
+  onNewer: () => void;
 };
 
-export function Stage({ url, onTune }: StageProps) {
+export function Stage({ url, canOlder, canNewer, onOpen, onOlder, onNewer }: StageProps) {
   const narrow = useNarrow();
   const reduced = acquire.reduced;
-  const set = <Television url={url} onTune={onTune} />;
+  const set = (
+    <Television
+      url={url}
+      canOlder={canOlder}
+      canNewer={canNewer}
+      onOpen={onOpen}
+      onOlder={onOlder}
+      onNewer={onNewer}
+    />
+  );
 
   return (
     <Canvas
