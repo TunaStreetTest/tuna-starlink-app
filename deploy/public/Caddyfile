@@ -3,6 +3,16 @@
 	encode zstd gzip
 	root * /srv/site
 
+	# BrainShare #606: THE X-Loops app. Goes inside the {$PUBLIC_HOST} block of tuna-starlink-app
+	# deploy/public/Caddyfile, ahead of the catch-all handle. The app serves under /x-loops itself, so the path is
+	# not stripped; flush_interval -1 keeps the screen stream (server-sent events) unbuffered.
+	handle /x-loops* {
+		header Strict-Transport-Security "max-age=31536000"
+		reverse_proxy xloops:8780 {
+			flush_interval -1
+		}
+	}
+
 	handle /media/* {
 		header Cache-Control "public, max-age=86400"
 		file_server
