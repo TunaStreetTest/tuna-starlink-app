@@ -10,6 +10,7 @@ router = APIRouter()
 
 class GenerateRequest(BaseModel):
     style: str | None = None
+    all_styles: bool = False
     force: bool = False
     wait: bool = False  # true = block until complete (handy for CLI smoke tests)
 
@@ -26,6 +27,28 @@ async def get_pipeline():
 
 @router.post("/generate")
 async def generate(body: GenerateRequest, background: BackgroundTasks):
+    if body.all_styles:
+        ids = [item["id"] for item in styles.list_styles()]
+        try:
+            batch = await pipeline.start_style_batch(ids, force=body.force)
+        except RuntimeError as e:
+            raise HTTPException(status_code=409, detail=str(e))
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        if body.wait:
+            await pipeline.wait_batch()
+            return {
+                "started": True,
+                "waited": True,
+                "batch": pipeline.pipeline_status().get("batch"),
+            }
+        return {
+            "started": True,
+            "waited": False,
+            "batch": batch,
+            "message": f"queued {len(ids)} types — one plate each",
+        }
+
     try:
         styles.get_style(body.style)
     except ValueError as e:

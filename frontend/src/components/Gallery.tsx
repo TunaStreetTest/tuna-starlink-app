@@ -226,13 +226,12 @@ export function Gallery({ refreshKey = 0 }: { refreshKey?: number }) {
           <CardTitle className="mb-0">Gallery ({runs.length})</CardTitle>
           {err && <p className="text-xs text-bad">{err}</p>}
         </div>
-        <p className="text-xs text-muted mb-3">
-          Click a tile for details. Fullscreen takes the whole monitor —
-          ← → walk the stack.
+        <p className="text-xs font-mono text-muted mb-3">
+          Click a tile for the plate. Fullscreen takes the monitor — ← → walk the stack.
         </p>
 
         {runs.length === 0 && (
-          <p className="text-xs text-muted">No runs yet. Hit Run Planet Hack above.</p>
+          <p className="text-xs font-mono text-muted">No plates yet. Generate above.</p>
         )}
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3">
@@ -242,8 +241,8 @@ export function Gallery({ refreshKey = 0 }: { refreshKey?: number }) {
               type="button"
               onClick={() => setModalId(r.run_id)}
               className={cn(
-                "group relative aspect-square rounded-md border overflow-hidden bg-bg text-left transition",
-                "border-border hover:border-accent hover:ring-1 hover:ring-accent/30",
+                "group relative aspect-video rounded-md border overflow-hidden bg-black text-left transition",
+                "border-accent/25 hover:border-hot/70 hover:shadow-[0_0_18px_rgba(255,154,214,0.18)]",
               )}
             >
               {r.has_image ? (

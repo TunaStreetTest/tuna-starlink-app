@@ -7,6 +7,19 @@ import { LowerThird } from "./ui/LowerThird";
 import { Popout } from "./ui/Popout";
 import { useReducedMotion } from "./useMedia";
 
+const PLATE_PATH = /^\/p\/([A-Za-z0-9_-]+)\/?$/;
+
+/** Plate id in `/p/<id>`, or null when the path is `/` or not a plate. */
+export function currentPlate(pathname: string = window.location.pathname): string | null {
+  const match = PLATE_PATH.exec(pathname);
+  return match ? match[1] : null;
+}
+
+function samePath(pathname: string, path: string): boolean {
+  const now = pathname.replace(/\/$/, "") || "/";
+  return now === path;
+}
+
 export default function App() {
   const feed = useFeed();
   const reduced = useReducedMotion();
@@ -20,6 +33,9 @@ export default function App() {
   // True while the glass is following the newest plate, including the render
   // where a new id has arrived and channelId has not caught up yet.
   const onLive = useRef(true);
+  // A deep link is already a history entry. The first tune from `/` replaces it.
+  const urlTouched = useRef(currentPlate() !== null);
+  const tunedFromUrl = useRef(false);
 
   postsRef.current = feed.posts;
   channelRef.current = channelId;
@@ -32,9 +48,28 @@ export default function App() {
     channelRef.current = id;
   }, []);
 
+  const writePlateUrl = useCallback((id: string, mode: "push" | "replace") => {
+    const path = `/p/${id}`;
+    if (samePath(window.location.pathname, path)) return;
+    urlTouched.current = true;
+    const state = { plate: id };
+    if (mode === "replace") history.replaceState(state, "", path);
+    else history.pushState(state, "", path);
+  }, []);
+
   useEffect(() => {
     const posts = feed.posts;
     if (!posts.length) return;
+    if (!tunedFromUrl.current) {
+      tunedFromUrl.current = true;
+      const wanted = currentPlate();
+      if (wanted && posts.some((post) => post.id === wanted)) {
+        onLive.current = false;
+        setChannelId(wanted);
+        channelRef.current = wanted;
+        return;
+      }
+    }
     setChannelId((current) => {
       if (current && posts.some((post) => post.id === current)) return current;
       return posts[0].id;
@@ -50,10 +85,11 @@ export default function App() {
     if (onLive.current) {
       retune(newest);
       setHint(false);
+      if (currentPlate()) writePlateUrl(newest, "replace");
       return;
     }
     setHint(true);
-  }, [feed.posts, retune]);
+  }, [feed.posts, retune, writePlateUrl]);
 
   const go = useCallback(
     (delta: number) => {
@@ -66,8 +102,10 @@ export default function App() {
       onLive.current = next === 0;
       if (next === 0) setHint(false);
       retune(posts[next].id);
+      const mode = urlTouched.current ? "push" : "replace";
+      writePlateUrl(posts[next].id, mode);
     },
-    [retune],
+    [retune, writePlateUrl],
   );
 
   const goLive = useCallback(() => {
@@ -75,8 +113,32 @@ export default function App() {
     if (!posts.length) return;
     setHint(false);
     onLive.current = true;
+    if (currentPlate()) {
+      urlTouched.current = true;
+      history.pushState({ plate: null }, "", "/");
+    }
     if (channelRef.current === posts[0].id) return;
     retune(posts[0].id);
+  }, [retune]);
+
+  useEffect(() => {
+    function onPop() {
+      const posts = postsRef.current;
+      const wanted = currentPlate();
+      if (wanted && posts.some((post) => post.id === wanted)) {
+        onLive.current = false;
+        setHint(false);
+        retune(wanted);
+        return;
+      }
+      if (!posts.length) return;
+      onLive.current = true;
+      setHint(false);
+      if (channelRef.current === posts[0].id) return;
+      retune(posts[0].id);
+    }
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
   }, [retune]);
 
   useEffect(() => {

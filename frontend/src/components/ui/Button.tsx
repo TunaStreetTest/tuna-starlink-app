@@ -10,14 +10,16 @@ export function Button({
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }) {
   const styles: Record<Variant, string> = {
     default: "bg-text text-bg hover:opacity-80",
-    accent: "bg-accent text-bg hover:opacity-90",
-    danger: "bg-bad text-bg hover:opacity-80",
-    ghost: "bg-transparent border border-border text-text hover:bg-panel",
+    accent:
+      "border border-accent/70 bg-accent/10 text-[#d8fbff] tracking-[0.16em] uppercase hover:bg-accent/20",
+    danger: "border border-bad/70 bg-bad/10 text-bad tracking-[0.14em] uppercase hover:bg-bad/20",
+    ghost:
+      "bg-transparent border border-accent/30 text-[#d8fbff] tracking-[0.12em] uppercase hover:border-accent/70",
   };
   return (
     <button
       className={cn(
-        "px-3 py-1.5 rounded text-sm transition disabled:opacity-50 disabled:cursor-not-allowed",
+        "px-3 py-1.5 rounded-full text-xs transition disabled:opacity-50 disabled:cursor-not-allowed",
         styles[variant],
         className
       )}

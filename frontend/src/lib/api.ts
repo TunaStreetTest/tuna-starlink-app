@@ -7,7 +7,31 @@ export type Health = {
   services: Record<string, HealthService>;
 };
 
-export type Style = { id: string; label: string; description: string };
+export type Style = {
+  id: string;
+  label: string;
+  description: string;
+  hashtag?: string;
+  lane?: string;
+};
+
+export type BatchPanel = {
+  style_id?: string;
+  style_label?: string;
+  status: string;
+  phase?: string | null;
+  run_id?: string | null;
+  error?: string | null;
+  latency_ms?: number | null;
+  egress_bytes?: number | null;
+};
+
+export type StyleBatch = {
+  id: string;
+  active: boolean;
+  styles: string[];
+  panels: Record<string, BatchPanel>;
+};
 
 export type GalleryRun = {
   run_id: string;
@@ -43,6 +67,7 @@ export type PipelineStatus = {
   default_style: string;
   edge_text: string;
   x_account: string;
+  batch?: StyleBatch | null;
 };
 
 export type PublishStatus = {
@@ -88,6 +113,12 @@ export const api = {
     post<{ started: boolean; message?: string; current?: unknown }>("/api/generate", {
       style: style || null,
       force,
+      wait: false,
+    }),
+  generateAll: () =>
+    post<{ started: boolean; message?: string; batch?: StyleBatch }>("/api/generate", {
+      all_styles: true,
+      force: false,
       wait: false,
     }),
   imageUrl: (runId: string) => `/api/gallery/${runId}/image`,

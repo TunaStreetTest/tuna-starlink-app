@@ -2,13 +2,19 @@ import { useCallback, useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { Card, CardTitle } from "@/components/ui/Card";
-import { api, type PipelineStatus, type Style } from "@/lib/api";
-import { formatBytes } from "@/lib/utils";
+import { api, type BatchPanel, type GalleryRun, type PipelineStatus, type Style } from "@/lib/api";
+
+function latestPlate(runs: GalleryRun[], styleId: string): GalleryRun | undefined {
+  return runs.find((run) => run.style_id === styleId && run.has_image);
+}
+
+function panelOf(pipe: PipelineStatus | null, styleId: string): BatchPanel | null {
+  return pipe?.batch?.panels?.[styleId] ?? null;
+}
 
 export function GeneratePanel({ onStarted }: { onStarted?: () => void }) {
   const [styles, setStyles] = useState<Style[]>([]);
-  const [style, setStyle] = useState<string>("");
+  const [runs, setRuns] = useState<GalleryRun[]>([]);
   const [pipe, setPipe] = useState<PipelineStatus | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -16,14 +22,15 @@ export function GeneratePanel({ onStarted }: { onStarted?: () => void }) {
 
   const refresh = useCallback(async () => {
     try {
-      const [s, p] = await Promise.all([api.styles(), api.pipeline()]);
+      const [s, p, g] = await Promise.all([
+        api.styles(),
+        api.pipeline(),
+        api.gallery(200),
+      ]);
       setStyles(s.styles);
       setPipe(p);
-      // Functional update — poll must not stomp a user style selection.
-      setStyle((prev) => {
-        if (prev && s.styles.some((x) => x.id === prev)) return prev;
-        return p.default_style || s.styles[0]?.id || "";
-      });
+      setRuns(g.runs);
+      setErr(null);
     } catch (e) {
       setErr(String(e));
     }
@@ -43,15 +50,16 @@ export function GeneratePanel({ onStarted }: { onStarted?: () => void }) {
     };
   }, [refresh]);
 
-  const running = pipe?.current?.status === "running";
+  const batchOn = !!pipe?.batch?.active;
+  const running = batchOn || pipe?.current?.status === "running";
 
   const onGenerate = async () => {
     setBusy(true);
     setErr(null);
     setMsg(null);
     try {
-      const res = await api.generate(style || undefined, false);
-      setMsg(res.message ?? "started");
+      const res = await api.generateAll();
+      setMsg(res.message ?? "queued");
       onStarted?.();
       await refresh();
     } catch (e) {
@@ -61,85 +69,120 @@ export function GeneratePanel({ onStarted }: { onStarted?: () => void }) {
     }
   };
 
-  const cur = pipe?.current;
-
   return (
-    <Card>
-      <CardTitle>Generate</CardTitle>
-      <p className="text-xs text-muted mb-3">
-        World events → Grok art director → Imagine → gallery below (Post to X on any
-        tile). Series look: 3D digital “inside the machine / hacking the planet.”
-      </p>
-
-      <label className="block text-xs text-muted mb-1">Style</label>
-      <select
-        className="w-full mb-3 bg-bg border border-border rounded px-2 py-1.5 text-sm"
-        value={style}
-        onChange={(e) => setStyle(e.target.value)}
-        disabled={running || busy}
-      >
-        {styles.map((s) => (
-          <option key={s.id} value={s.id}>
-            {s.label}
-          </option>
-        ))}
-      </select>
-      {styles.find((s) => s.id === style)?.description && (
-        <p className="text-xs text-muted mb-3">
-          {styles.find((s) => s.id === style)?.description}
-        </p>
-      )}
-
-      <div className="flex items-center gap-2 mb-3">
-        <Button variant="accent" onClick={onGenerate} disabled={busy || running}>
-          {running ? "Generating…" : "Run Planet Hack"}
-        </Button>
-        {pipe?.dry_run && <Badge tone="warn">DRY_RUN</Badge>}
-        {running && cur?.phase != null && (
-          <Badge tone="accent">phase: {String(cur.phase)}</Badge>
-        )}
+    <section>
+      <div className="flex flex-wrap items-end justify-between gap-4 mb-5">
+        <div>
+          <p className="font-mono text-[0.68rem] tracking-[0.24em] uppercase text-accent">
+            Planet Hack
+          </p>
+          <h1 className="mt-1 text-3xl sm:text-4xl font-medium tracking-tight text-text">
+            One plate for every type.
+          </h1>
+          <p className="mt-2 max-w-xl text-sm text-muted font-mono leading-relaxed">
+            Generate queues one plate per type, in order. Each panel holds the last
+            picture until its turn lands.
+          </p>
+        </div>
+        <div className="flex flex-col items-start gap-2">
+          <Button variant="accent" onClick={onGenerate} disabled={busy || running}>
+            {running ? "On the wire…" : "Generate"}
+          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            {pipe?.dry_run && <Badge tone="warn">DRY RUN</Badge>}
+            {pipe?.auto_publish && <Badge tone="hot">auto post</Badge>}
+          </div>
+        </div>
       </div>
 
-      {err && <p className="text-xs text-bad mb-2">{err}</p>}
-      {msg && !err && <p className="text-xs text-ok mb-2">{msg}</p>}
+      {err && <p className="text-xs font-mono text-bad mb-3">{err}</p>}
+      {msg && !err && <p className="text-xs font-mono text-ok mb-3">{msg}</p>}
 
-      {cur && (
-        <div className="text-xs space-y-1 border-t border-border pt-3 mt-2">
-          <div className="flex gap-2 flex-wrap items-center">
-            <span className="text-muted">Run ID</span>
-            <code className="px-1.5 py-0.5 rounded border border-border bg-bg text-accent">
-              {String(cur.run_id ?? "—")}
-            </code>
-            <Badge
-              tone={
-                cur.status === "complete"
-                  ? "ok"
-                  : cur.status === "failed"
-                    ? "bad"
-                    : cur.status === "running"
-                      ? "accent"
-                      : "neutral"
-              }
-            >
-              {String(cur.status)}
-            </Badge>
-            {cur.phase != null && cur.status === "running" && (
-              <span className="text-muted">phase {String(cur.phase)}</span>
-            )}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+        {styles.map((style) => (
+          <TypeScreen
+            key={style.id}
+            style={style}
+            panel={panelOf(pipe, style.id)}
+            plate={latestPlate(runs, style.id)}
+            live={pipe?.current}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TypeScreen({
+  style,
+  panel,
+  plate,
+  live,
+}: {
+  style: Style;
+  panel: BatchPanel | null;
+  plate: GalleryRun | undefined;
+  live: Record<string, unknown> | null | undefined;
+}) {
+  const liveHere = !!live && String(live.style_id ?? "") === style.id;
+  const liveStatus = liveHere ? String(live?.status ?? "") : "";
+  const status = liveStatus === "running" ? "running" : panel?.status || "idle";
+  const phase =
+    liveStatus === "running" ? String(live?.phase ?? "") : String(panel?.phase ?? "");
+  const freshId =
+    status === "complete" ? panel?.run_id || (liveHere ? String(live?.run_id ?? "") : "") : "";
+  const imageId = freshId || plate?.run_id || "";
+  const failed = status === "failed" || liveStatus === "failed";
+  const errorText = String(panel?.error || (liveHere ? live?.error ?? "" : ""));
+
+  return (
+    <article className="rounded-[10px] border border-accent/35 bg-[#100c0a] p-2 shadow-[0_0_28px_rgba(126,240,255,0.06)]">
+      <div className="crt relative aspect-video overflow-hidden bg-black">
+        {imageId ? (
+          <img
+            src={api.imageUrl(imageId)}
+            alt={style.label}
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="font-mono text-[0.68rem] tracking-[0.22em] uppercase text-accent/80">
+              No signal
+            </span>
           </div>
-          {cur.latency_ms != null && (
-            <div className="text-muted">latency {String(cur.latency_ms)} ms</div>
-          )}
-          {cur.egress_bytes != null && (
-            <div className="text-muted">
-              image egress {formatBytes(Number(cur.egress_bytes))} (Starlink-sensitive)
-            </div>
-          )}
-          {cur.error != null && cur.error !== "" && (
-            <div className="text-bad break-words">{String(cur.error)}</div>
+        )}
+        <div className="absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-2 p-2">
+          <span className="font-mono text-[0.62rem] tracking-[0.18em] uppercase text-accent bg-black/55 px-1.5 py-0.5">
+            {style.label}
+          </span>
+          {style.lane && (
+            <span className="font-mono text-[0.62rem] tracking-[0.14em] uppercase text-hot bg-black/55 px-1.5 py-0.5">
+              {style.lane}
+            </span>
           )}
         </div>
+        <div className="absolute inset-x-0 bottom-0 z-10 p-2 pt-8 bg-gradient-to-t from-black/80 to-transparent">
+          <p className="font-mono text-[0.68rem] tracking-[0.12em] uppercase text-[#d8fbff]">
+            {status === "running"
+              ? phase || "running"
+              : failed
+                ? "failed"
+                : status === "queued"
+                  ? "queued"
+                  : status === "complete"
+                    ? "plate in"
+                    : plate
+                      ? "last plate"
+                      : "standing by"}
+          </p>
+        </div>
+      </div>
+      <p className="mt-2 px-1 text-[0.78rem] leading-snug text-[#c9d2d8] line-clamp-3">
+        {style.description}
+      </p>
+      {failed && errorText && (
+        <p className="mt-1 px-1 text-[0.68rem] font-mono text-bad line-clamp-3">{errorText}</p>
       )}
-    </Card>
+    </article>
   );
 }

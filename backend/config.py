@@ -27,16 +27,16 @@ class Settings(BaseSettings):
     # Dry run: fake events + placeholder PNG, zero API spend
     DRY_RUN: bool = False
 
-    # Scheduler: short peak evening, few posts, then done.
-    # Interval + window + hard nightly cap are the main cost levers (Imagine $).
-    # Scheduler OFF by default — no unattended fires (each generate costs Imagine $).
-    # Leave knobs below for optional re-enable; they do nothing while ENABLED=false.
-    SCHEDULE_CRON: str = "off (manual generate only)"
+    # Scheduler: one plate at minute 0 of every hour, America/New_York, all day.
+    # OFF by default — no unattended fires until SCHEDULE_ENABLED=true.
+    # The job does not read the peak window, the interval, or the daily cap.
+    # Those fields stay so an old env still loads. A fresh env is hourly, not 19:00–22:00.
+    SCHEDULE_CRON: str = "0 * * * *"
     SCHEDULE_TIMEZONE: str = "America/New_York"
-    SCHEDULE_INTERVAL_MINUTES: int = 40
-    SCHEDULE_PEAK_START_HOUR: int = 19
-    SCHEDULE_PEAK_END_HOUR: int = 22
-    SCHEDULE_MAX_RUNS_PER_DAY: int = 5
+    SCHEDULE_INTERVAL_MINUTES: int = 60
+    SCHEDULE_PEAK_START_HOUR: int = 0
+    SCHEDULE_PEAK_END_HOUR: int = 24
+    SCHEDULE_MAX_RUNS_PER_DAY: int = 24
     SCHEDULE_ENABLED: bool = False
 
     # After a successful generate (manual), post to X automatically when true.

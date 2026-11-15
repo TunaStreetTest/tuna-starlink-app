@@ -45,7 +45,38 @@ def pipeline_status() -> dict[str, Any]:
         "x_search_enabled": settings.X_SEARCH_ENABLED,
         "x_search_ttl_minutes": settings.X_SEARCH_TTL_MINUTES,
         "rss_ingest_ttl_minutes": settings.RSS_INGEST_TTL_MINUTES,
+        "batch": _batch,
     }
+
+
+_batch_gate = asyncio.Lock()
+_batch_task: asyncio.Task | None = None
+_batch: dict[str, Any] | None = None
+
+
+def _panel_snapshot(meta: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "style_id": meta.get("style_id"),
+        "style_label": meta.get("style_label"),
+        "status": meta.get("status") or "queued",
+        "phase": meta.get("phase"),
+        "run_id": meta.get("run_id"),
+        "error": meta.get("error"),
+        "latency_ms": meta.get("latency_ms"),
+        "egress_bytes": meta.get("egress_bytes"),
+    }
+
+
+def _publish_current(meta: dict[str, Any]) -> None:
+    """Mirror the live run onto the matching type panel, when a batch is open."""
+    global _current
+    _current = dict(meta)
+    if not _batch or not _batch.get("active"):
+        return
+    sid = meta.get("style_id")
+    panels = _batch.get("panels") or {}
+    if sid in panels:
+        panels[sid] = _panel_snapshot(meta)
 
 
 def _push_history(meta: dict[str, Any]) -> None:
@@ -104,7 +135,7 @@ async def run_generate(style_id: str | None = None, force: bool = False) -> dict
             "error": None,
         }
         art_store.save_run(meta)
-        _current = dict(meta)
+        _publish_current(meta)
 
     try:
         styles.reload_styles()
@@ -126,7 +157,7 @@ async def run_generate(style_id: str | None = None, force: bool = False) -> dict
         meta["phase"] = "art_director"
         meta["updated_at"] = datetime.now(timezone.utc).isoformat()
         art_store.save_run(meta)
-        _current = dict(meta)
+        _publish_current(meta)
 
         # 2) Classic art director brief (the path that made cooler images)
         art_brief = await xai_chat.craft_art_brief(events, style)
@@ -134,7 +165,7 @@ async def run_generate(style_id: str | None = None, force: bool = False) -> dict
         meta["phase"] = "compose"
         meta["updated_at"] = datetime.now(timezone.utc).isoformat()
         art_store.save_run(meta)
-        _current = dict(meta)
+        _publish_current(meta)
 
         # 3) Style seed + brief + franchise lock → Imagine
         art_prompt = styles.build_imagine_prompt(art_brief, style)
@@ -142,7 +173,7 @@ async def run_generate(style_id: str | None = None, force: bool = False) -> dict
         meta["phase"] = "imagine"
         meta["updated_at"] = datetime.now(timezone.utc).isoformat()
         art_store.save_run(meta)
-        _current = dict(meta)
+        _publish_current(meta)
 
         image_bytes, img_stats = await asyncio.to_thread(
             xai_imagine.generate_image, art_prompt, run_id, style["label"]
@@ -153,7 +184,7 @@ async def run_generate(style_id: str | None = None, force: bool = False) -> dict
         meta["phase"] = "stream"
         meta["updated_at"] = datetime.now(timezone.utc).isoformat()
         art_store.save_run(meta, image_bytes=image_bytes)
-        _current = dict(meta)
+        _publish_current(meta)
 
         # 4) Ledger facts (source-only) + Tuna Starlink X body (voice, facts from wire)
         stream_slug = await xai_chat.craft_stream_slug(events)
@@ -167,7 +198,7 @@ async def run_generate(style_id: str | None = None, force: bool = False) -> dict
         meta["latency_ms"] = int((ended - started).total_seconds() * 1000)
         meta["updated_at"] = ended.isoformat()
         art_store.save_run(meta)
-        _current = dict(meta)
+        _publish_current(meta)
 
         # Retire wire story for this complete run (X + RSS; durable ledger).
         # get_events already marks on tap; this re-asserts after success and
@@ -182,7 +213,7 @@ async def run_generate(style_id: str | None = None, force: bool = False) -> dict
             meta["phase"] = "publish"
             meta["updated_at"] = datetime.now(timezone.utc).isoformat()
             art_store.save_run(meta)
-            _current = dict(meta)
+            _publish_current(meta)
             try:
                 from services import x_publish
 
@@ -200,7 +231,7 @@ async def run_generate(style_id: str | None = None, force: bool = False) -> dict
             meta["phase"] = "done"
             meta["updated_at"] = datetime.now(timezone.utc).isoformat()
             art_store.save_run(meta)
-            _current = dict(meta)
+            _publish_current(meta)
 
         _push_history(meta)
         return meta
@@ -215,6 +246,89 @@ async def run_generate(style_id: str | None = None, force: bool = False) -> dict
             art_store.save_run(meta)
         except Exception:
             pass
-        _current = dict(meta)
+        _publish_current(meta)
         _push_history(meta)
         raise
+
+
+async def start_style_batch(style_ids: list[str], force: bool = False) -> dict[str, Any]:
+    """Queue one plate per type. They run in order so each gets its own wire story."""
+    global _batch, _batch_task
+
+    ordered: list[str] = []
+    labels: dict[str, str] = {}
+    seen: set[str] = set()
+    for raw in style_ids:
+        style = styles.get_style(raw)
+        sid = str(style["id"])
+        if sid in seen:
+            continue
+        seen.add(sid)
+        ordered.append(sid)
+        labels[sid] = str(style.get("label") or sid)
+    if not ordered:
+        raise ValueError("no styles to generate")
+
+    async with _batch_gate:
+        if _batch and _batch.get("active"):
+            raise RuntimeError("generation already running — one plate per type is queued")
+        if _current and _current.get("status") == "running" and not force:
+            raise RuntimeError(
+                f"generation already running: {_current.get('run_id')} "
+                "(pass force=true only if you really mean it)"
+            )
+        batch_id = "batch-" + datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        panels = {
+            sid: {
+                "style_id": sid,
+                "style_label": labels[sid],
+                "status": "queued",
+                "phase": None,
+                "run_id": None,
+                "error": None,
+            }
+            for sid in ordered
+        }
+        _batch = {
+            "id": batch_id,
+            "active": True,
+            "styles": ordered,
+            "panels": panels,
+        }
+        _batch_task = asyncio.create_task(_drain_batch(batch_id, ordered, force))
+        return _batch
+
+
+async def wait_batch() -> None:
+    task = _batch_task
+    if task is not None:
+        await task
+
+
+async def _drain_batch(batch_id: str, style_ids: list[str], force_first: bool) -> None:
+    global _batch
+    try:
+        for index, sid in enumerate(style_ids):
+            if _batch is None or _batch.get("id") != batch_id:
+                return
+            panel = _batch["panels"].get(sid) or {"style_id": sid}
+            panel["status"] = "running"
+            panel["phase"] = "events"
+            _batch["panels"][sid] = panel
+            try:
+                meta = await run_generate(
+                    style_id=sid,
+                    force=bool(force_first and index == 0),
+                )
+                if _batch and _batch.get("id") == batch_id:
+                    _batch["panels"][sid] = _panel_snapshot(meta)
+            except Exception as e:
+                log.warning("batch style failed style=%s: %s", sid, e)
+                if _batch and _batch.get("id") == batch_id:
+                    failed = dict(_batch["panels"].get(sid) or {"style_id": sid})
+                    failed["status"] = "failed"
+                    failed["error"] = f"{type(e).__name__}: {e}"
+                    _batch["panels"][sid] = failed
+    finally:
+        if _batch and _batch.get("id") == batch_id:
+            _batch["active"] = False

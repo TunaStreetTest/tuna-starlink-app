@@ -37,7 +37,7 @@ export function StarlinkPanel() {
       <p className="text-xs text-muted mb-3">
         Starlink-hosted digital series. One cloud image download per run; art stays local.
       </p>
-      <dl className="grid grid-cols-2 gap-2 text-xs">
+      <dl className="grid grid-cols-2 gap-2 text-xs font-mono">
         <dt className="text-muted">Art path</dt>
         <dd className="truncate" title={h?.art_path}>
           {h?.art_path ?? "—"}

@@ -1,11 +1,12 @@
-"""Peak-window scheduler — few posts, short evening, hard daily cap.
+"""Hourly scheduler — one plate at minute 0, all day, America/New_York.
 
-Cost: each fire = 1 Imagine image (+ 2 cheap chat calls) + optional X post.
-Default ~5 fires max per local day inside a 3h window every 40m.
+Cost: each fire = 1 Imagine image (+ 2 chat calls) + one X post.
+Peak window and the daily cap are not applied, even when the env still names them.
 """
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import random
@@ -15,13 +16,15 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.interval import IntervalTrigger
+from apscheduler.triggers.cron import CronTrigger
 
 from config import settings
 
 log = logging.getLogger("tuna-starlink.scheduler")
 _scheduler: AsyncIOScheduler | None = None
 _COUNTER_NAME = ".schedule_counter.json"
+_fired_hour: str | None = None
+_inflight = False
 
 
 def _tz() -> ZoneInfo:
@@ -106,23 +109,33 @@ def _record_run(run_id: str | None, now: datetime) -> int:
     return int(data["runs"])
 
 
-def in_peak_window(now: datetime | None = None) -> bool:
-    """True if local time is in [start_hour, end_hour)."""
+def hour_key(now: datetime) -> str:
+    """Clock hour in the schedule zone, `YYYY-MM-DDTHH`."""
     tz = _tz()
-    now = now or datetime.now(tz)
     if now.tzinfo is None:
         now = now.replace(tzinfo=tz)
     else:
         now = now.astimezone(tz)
-    start_h = int(settings.SCHEDULE_PEAK_START_HOUR if settings.SCHEDULE_PEAK_START_HOUR is not None else 19)
-    end_h = int(settings.SCHEDULE_PEAK_END_HOUR if settings.SCHEDULE_PEAK_END_HOUR is not None else 22)
-    # Guard inverted/equal windows
-    if end_h <= start_h:
-        end_h = start_h + 1
-    minutes = now.hour * 60 + now.minute
-    start = start_h * 60
-    end = end_h * 60
-    return start <= minutes < end
+    return now.strftime("%Y-%m-%dT%H")
+
+
+def claim_hour(hour: str) -> bool:
+    """True the first time this clock hour fires. A second fire in the hour is skipped."""
+    global _fired_hour
+    if _fired_hour == hour:
+        return False
+    _fired_hour = hour
+    return True
+
+
+def hourly_trigger(tz: ZoneInfo | None = None) -> CronTrigger:
+    """Minute 0 of every hour. No peak window."""
+    return CronTrigger(minute=0, second=0, timezone=tz or _tz())
+
+
+def wire_has_nothing(exc: BaseException) -> bool:
+    text = str(exc)
+    return "no event worth a plate" in text or "wire empty" in text
 
 
 def _pick_style_id() -> str | None:
@@ -137,51 +150,72 @@ def _pick_style_id() -> str | None:
 
 async def _job() -> None:
     from services import pipeline
+    from services import x_publish
+
+    global _inflight
 
     now = datetime.now(_tz())
-    if not in_peak_window(now):
-        log.info(
-            "skip scheduled run outside peak window now=%s tz=%s",
-            now.isoformat(),
-            settings.SCHEDULE_TIMEZONE,
-        )
+    hour = hour_key(now)
+    if _inflight:
+        log.info("skip scheduled run — previous fire still running hour=%s", hour)
         return
-
-    cap = max(0, int(settings.SCHEDULE_MAX_RUNS_PER_DAY or 0))
-    stats = schedule_day_stats(now)
-    if cap and stats["runs"] >= cap:
-        log.info(
-            "skip scheduled run — daily cap reached runs=%s max=%s day=%s",
-            stats["runs"],
-            cap,
-            stats["day"],
-        )
+    if not claim_hour(hour):
+        log.info("skip scheduled run — this hour already fired hour=%s", hour)
         return
 
     style_id = _pick_style_id()
+    stats = schedule_day_stats(now)
     log.info(
-        "scheduled generate starting style=%s tz=%s interval=%sm day_runs=%s/%s",
+        "scheduled generate starting hour=%s style=%s tz=%s day_runs=%s",
+        hour,
         style_id or "(default)",
         settings.SCHEDULE_TIMEZONE,
-        settings.SCHEDULE_INTERVAL_MINUTES,
         stats["runs"],
-        cap or "∞",
     )
+    _inflight = True
     try:
-        meta = await pipeline.run_generate(style_id=style_id, force=False)
+        try:
+            meta = await pipeline.run_generate(style_id=style_id, force=False)
+        except Exception as e:
+            if wire_has_nothing(e):
+                log.info("wire has nothing to draw hour=%s: %s", hour, e)
+            else:
+                log.warning("scheduled generate failed hour=%s style=%s: %s", hour, style_id, e)
+            return
+
         n = _record_run(meta.get("run_id"), now)
         log.info(
-            "scheduled generate complete run=%s style=%s lane=%s src=%s status=%s day_runs=%s/%s",
+            "scheduled generate complete run=%s style=%s lane=%s src=%s status=%s day_runs=%s",
             meta.get("run_id"),
             meta.get("style_id"),
             meta.get("news_lane"),
             meta.get("events_source"),
             meta.get("status"),
             n,
-            cap or "∞",
         )
-    except Exception as e:
-        log.warning("scheduled generate failed style=%s: %s", style_id, e)
+        if meta.get("status") != "complete" or settings.DRY_RUN or meta.get("dry_run"):
+            log.info(
+                "not posting hour=%s run=%s status=%s dry_run=%s",
+                hour,
+                meta.get("run_id"),
+                meta.get("status"),
+                settings.DRY_RUN or meta.get("dry_run"),
+            )
+            return
+        run_id = str(meta.get("run_id") or "")
+        try:
+            pub = await asyncio.to_thread(x_publish.publish_run, run_id, False)
+            log.info(
+                "scheduled post run=%s hour=%s x_url=%s plate=%s",
+                run_id,
+                hour,
+                pub.get("x_url"),
+                pub.get("plate_url"),
+            )
+        except Exception as e:
+            log.warning("scheduled publish failed run=%s hour=%s: %s", run_id, hour, e)
+    finally:
+        _inflight = False
 
 
 def start_scheduler() -> AsyncIOScheduler | None:
@@ -192,27 +226,24 @@ def start_scheduler() -> AsyncIOScheduler | None:
     if _scheduler is not None:
         return _scheduler
 
-    minutes = max(5, int(settings.SCHEDULE_INTERVAL_MINUTES or 40))
     tz = _tz()
     sched = AsyncIOScheduler(timezone=tz)
-    # Fire every N minutes; job no-ops outside peak window and past daily cap.
+    # Top of every hour. A fire still running is skipped (max_instances=1).
+    # Peak hours and the daily cap in the env are not read.
     sched.add_job(
         _job,
-        trigger=IntervalTrigger(minutes=minutes, timezone=tz),
-        id="planethack-peak",
+        trigger=hourly_trigger(tz),
+        id="planethack-hourly",
         replace_existing=True,
         max_instances=1,
         coalesce=True,
+        misfire_grace_time=900,
     )
     sched.start()
     _scheduler = sched
     log.info(
-        "scheduler started interval=%sm tz=%s window=%02d:00-%02d:00 max_runs/day=%s",
-        minutes,
+        "scheduler started hourly minute=0 tz=%s (peak window and daily cap ignored)",
         settings.SCHEDULE_TIMEZONE,
-        int(settings.SCHEDULE_PEAK_START_HOUR or 19),
-        int(settings.SCHEDULE_PEAK_END_HOUR or 22),
-        settings.SCHEDULE_MAX_RUNS_PER_DAY,
     )
     return sched
 

@@ -120,7 +120,8 @@ function ChannelKnob({
 /**
  * Walnut portable, screen on local +z. The camera starts on +z, so the face
  * points at the lens and the right ear is world +x.
- * The two right-cheek knobs are the only channel controls: < older, > newer.
+ * Channel controls are one row under the screen: < on the left (older), > on the right (newer).
+ * The right cheek is only ~0.19 wide and a pair of these knobs would clip the cabinet.
  */
 export function Television({ url, canOlder, canNewer, onOpen, onOlder, onNewer }: Props) {
   const rightEar = useRef<Group>(null);
@@ -253,8 +254,8 @@ export function Television({ url, canOlder, canNewer, onOpen, onOlder, onNewer }
         <meshStandardMaterial map={grille} roughness={0.85} metalness={0.05} />
       </mesh>
 
-      <ChannelKnob position={[0.46, -0.02, 0.24]} map={olderMark} enabled={canOlder} onPress={onOlder} />
-      <ChannelKnob position={[0.46, -0.16, 0.24]} map={newerMark} enabled={canNewer} onPress={onNewer} />
+      <ChannelKnob position={[-0.18, -0.345, 0.25]} map={olderMark} enabled={canOlder} onPress={onOlder} />
+      <ChannelKnob position={[0.06, -0.345, 0.25]} map={newerMark} enabled={canNewer} onPress={onNewer} />
       <mesh position={[0.46, -0.3, 0.24]}>
         <sphereGeometry args={[0.012, 12, 12]} />
         <meshStandardMaterial ref={led} color="#ffb15a" emissive="#ff8a2a" emissiveIntensity={0.8} />

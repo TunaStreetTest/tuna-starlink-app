@@ -36,10 +36,14 @@ export function HealthBar() {
   const entries = Object.entries(svc);
 
   return (
-    <header className="flex flex-wrap items-center gap-3 px-4 py-2 border-b border-border bg-panel/80">
-      <div className="flex items-center gap-2 mr-2">
-        <span className="text-accent font-semibold tracking-wide">TunaStarLink</span>
-        <span className="text-muted text-xs">Planet Hack</span>
+    <header className="sticky top-0 z-20 flex flex-wrap items-center gap-3 px-4 py-2 border-b border-accent/20 bg-bg/80 backdrop-blur font-mono">
+      <div className="flex items-center gap-3 mr-2">
+        <span className="font-mono text-[0.68rem] tracking-[0.24em] uppercase text-accent">
+          Planet Hack
+        </span>
+        <span className="font-mono text-[0.68rem] tracking-[0.16em] uppercase text-muted">
+          Studio
+        </span>
       </div>
       {err && <span className="text-bad text-xs">health: {err}</span>}
       {entries.map(([name, s]) => (
@@ -66,9 +70,9 @@ export function HealthBar() {
         target="_blank"
         rel="noreferrer"
         title="@tunastarlink on X"
-        className="ml-auto flex items-center gap-2 shrink-0 rounded-full border border-border pl-2 pr-1 py-0.5 hover:border-accent/50 transition group"
+        className="ml-auto flex items-center gap-2 shrink-0 rounded-full border border-accent/40 pl-2 pr-1 py-0.5 hover:border-hot/70 transition group"
       >
-        <span className="text-xs text-muted group-hover:text-text hidden sm:inline">
+        <span className="font-mono text-[0.68rem] tracking-[0.08em] text-hot group-hover:text-text hidden sm:inline">
           @tunastarlink
         </span>
         <img
