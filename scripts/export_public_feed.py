@@ -8,6 +8,7 @@ internals, paths, and secrets never leave the studio machine.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 from datetime import datetime, timezone
@@ -16,8 +17,20 @@ from pathlib import Path
 from PIL import Image
 
 RUN_ID = re.compile(r"^[A-Za-z0-9_-]+$")
+_CODE_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+_CODE_LEN = 7
 ROOT = Path(__file__).resolve().parents[1]
 _MISSING = datetime.min.replace(tzinfo=timezone.utc)
+
+
+def plate_code(run_id: str) -> str:
+    """Seven-character public code for a run. Same id always yields the same code."""
+    number = int.from_bytes(hashlib.sha256(run_id.encode("utf-8")).digest(), "big")
+    chars: list[str] = []
+    for _ in range(_CODE_LEN):
+        number, remainder = divmod(number, len(_CODE_ALPHABET))
+        chars.append(_CODE_ALPHABET[remainder])
+    return "".join(chars)
 
 
 def art_root_default() -> Path:
@@ -132,6 +145,7 @@ def collect(art: Path) -> tuple[list[dict], dict[str, int]]:
         at = stamp(meta)
         post = {
             "id": folder.name,
+            "code": plate_code(folder.name),
             "headline": headline(meta),
             "caption": caption_of(meta),
             "at": "" if at == _MISSING else at.isoformat(),

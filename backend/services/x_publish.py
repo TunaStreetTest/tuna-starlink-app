@@ -45,11 +45,11 @@ def _clip(text: str, limit: int = _TWEET_MAX) -> str:
 
 
 def plate_url_for(run_id: str | None) -> str | None:
-    """Public glass for one plate. None when the id is not a safe path segment."""
+    """Public glass for one plate. The path is a 7-character code, not the run id."""
     rid = (run_id or "").strip()
     if not _RUN_ID.fullmatch(rid):
         return None
-    return f"{_PLATE_ORIGIN}/p/{rid}"
+    return f"{_PLATE_ORIGIN}/p/{_export_module().plate_code(rid)}"
 
 
 def _split_plate(text: str) -> tuple[str, str | None]:

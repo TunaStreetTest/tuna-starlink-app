@@ -8,11 +8,21 @@ import { Popout } from "./ui/Popout";
 import { useReducedMotion } from "./useMedia";
 
 const PLATE_PATH = /^\/p\/([A-Za-z0-9_-]+)\/?$/;
+const SHORT_CODE = /^[0-9A-Za-z]{7}$/;
 
-/** Plate id in `/p/<id>`, or null when the path is `/` or not a plate. */
+/** Plate token in `/p/<token>`, or null when the path is `/` or not a plate. */
 export function currentPlate(pathname: string = window.location.pathname): string | null {
   const match = PLATE_PATH.exec(pathname);
   return match ? match[1] : null;
+}
+
+/** Address-bar token. A short code when the feed has one, otherwise the run id. */
+export function plateToken(post: Post): string {
+  return post.code && SHORT_CODE.test(post.code) ? post.code : post.id;
+}
+
+export function findPlate(posts: Post[], token: string): Post | undefined {
+  return posts.find((post) => post.id === token || post.code === token);
 }
 
 function samePath(pathname: string, path: string): boolean {
@@ -63,10 +73,13 @@ export default function App() {
     if (!tunedFromUrl.current) {
       tunedFromUrl.current = true;
       const wanted = currentPlate();
-      if (wanted && posts.some((post) => post.id === wanted)) {
+      const match = wanted ? findPlate(posts, wanted) : undefined;
+      if (match) {
         onLive.current = false;
-        setChannelId(wanted);
-        channelRef.current = wanted;
+        setChannelId(match.id);
+        channelRef.current = match.id;
+        const token = plateToken(match);
+        if (wanted !== token) writePlateUrl(token, "replace");
         return;
       }
     }
@@ -74,7 +87,7 @@ export default function App() {
       if (current && posts.some((post) => post.id === current)) return current;
       return posts[0].id;
     });
-  }, [feed.posts]);
+  }, [feed.posts, writePlateUrl]);
 
   useEffect(() => {
     const newest = feed.posts[0]?.id ?? null;
@@ -85,7 +98,10 @@ export default function App() {
     if (onLive.current) {
       retune(newest);
       setHint(false);
-      if (currentPlate()) writePlateUrl(newest, "replace");
+      if (currentPlate()) {
+        const live = feed.posts.find((post) => post.id === newest);
+        if (live) writePlateUrl(plateToken(live), "replace");
+      }
       return;
     }
     setHint(true);
@@ -103,7 +119,7 @@ export default function App() {
       if (next === 0) setHint(false);
       retune(posts[next].id);
       const mode = urlTouched.current ? "push" : "replace";
-      writePlateUrl(posts[next].id, mode);
+      writePlateUrl(plateToken(posts[next]), mode);
     },
     [retune, writePlateUrl],
   );
@@ -125,10 +141,11 @@ export default function App() {
     function onPop() {
       const posts = postsRef.current;
       const wanted = currentPlate();
-      if (wanted && posts.some((post) => post.id === wanted)) {
+      const match = wanted ? findPlate(posts, wanted) : undefined;
+      if (match) {
         onLive.current = false;
         setHint(false);
-        retune(wanted);
+        retune(match.id);
         return;
       }
       if (!posts.length) return;

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 export type Post = {
   id: string;
+  code?: string;
   headline: string;
   caption: string;
   at: string;

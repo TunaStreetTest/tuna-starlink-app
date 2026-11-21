@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import sys
 import unittest
 from datetime import datetime
@@ -18,8 +19,8 @@ from services.x_publish import (  # noqa: E402
     tweet_bodies,
 )
 
-PLATE = "https://planethack.space/p/20261112_125109"
 TZ = ZoneInfo("America/New_York")
+SHORT = re.compile(r"^https://planethack\.space/p/[0-9A-Za-z]{7}$")
 
 
 class PlatePostText(unittest.TestCase):
@@ -30,21 +31,30 @@ class PlatePostText(unittest.TestCase):
                 "caption": "Starship stacked on the pad. #notag The dish heard it first.",
             }
         )
-        self.assertIn(PLATE, text)
-        self.assertTrue(text.endswith(PLATE))
+        url = plate_url_for("20261112_125109")
+        self.assertIsNotNone(url)
+        assert url is not None
+        self.assertRegex(url, SHORT)
+        self.assertNotIn("20261112", url)
+        self.assertEqual(url, plate_url_for("20261112_125109"))
+        self.assertIn(url, text)
+        self.assertTrue(text.endswith(url))
         self.assertNotIn("#notag", text)
         caption, _, link = text.rpartition("\n")
-        self.assertEqual(link, PLATE)
+        self.assertEqual(link, url)
         self.assertNotIn("http", caption)
         bodies = tweet_bodies(text)
         self.assertGreaterEqual(len(bodies), 1)
         for body in bodies:
-            self.assertIn(PLATE, body)
+            self.assertIn(url, body)
 
     def test_280_fallback_keeps_the_full_url(self) -> None:
         caption = "Starship stacked on the pad and the booster walked out. " * 40
         text = build_main_post({"run_id": "abc_DEF-1", "caption": caption})
-        url = "https://planethack.space/p/abc_DEF-1"
+        url = plate_url_for("abc_DEF-1")
+        self.assertIsNotNone(url)
+        assert url is not None
+        self.assertRegex(url, SHORT)
         self.assertIn(url, text)
         self.assertGreater(len(text), 280)
         bodies = tweet_bodies(text)
