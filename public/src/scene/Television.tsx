@@ -301,8 +301,13 @@ export function Television({
     }
   });
 
+  const openGlass = (event: ThreeEvent<MouseEvent>) => {
+    event.stopPropagation();
+    if ((url || interactive) && openable) onOpen();
+  };
+
   return (
-    <group position={[0, 0.12, 0]}>
+    <group position={[0, 0.12, 0]} onClick={openGlass}>
       {/* Depth stays 0.46. The back face is this same wood box. */}
       <RoundedBox args={[1.42, 0.98, 0.46]} radius={0.055} smoothness={4} position={[0, 0.04, 0]}>
         <meshStandardMaterial map={wood} roughness={0.62} metalness={0.05} color="#ffffff" />
@@ -317,10 +322,7 @@ export function Television({
         position={[0, 0.12, 0.238]}
         geometry={screenGeo}
         material={screenMat}
-        onClick={(event) => {
-          event.stopPropagation();
-          if ((url || interactive) && openable) onOpen();
-        }}
+        onClick={openGlass}
         onPointerOver={() => {
           if ((url || interactive) && openable) document.body.style.cursor = "pointer";
         }}
@@ -329,7 +331,7 @@ export function Television({
         }}
       />
 
-      <mesh position={[0, 0.12, 0.2]}>
+      <mesh position={[0, 0.12, 0.2]} raycast={() => null}>
         <planeGeometry args={[1.46, 0.92]} />
         <meshBasicMaterial
           ref={glowMat}

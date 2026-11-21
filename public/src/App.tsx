@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { acquire } from "./acquire";
-import { faultCard, faultPage, type FaultKind } from "./fault";
+import { faultCard, faultPage, pendingCard, type FaultKind } from "./fault";
 import { useFeed, type Post } from "./feed";
 import { Stage } from "./scene/Scene";
 import { LowerThird } from "./ui/LowerThird";
@@ -83,7 +83,6 @@ export default function App() {
     const home = (path.replace(/\/$/, "") || "/") === "/";
     if ((wanted && !findPlate(posts, wanted)) || (!home && !wanted)) {
       if (channelRef.current !== null) {
-        acquire.trigger();
         setChannelId(null);
         channelRef.current = null;
       }
@@ -194,12 +193,14 @@ export default function App() {
   const wanted = currentPlate(path);
   const home = (path.replace(/\/$/, "") || "/") === "/";
   const missing = feed.loaded && ((wanted != null && !findPlate(feed.posts, wanted)) || (!home && !wanted));
+  const pending = !feed.loaded && !home;
   const canOlder = missing ? feed.posts.length > 1 : index >= 0 && index < feed.posts.length - 1;
   const canNewer = missing ? feed.posts.length > 0 : index > 0;
   const fault: FaultKind | null = missing ? "missing" : imageDead ? "dead" : null;
   const faultToken = wanted ?? "";
   const page = fault ? faultPage(fault, faultToken) : null;
-  const showCard = fault === "missing" || (fault === "dead" && plateOpen);
+  // The card is the first view. Snow until a click, then snow again on the way out, read as a stuck set.
+  const showCard = pending || fault != null;
   const emptyLabel = feed.loaded ? "No signal" : "Acquiring";
 
   useEffect(() => {
@@ -215,7 +216,6 @@ export default function App() {
     probe.onerror = () => {
       if (cancel) return;
       setImageDead(true);
-      acquire.trigger();
     };
     probe.src = post.image;
     return () => {
@@ -226,14 +226,14 @@ export default function App() {
   return (
     <div className="stage">
       <Stage
-        url={fault ? null : (post?.image ?? null)}
+        url={showCard ? null : (post?.image ?? null)}
         canBack={canNewer}
         canForward={canOlder}
         open={plateOpen}
-        interactive={Boolean(post) || Boolean(fault)}
-        cardLines={showCard && fault ? faultCard(fault, faultToken) : null}
+        interactive={Boolean(post) || showCard}
+        cardLines={pending ? pendingCard(faultToken) : showCard && fault ? faultCard(fault, faultToken) : null}
         onOpen={() => {
-          if (post || fault) setPlateOpen(true);
+          if (post || showCard) setPlateOpen(true);
         }}
         onClose={() => setPlateOpen(false)}
         onBack={() => go(-1)}

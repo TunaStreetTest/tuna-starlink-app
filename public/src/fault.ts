@@ -1,5 +1,11 @@
 export type FaultKind = "missing" | "dead";
 
+/** Shown while a /p/ address is still asking the feed. Not snow, and not a false miss. */
+export function pendingCard(token: string): string[] {
+  const name = (token || "this plate").slice(0, 24);
+  return ["LOOKING", "", "dish is up.", "asking the bird.", "", name, "hold the glass."];
+}
+
 export function faultCard(kind: FaultKind, token: string): string[] {
   const name = (token || "unnamed").slice(0, 24);
   if (kind === "dead") {
