@@ -114,6 +114,17 @@ def wire_accept(text: str) -> bool:
     return is_visualizable_event(t)
 
 
+def viral_word_bonus(text: str) -> int:
+    """A quoted line and a concrete figure are the words a plate should lead with."""
+    t = text or ""
+    score = 0
+    if re.search(r"[\"“”‘’«»]", t):
+        score += 28
+    if re.search(r"\$\d|\b\d{3,}\b", t):
+        score += 12
+    return score
+
+
 def length_bonus(n: int) -> int:
     """Prefer a full official sentence over a 1-line LAUNCH! when both exist."""
     if 90 <= n <= 280:

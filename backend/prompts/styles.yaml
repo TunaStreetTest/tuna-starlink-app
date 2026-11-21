@@ -10,7 +10,8 @@ series:
   shared_lock: >
     Neon-night matrix CGI, wide 16:9. Void black. Saturated cyan, magenta, and
     acid-green are the color of the scene. Zero humans. No logos, flags, readable
-    text, lightning, lava, god-ray cathedral haze, or photoreal Earth/Starship postcards.
+    text, lightning, lava, or god-ray cathedral haze. No press photo with the neon
+    stripped off. When the story names Starship or Falcon 9, that vehicle is the hero.
 
 default: data-tunnel
 
@@ -21,23 +22,56 @@ styles:
     lane: space
     description: Cinematic neon space art — craft, planet, cyan-magenta data rings.
     art_director_notes: >
-      SpaceX / Starlink / orbital story as cinematic digital art FROM orbit — the July 28 look:
-      a machine-craft with PRESENCE flying past a real planet wrapped in cyan-magenta data rings.
+      Starship or Falcon 9 as cinematic digital art FROM orbit — the July 28 look:
+      that real vehicle LARGE in frame, flying past a planet wrapped in cyan-magenta data rings.
+      Starship means the stainless-steel ship with its body flaps. Falcon 9 means that white
+      booster with grid fins, landing legs, and nine engines. Never a generic ship, never
+      the other vehicle, never a "inspired" stand-in.
       Camera is 3/4, low, or fly-by. NEVER a centered product-shot globe. NEVER a HUD.
-      For a launch/Starlink wire the CRAFT is the hero and LARGE in frame: real metal
-      panels, cyan signal light along seams, volumetric magenta/green plume. Earth may look
-      like Earth from orbit (oceans, night-side city lights) with neon telemetry OVER it —
-      do not replace continents with a circuit board. Rings are luminous packet streams, not UI.
-      Hero is NEVER a person. No crew windows with faces. No logos.
-      Starfield + nebula depth. Color: void black + electric cyan + hot magenta + acid-green.
+      Real metal panels, cyan signal light along seams, volumetric magenta/green plume.
+      Earth may look like Earth from orbit (oceans, night-side city lights) with neon
+      telemetry OVER it — do not replace continents with a circuit board. Rings are
+      luminous packet streams, not UI. Hero is NEVER a person. No crew windows with faces.
+      No logos. Starfield + nebula depth. Color: void black + electric cyan + hot magenta + acid-green.
       BAN: Tron tube-outlines, glow-stick shuttle, HUD reticles, circuit-board globe,
-      floating crystals, clipart Earth, god-rays, press-photo Starship with no neon.
+      floating crystals, clipart Earth, god-rays, a press photo with the neon stripped off.
     prompt_seed: >
-      Wide 16:9 cinematic CGI, 3/4 fly-by of a large machine-craft with real metal panels
-      and cyan signal light along seams, night-side Earth with city lights behind, thick
-      cyan-magenta data rings wrapping the planet, volumetric magenta-green engine plume,
-      starfield and nebula depth, finished still — not Tron outlines, not a glow-stick
-      shuttle, not a HUD globe, not a press photo, no people, no logos
+      Wide 16:9 cinematic CGI, 3/4 fly-by of the real vehicle large in frame, cyan signal
+      light along its panels, night-side Earth with city lights behind, thick cyan-magenta
+      data rings wrapping the planet, volumetric magenta-green engine plume, starfield and
+      nebula depth, finished still — the vehicle is the one named in the story, not a generic
+      ship, not Tron outlines, not a glow-stick shuttle, not a HUD globe, not a press photo,
+      no people, no logos
+    versions:
+      deep-field:
+        scene: >
+          SCENE: deep space, not an Earth product shot. The hero vehicle is mid-field against
+          a dense starfield and a nebula shelf, a second planet small on the limb, one thin
+          cyan ring far behind. Vehicle still large enough to know which ship it is.
+        art_director_notes: >
+          Same franchise neon, different place: deep field. The named vehicle (Starship or
+          Falcon 9, exactly that ship) sits against stars and a nebula, with a planet on the
+          limb rather than filling the frame. One thin data ring, not the Earth-belt close-up.
+          Real materials, cyan light on the hull, magenta in the plume. No generic craft.
+        prompt_seed: >
+          Wide 16:9 cinematic CGI, the real named vehicle in deep space, large enough to
+          recognize, dense starfield, nebula shelf, a planet only on the limb, one thin cyan
+          data ring far behind, magenta-green plume, void black, neon light on real metal,
+          not an Earth close-up, not a generic ship, no people, no logos
+      limb-climb:
+        scene: >
+          SCENE: low angle, the hero vehicle climbing along the bright limb of Earth, plume
+          down, data rings seen edge-on as a thin ellipse. Hull fills the left third.
+        art_director_notes: >
+          Climbing shot. The named vehicle rises along Earth's limb, engines toward the
+          bottom of the frame, rings edge-on. Starship is the steel ship with flaps. Falcon 9
+          is the white booster with grid fins and landing legs. Cyan limb-light, magenta plume.
+          Not a centered globe. Not a generic rocket.
+        prompt_seed: >
+          Wide 16:9 cinematic CGI, low angle of the real named vehicle climbing Earth's bright
+          limb, hull on the left third, engines and magenta-green plume below, cyan-magenta
+          data rings edge-on, city lights on the night side, recognizable ship, not a generic
+          rocket, not a HUD, no people, no logos
 
   planet-core:
     label: Planet Core
@@ -59,6 +93,34 @@ styles:
       data rings in cyan and magenta, acid-green root conduits, void black depths,
       sharp metal-glass grid, full-bleed horizontal — saturated neon night, not god-rays,
       not a washed globe, not empty space
+    versions:
+      matrix-earth:
+        scene: >
+          SCENE: outside the machine. A wireframe Earth hangs in a cage of orbital compute
+          rings, seen from a gantry, not from inside a room. Matrix continents, neon conduits
+          leaving the surface. No ship unless the story names one.
+        art_director_notes: >
+          Starlink or space news as the July orbital-compute look, from outside. A matrix
+          Earth in a cage of cyan-magenta rings, gantries and conduit bundles at the frame
+          edge. Not the interior nave. Not a photoreal globe. Not a rocket unless the wire
+          names that vehicle. Density mid-high. Void black beyond the cage.
+        prompt_seed: >
+          Wide 16:9 neon CGI, a wireframe data-Earth seen from outside, caged in cyan and
+          magenta orbital-compute rings, conduit bundles and a dark gantry at the frame edge,
+          acid-green root nodes on the surface, void black beyond, not an interior room,
+          not a washed globe, not god-rays, no people, no logos
+      root-spike:
+        scene: >
+          SCENE: one cracked data-Earth and a single vertical root spike of acid-green light,
+          layered cyan rings tight around the planet, lots of void. The spike is the hero.
+        art_director_notes: >
+          The quieter Planet Core: one cracked wireframe Earth, one root spike, layered rings.
+          Not a busy interior, not a cathedral, not a ship. The spike is the only vertical.
+          Cyan rings, magenta threads, acid-green spike, void black. Still neon, not a postcard.
+        prompt_seed: >
+          Wide 16:9 neon CGI, one cracked wireframe Earth in void black, a single acid-green
+          root spike rising from it, tight layered cyan and magenta data rings, otherwise empty
+          space, sharp and quiet, not an interior, not a ship, not god-rays, no people, no logos
 
   data-tunnel:
     label: Data Tunnel
@@ -78,11 +140,38 @@ styles:
       volumetric haze, motion streaks, far neon bloom (not a white sun), kinetic depth,
       finished still — busy packed neon traffic, not a vector After Effects tunnel,
       no Tron outlines, no god-rays
+    versions:
+      pixel-run:
+        scene: >
+          SCENE: the original hacking-movie tunnel. Walls are columns of luminous pixels,
+          extreme wide FOV, a planetary root-glow at the vanishing point. Motion streaks.
+        art_director_notes: >
+          AI story as the first Data Tunnel: a flythrough of pixel-column walls, not metal
+          ribs. Extreme FOV, debris, cyan magenta acid-green, far root-glow that is neon.
+          Not an After Effects preset, not a white sun, not a city.
+        prompt_seed: >
+          Wide 16:9 high-speed cyberspace tunnel, walls of luminous pixel columns, extreme
+          FOV, motion streaks, voxel debris, far planetary root glow in cyan magenta and
+          acid-green, dense, kinetic, not metal ribs, not a vector template, not a white
+          sun, no people, no logos
+      weight-stream:
+        scene: >
+          SCENE: a river of model-weight blocks rushing through a dark fiber trunk, camera
+          low inside the flow, blocks as physical bricks of cyan and magenta light.
+        art_director_notes: >
+          AI weights as physical cargo. A dark fiber trunk, the camera inside a river of
+          glowing bricks (the weights), acid-green sparks where bricks collide. Not a ribbed
+          tunnel, not pixel wallpaper, not a vector preset. One direction, strong speed.
+        prompt_seed: >
+          Wide 16:9 cinematic CGI inside a dark fiber trunk, a river of physical glowing
+          bricks rushing at the camera, cyan and magenta weight-blocks, acid-green sparks
+          on collision, low camera in the flow, motion blur, void between the bricks, not a
+          ribbed tunnel, not an After Effects preset, no people, no readable text
 
   signal-cathedral:
     label: Signal Cathedral
     hashtag: SignalCathedral
-    lane: space
+    lane: general
     description: Signal megastructure — RF cathedral of neon glass, not church light.
     art_director_notes: >
       Starlink / RF / space-comms story as metaphor. Colossal cathedral interior: soaring
@@ -97,6 +186,32 @@ styles:
       signal-glass panels (stained neon, not church windows), charcoal void depths,
       monumental scale, sharp architectural grid, full-bleed horizontal — luminous neon
       spectrum, no god-rays, no empty nave fog, no people
+    versions:
+      dish-tower:
+        scene: >
+          SCENE: exterior. One vertical megastructure of beams and pure-form radio dishes
+          stacked up a tower, wide landscape, the tower off-center, void sky, no interior nave.
+        art_director_notes: >
+          The early Signal Cathedral, outside. A tower of parabolic dishes and engineered
+          beams, off-center in a wide frame, cyan and magenta signal between the dishes,
+          acid-green rim light. Not a church interior, not god-rays, not a rocket, not a city.
+        prompt_seed: >
+          Wide 16:9 neon CGI, exterior of one vertical tower built from parabolic dishes and
+          engineered beams, off-center, cyan and magenta signal between the dishes, acid-green
+          rim light, void black sky, monumental, not an interior nave, not church windows,
+          not god-rays, no people, no logos
+      array-hall:
+        scene: >
+          SCENE: a long hall of repeating dish-arches receding in one point, stained neon
+          panels between the arches, floor is a dark grating, no pews, no fog shafts.
+        art_director_notes: >
+          A signal hall, not a church. Repeating dish-arches, stained neon panels of cyan
+          magenta and acid-green, dark grating floor, one vanishing point. Dense structure,
+          clear air. No god-rays, no stone, no people, no ship.
+        prompt_seed: >
+          Wide 16:9 neon CGI, a long hall of repeating parabolic dish-arches to one vanishing
+          point, stained cyan magenta acid-green panels between the arches, dark metal grating
+          floor, clear air, no fog shafts, no pews, no stone church, no people, no logos
 
   rootkit-city:
     label: Rootkit City
@@ -118,3 +233,31 @@ styles:
       grid, magenta nodes, optional vertical code-rain, acid-green building lights,
       void black sky, saturated cyan magenta green, no people, no packed server racks,
       no lightning, no god-rays, no floating orbital habitat
+    versions:
+      skyline:
+        scene: >
+          SCENE: a whole circuit skyline, many neon towers on a PCB street grid, no single
+          citadel. Elevated view, unique roofline, cyan streets, magenta windows. Not racks.
+        art_director_notes: >
+          The classic circuit cityscape: a skyline of many towers, not one hero keep. PCB
+          streets, neon-etched facades, acid-green as window light or code-rain. Elevated
+          camera so the roofline varies. Not a server farm, not an infiltration bolt, not
+          a habitat in space, not fog.
+        prompt_seed: >
+          Wide 16:9 neon CGI, a full circuit-board skyline of many different towers on a cyan
+          PCB street grid, magenta windows, acid-green as building light, elevated night view,
+          void black sky, varied roofline, not one lonely tower, not server racks, not
+          lightning, no people, no logos
+      die-city:
+        scene: >
+          SCENE: the frame is packed with GPU-die towers and CPU cores as architecture, wafer
+          streets between them, one color of neon per district. Dense city, not a rack room.
+        art_director_notes: >
+          Dense silicon city from the packed-die days, without the server farm. GPU-die towers
+          and CPU cores ARE the buildings, wafer avenues between them, the frame full. Cyan,
+          magenta, and acid-green each own a district. Not racks, not one tower, not space.
+        prompt_seed: >
+          Wide 16:9 neon CGI, a dense city whose buildings are GPU dies and CPU cores, wafer
+          avenues between them, frame full of silicon architecture, cyan district, magenta
+          district, acid-green windows, void black above, not a server-rack room, not a single
+          tower, not an orbital habitat, no people, no lightning

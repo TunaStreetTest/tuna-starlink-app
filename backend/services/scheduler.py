@@ -9,7 +9,6 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import random
 import tempfile
 from datetime import datetime
 from pathlib import Path
@@ -138,16 +137,6 @@ def wire_has_nothing(exc: BaseException) -> bool:
     return "no event worth a plate" in text or "wire empty" in text
 
 
-def _pick_style_id() -> str | None:
-    from services import styles
-
-    styles.reload_styles()
-    ids = [s["id"] for s in styles.list_styles()]
-    if not ids:
-        return None
-    return random.choice(ids)
-
-
 async def _job() -> None:
     from services import pipeline
     from services import x_publish
@@ -163,31 +152,30 @@ async def _job() -> None:
         log.info("skip scheduled run — this hour already fired hour=%s", hour)
         return
 
-    style_id = _pick_style_id()
     stats = schedule_day_stats(now)
     log.info(
-        "scheduled generate starting hour=%s style=%s tz=%s day_runs=%s",
+        "scheduled generate starting hour=%s story-led tz=%s day_runs=%s",
         hour,
-        style_id or "(default)",
         settings.SCHEDULE_TIMEZONE,
         stats["runs"],
     )
     _inflight = True
     try:
         try:
-            meta = await pipeline.run_generate(style_id=style_id, force=False)
+            meta = await pipeline.run_generate(match_story=True, force=False)
         except Exception as e:
             if wire_has_nothing(e):
                 log.info("wire has nothing to draw hour=%s: %s", hour, e)
             else:
-                log.warning("scheduled generate failed hour=%s style=%s: %s", hour, style_id, e)
+                log.warning("scheduled generate failed hour=%s: %s", hour, e)
             return
 
         n = _record_run(meta.get("run_id"), now)
         log.info(
-            "scheduled generate complete run=%s style=%s lane=%s src=%s status=%s day_runs=%s",
+            "scheduled generate complete run=%s style=%s version=%s lane=%s src=%s status=%s day_runs=%s",
             meta.get("run_id"),
             meta.get("style_id"),
+            meta.get("style_version"),
             meta.get("news_lane"),
             meta.get("events_source"),
             meta.get("status"),

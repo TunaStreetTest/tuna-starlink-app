@@ -30,6 +30,7 @@ from services.wire_quality import (
     is_visualizable_event,
     length_bonus,
     longest_source_text,
+    viral_word_bonus,
     wire_accept,
 )
 
@@ -1022,6 +1023,7 @@ def _primary_rank(item: dict[str, Any]) -> int:
             score += 50
     if _PRIMARY_BOOST.search(title):
         score += 25
+    score += viral_word_bonus(title)
     if _SOFT_FEATURE_RE.search(title):
         score -= 80
     blob = f"{title} {item.get('summary') or item.get('line') or item.get('text') or ''}"
@@ -1137,6 +1139,7 @@ async def get_events(
     *,
     lane: str | None = None,
     style_id: str | None = None,
+    any_lane: bool = False,
 ) -> tuple[str, str, dict[str, Any]]:
     """
     Return (events_text, source_label, tap_meta) for a lean wire pack.
@@ -1156,15 +1159,24 @@ async def get_events(
         )
 
     rid = run_id or f"tap-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
-    # Map style lanes → cool-tech lanes
-    lane_raw = (lane or "ai").lower().strip()
+    # Map style lanes → cool-tech lanes. "general" and any_lane keep the story
+    # that is already there instead of forcing the AI lane.
+    skip_x = False
     lane_map = {
         "geopolitics": "space",
         "science": "space",
         "tech": "ai",
         "markets": "gpu",
     }
-    lane = lane_map.get(lane_raw, lane_raw)
+    if any_lane:
+        lane = None
+    else:
+        lane_raw = (lane or "ai").lower().strip()
+        if lane_raw == "general":
+            lane = None
+            skip_x = True
+        else:
+            lane = lane_map.get(lane_raw, lane_raw)
     mode = (settings.EVENTS_SOURCE or "stream").lower().strip()
 
     # Durable used ledger first — seed once from gallery so past posts never re-fire
@@ -1180,6 +1192,16 @@ async def get_events(
         stream["items"] = _trim_stream(pruned)
         _save_stream(stream)
         items = stream["items"]
+
+    if any_lane:
+        # The freshest story chooses the lane. A general story is not replaced
+        # by an X post from another subject.
+        from services.styles import core_for_story, search_lane_for_core
+
+        peeked = _tap_unconsumed(items, 1, None)
+        preview = _pack_line(peeked[0]) if peeked else ""
+        lane = search_lane_for_core(core_for_story(preview) if preview else "signal-cathedral")
+        skip_x = lane is None
 
     rss_pool = _tap_unconsumed(items, _PACK_SIZE + 4, lane)
     if len(rss_pool) < _PACK_SIZE:
@@ -1215,6 +1237,8 @@ async def get_events(
 
     if settings.DRY_RUN:
         x_skipped = "dry_run"
+    elif skip_x:
+        x_skipped = "story_has_no_search_lane"
     elif not x_search.search_enabled():
         x_skipped = "x_search_disabled"
     else:

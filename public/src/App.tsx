@@ -4,7 +4,6 @@ import { acquire } from "./acquire";
 import { useFeed, type Post } from "./feed";
 import { Stage } from "./scene/Scene";
 import { LowerThird } from "./ui/LowerThird";
-import { Popout } from "./ui/Popout";
 import { useReducedMotion } from "./useMedia";
 
 const PLATE_PATH = /^\/p\/([A-Za-z0-9_-]+)\/?$/;
@@ -190,11 +189,13 @@ export default function App() {
     <div className="stage">
       <Stage
         url={post?.image ?? null}
-        canOlder={canOlder}
-        canNewer={canNewer}
+        canBack={canNewer}
+        canForward={canOlder}
+        open={plateOpen}
         onOpen={() => post && setPlateOpen(true)}
-        onOlder={() => go(1)}
-        onNewer={() => go(-1)}
+        onClose={() => setPlateOpen(false)}
+        onBack={() => go(-1)}
+        onForward={() => go(1)}
       />
       <div className="vignette" />
       <LowerThird
@@ -203,10 +204,8 @@ export default function App() {
         showHint={hint}
         onLive={goLive}
         generation={generation}
+        hold={plateOpen}
       />
-      {plateOpen && post ? (
-        <Popout post={post} onClose={() => setPlateOpen(false)} />
-      ) : null}
     </div>
   );
 }

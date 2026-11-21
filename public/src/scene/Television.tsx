@@ -27,11 +27,15 @@ const tmp = new Vector3();
 
 type Props = {
   url: string | null;
-  canOlder: boolean;
-  canNewer: boolean;
+  canBack: boolean;
+  canForward: boolean;
   onOpen: () => void;
-  onOlder: () => void;
-  onNewer: () => void;
+  onBack: () => void;
+  onForward: () => void;
+  /** Main set reports the dish. A second set in the plate view must not. */
+  trackDish?: boolean;
+  /** Screen click opens the plate. Off on the plate view itself. */
+  openable?: boolean;
 };
 
 /** White chevron on a clear plate. Material color tints it. */
@@ -119,11 +123,21 @@ function ChannelKnob({
 
 /**
  * Walnut portable, screen on local +z. The camera starts on +z, so the face
- * points at the lens and the right ear is world +x.
- * Channel controls are one row under the screen: < on the left (older), > on the right (newer).
- * The right cheek is only ~0.19 wide and a pair of these knobs would clip the cabinet.
+ * points at the lens and the right ear is world +x. Cabinet depth stays 0.46
+ * so the back is still the wood box when the set turns.
+ * The screen fills the face. One row under it: < steps back toward the newest
+ * plate, > steps forward through the older plates.
  */
-export function Television({ url, canOlder, canNewer, onOpen, onOlder, onNewer }: Props) {
+export function Television({
+  url,
+  canBack,
+  canForward,
+  onOpen,
+  onBack,
+  onForward,
+  trackDish = true,
+  openable = true,
+}: Props) {
   const rightEar = useRef<Group>(null);
   const anchor = useRef<Mesh>(null);
   const dishFace = useRef<MeshStandardMaterial>(null);
@@ -134,9 +148,9 @@ export function Television({ url, canOlder, canNewer, onOpen, onOlder, onNewer }
   const wood = useMemo(() => makeWood(), []);
   const grille = useMemo(() => makeGrille(), []);
   const glowMap = useMemo(() => makeGlow(), []);
-  const olderMark = useMemo(() => chevronMap(-1), []);
-  const newerMark = useMemo(() => chevronMap(1), []);
-  const screenGeo = useMemo(() => curvedScreenGeometry(0.92, 0.66), []);
+  const backMark = useMemo(() => chevronMap(-1), []);
+  const forwardMark = useMemo(() => chevronMap(1), []);
+  const screenGeo = useMemo(() => curvedScreenGeometry(1.24, 0.7), []);
   const screenMat = useMemo(() => createScreenMaterial(), []);
 
   useEffect(() => {
@@ -144,14 +158,14 @@ export function Television({ url, canOlder, canNewer, onOpen, onOlder, onNewer }
       wood.dispose();
       grille.dispose();
       glowMap.dispose();
-      olderMark.dispose();
-      newerMark.dispose();
+      backMark.dispose();
+      forwardMark.dispose();
       screenGeo.dispose();
       const map = screenMat.uniforms.uMap.value as { dispose?: () => void };
       map.dispose?.();
       screenMat.dispose();
     };
-  }, [wood, grille, glowMap, olderMark, newerMark, screenGeo, screenMat]);
+  }, [wood, grille, glowMap, backMark, forwardMark, screenGeo, screenMat]);
 
   useEffect(() => {
     if (!url) return;
@@ -188,7 +202,7 @@ export function Television({ url, canOlder, canNewer, onOpen, onOlder, onNewer }
       const wobble = Math.sin(state.clock.elapsedTime * 17) * 0.07 * sample.twitch;
       rightEar.current.rotation.z = -0.62 + wobble;
     }
-    if (anchor.current) {
+    if (trackDish && anchor.current) {
       anchor.current.getWorldPosition(tmp);
       dishWorld.copy(tmp);
       if (!checked.current) {
@@ -210,34 +224,35 @@ export function Television({ url, canOlder, canNewer, onOpen, onOlder, onNewer }
   });
 
   return (
-    <group>
-      <RoundedBox args={[1.28, 0.94, 0.46]} radius={0.055} smoothness={4} position={[0, 0.02, 0]}>
+    <group position={[0, 0.12, 0]}>
+      {/* Depth stays 0.46. The back face is this same wood box. */}
+      <RoundedBox args={[1.42, 0.98, 0.46]} radius={0.055} smoothness={4} position={[0, 0.04, 0]}>
         <meshStandardMaterial map={wood} roughness={0.62} metalness={0.05} color="#ffffff" />
       </RoundedBox>
 
-      <mesh position={[-0.06, 0.08, 0.228]}>
-        <boxGeometry args={[1.02, 0.76, 0.02]} />
+      <mesh position={[0, 0.12, 0.228]}>
+        <boxGeometry args={[1.3, 0.76, 0.02]} />
         <meshStandardMaterial color="#120e0c" roughness={0.45} metalness={0.08} />
       </mesh>
 
       <mesh
-        position={[-0.06, 0.08, 0.236]}
+        position={[0, 0.12, 0.238]}
         geometry={screenGeo}
         material={screenMat}
         onClick={(event) => {
           event.stopPropagation();
-          if (url) onOpen();
+          if (url && openable) onOpen();
         }}
         onPointerOver={() => {
-          if (url) document.body.style.cursor = "pointer";
+          if (url && openable) document.body.style.cursor = "pointer";
         }}
         onPointerOut={() => {
           document.body.style.cursor = "";
         }}
       />
 
-      <mesh position={[-0.06, 0.08, 0.2]}>
-        <planeGeometry args={[1.35, 1.05]} />
+      <mesh position={[0, 0.12, 0.2]}>
+        <planeGeometry args={[1.46, 0.92]} />
         <meshBasicMaterial
           ref={glowMat}
           map={glowMap}
@@ -249,28 +264,28 @@ export function Television({ url, canOlder, canNewer, onOpen, onOlder, onNewer }
         />
       </mesh>
 
-      <mesh position={[-0.06, -0.34, 0.236]}>
-        <planeGeometry args={[0.78, 0.09]} />
+      <mesh position={[0, -0.34, 0.238]}>
+        <planeGeometry args={[1.16, 0.08]} />
         <meshStandardMaterial map={grille} roughness={0.85} metalness={0.05} />
       </mesh>
 
-      <ChannelKnob position={[-0.18, -0.345, 0.25]} map={olderMark} enabled={canOlder} onPress={onOlder} />
-      <ChannelKnob position={[0.06, -0.345, 0.25]} map={newerMark} enabled={canNewer} onPress={onNewer} />
-      <mesh position={[0.46, -0.3, 0.24]}>
+      <ChannelKnob position={[-0.22, -0.34, 0.27]} map={backMark} enabled={canBack} onPress={onBack} />
+      <ChannelKnob position={[0.22, -0.34, 0.27]} map={forwardMark} enabled={canForward} onPress={onForward} />
+      <mesh position={[0.56, -0.34, 0.25]}>
         <sphereGeometry args={[0.012, 12, 12]} />
         <meshStandardMaterial ref={led} color="#ffb15a" emissive="#ff8a2a" emissiveIntensity={0.8} />
       </mesh>
 
-      <mesh position={[-0.4, -0.5, 0.08]}>
+      <mesh position={[-0.48, -0.48, 0.08]}>
         <boxGeometry args={[0.18, 0.045, 0.12]} />
         <meshStandardMaterial color="#1a120e" roughness={0.55} />
       </mesh>
-      <mesh position={[0.4, -0.5, 0.08]}>
+      <mesh position={[0.48, -0.48, 0.08]}>
         <boxGeometry args={[0.18, 0.045, 0.12]} />
         <meshStandardMaterial color="#1a120e" roughness={0.55} />
       </mesh>
 
-      <group position={[0, 0.5, 0]}>
+      <group position={[0, 0.53, 0]}>
         <group rotation={[0, 0, 0.62]}>
           <mesh position={[0, 0.28, 0]}>
             <cylinderGeometry args={[0.011, 0.011, 0.56, 10]} />
@@ -324,5 +339,5 @@ function ScreenLamp() {
       light.current.intensity = 0.15 + sample.power * (1 - sample.snow) * 6;
     }
   });
-  return <pointLight ref={light} position={[-0.06, 0.08, 0.85]} color="#d8fbff" distance={4.5} decay={2} />;
+  return <pointLight ref={light} position={[0, 0.24, 0.95]} color="#d8fbff" distance={4.5} decay={2} />;
 }

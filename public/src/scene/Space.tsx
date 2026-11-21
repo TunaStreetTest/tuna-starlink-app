@@ -51,7 +51,7 @@ function Starfield() {
   }, []);
 
   return (
-    <points geometry={geometry}>
+    <points geometry={geometry} raycast={() => null}>
       <pointsMaterial
         size={0.05}
         sizeAttenuation
@@ -112,7 +112,7 @@ function Satellites() {
       <group ref={train}>
         {seats.map((seat) => (
           <group key={seat.key} position={seat.position} ref={seat.lock ? lock : undefined}>
-            <mesh>
+            <mesh raycast={() => null}>
               <boxGeometry args={[0.16, 0.04, 0.06]} />
               <meshStandardMaterial
                 color="#d7dee4"
@@ -122,18 +122,18 @@ function Satellites() {
                 emissiveIntensity={seat.lock ? 0.35 : 0.05}
               />
             </mesh>
-            <mesh position={[0.14, 0, 0]}>
+            <mesh position={[0.14, 0, 0]} raycast={() => null}>
               <boxGeometry args={[0.1, 0.012, 0.07]} />
               <meshStandardMaterial color="#b9ecff" emissive="#39e7ff" emissiveIntensity={0.55} />
             </mesh>
-            <mesh position={[-0.14, 0, 0]}>
+            <mesh position={[-0.14, 0, 0]} raycast={() => null}>
               <boxGeometry args={[0.1, 0.012, 0.07]} />
               <meshStandardMaterial color="#b9ecff" emissive="#39e7ff" emissiveIntensity={0.55} />
             </mesh>
           </group>
         ))}
       </group>
-      <mesh ref={beam} visible={false}>
+      <mesh ref={beam} visible={false} raycast={() => null}>
         <cylinderGeometry args={[0.006, 0.006, 1, 6]} />
         <meshBasicMaterial
           ref={beamMat}
@@ -152,11 +152,11 @@ export function Space() {
   return (
     <>
       <Starfield />
-      <mesh rotation={[1.15, 0.25, 0.35]}>
+      <mesh rotation={[1.15, 0.25, 0.35]} raycast={() => null}>
         <torusGeometry args={[6.4, 0.008, 8, 180]} />
         <meshBasicMaterial color="#3ce7ff" transparent opacity={0.38} toneMapped={false} />
       </mesh>
-      <mesh rotation={[1.4, -0.35, 0.1]}>
+      <mesh rotation={[1.4, -0.35, 0.1]} raycast={() => null}>
         <torusGeometry args={[7.3, 0.004, 8, 160]} />
         <meshBasicMaterial color="#ff4ec8" transparent opacity={0.22} toneMapped={false} />
       </mesh>

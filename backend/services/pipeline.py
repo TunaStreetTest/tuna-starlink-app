@@ -97,7 +97,20 @@ def _push_history(meta: dict[str, Any]) -> None:
         del _history[:-50]
 
 
-async def run_generate(style_id: str | None = None, force: bool = False) -> dict[str, Any]:
+def _stamp_style(meta: dict[str, Any], style: dict[str, Any]) -> None:
+    meta["style_id"] = style["id"]
+    meta["style_label"] = style["label"]
+    meta["style_hashtag"] = style.get("hashtag")
+    meta["style_version"] = style.get("version") or "core"
+    meta["news_lane"] = style.get("lane")
+    meta["series"] = style.get("series_name")
+
+
+async def run_generate(
+    style_id: str | None = None,
+    force: bool = False,
+    match_story: bool = False,
+) -> dict[str, Any]:
     global _current
 
     async with _lock:
@@ -108,17 +121,18 @@ async def run_generate(style_id: str | None = None, force: bool = False) -> dict
             )
         run_id = art_store.new_run_id()
         styles.reload_styles()
-        style = styles.get_style(style_id)
+        style = None if match_story else styles.get_style(style_id)
         started = datetime.now(timezone.utc)
         meta: dict[str, Any] = {
             "run_id": run_id,
             "status": "running",
             "phase": "events",
-            "style_id": style["id"],
-            "style_label": style["label"],
-            "style_hashtag": style.get("hashtag"),
-            "news_lane": style.get("lane"),
-            "series": style.get("series_name"),
+            "style_id": "",
+            "style_label": "",
+            "style_hashtag": "",
+            "style_version": "",
+            "news_lane": "",
+            "series": "",
             "dry_run": settings.DRY_RUN,
             "edge_text": settings.EDGE_TEXT,
             "created_at": started.isoformat(),
@@ -134,23 +148,28 @@ async def run_generate(style_id: str | None = None, force: bool = False) -> dict
             "latency_ms": None,
             "error": None,
         }
+        if style:
+            _stamp_style(meta, style)
         art_store.save_run(meta)
         _publish_current(meta)
 
     try:
         styles.reload_styles()
-        style = styles.get_style(style_id)
-        meta["style_id"] = style["id"]
-        meta["style_label"] = style["label"]
-        meta["style_hashtag"] = style.get("hashtag")
-        meta["news_lane"] = style.get("lane")
-
-        # 1) Single story from wire
-        events, events_source, events_tap = await events_svc.get_events(
-            run_id=run_id,
-            lane=style.get("lane"),
-            style_id=style["id"],
-        )
+        if match_story:
+            # The story picks the core. A version of that core is the skin.
+            events, events_source, events_tap = await events_svc.get_events(
+                run_id=run_id,
+                any_lane=True,
+            )
+            style = styles.style_for_story(events)
+        else:
+            style = styles.get_style(style_id)
+            events, events_source, events_tap = await events_svc.get_events(
+                run_id=run_id,
+                lane=style.get("lane"),
+                style_id=style["id"],
+            )
+        _stamp_style(meta, style)
         meta["events"] = events
         meta["events_source"] = events_source
         meta["events_tap"] = events_tap
@@ -168,7 +187,7 @@ async def run_generate(style_id: str | None = None, force: bool = False) -> dict
         _publish_current(meta)
 
         # 3) Style seed + brief + franchise lock → Imagine
-        art_prompt = styles.build_imagine_prompt(art_brief, style)
+        art_prompt = styles.build_imagine_prompt(art_brief, style, events)
         meta["art_prompt"] = art_prompt
         meta["phase"] = "imagine"
         meta["updated_at"] = datetime.now(timezone.utc).isoformat()

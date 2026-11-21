@@ -9,6 +9,8 @@ type Props = {
   showHint: boolean;
   onLive: () => void;
   generation: number;
+  /** Plate is open: keep the page text up while the channel changes. */
+  hold?: boolean;
 };
 
 function when(iso: string): string {
@@ -23,7 +25,7 @@ function when(iso: string): string {
   });
 }
 
-export function LowerThird({ post, emptyLabel, showHint, onLive, generation }: Props) {
+export function LowerThird({ post, emptyLabel, showHint, onLive, generation, hold = false }: Props) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -39,7 +41,7 @@ export function LowerThird({ post, emptyLabel, showHint, onLive, generation }: P
   }, [generation]);
 
   const stamp = post ? when(post.at) : "";
-  const shown = post ? visible : true;
+  const shown = hold || (post ? visible : true);
 
   return (
     <>

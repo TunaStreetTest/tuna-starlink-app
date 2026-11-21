@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import random
+import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -16,27 +18,58 @@ _STYLES_FILE = Path(__file__).resolve().parent.parent / "prompts" / "styles.yaml
 _LANE_DEFAULT = "space"
 _HASHTAG_DEFAULT = "PlanetHack"
 
-# Per-run scene recipes for data-space — cinematic craft + planet + neon rings (July 28).
-# Never a centered HUD globe / circuit-board Earth.
+# Data Space compositions. The hero noun comes from the vehicle lock, not these lines.
+# Never a centered HUD globe / circuit-board Earth, never a generic stand-in ship.
 _DATA_SPACE_SCENES = (
-    "SCENE: 3/4 fly-by, metal machine-craft LARGE in the foreground with cyan seam-light, "
-    "Earth behind with night-side city lights, thick cyan-magenta data rings, volumetric "
-    "magenta/green plume, starfield. No Tron outlines, no HUD, no circuit globe.",
-    "SCENE: Falcon/Starship-inspired metal booster climbing past night-side Earth; city lights "
-    "on continents; cyan packet rings; craft fills a third of the frame. Real materials. "
+    "SCENE: 3/4 fly-by, the hero vehicle LARGE in the foreground, cyan light on real panels, "
+    "night-side Earth with city lights behind, thick cyan-magenta data rings, volumetric "
+    "magenta-green plume, starfield. No Tron outlines, no HUD, no circuit globe.",
+    "SCENE: the hero vehicle climbing past night-side Earth; city lights on continents; "
+    "cyan packet rings; the vehicle fills a third of the frame. Real materials. "
     "No press photo, no targeting reticle, no glow-stick shuttle.",
     "SCENE: high oblique on Earth with one massive cyan-magenta telemetry ring as a belt; "
-    "a single metal craft cutting across the ring; real oceans and city lights, "
+    "the hero vehicle cutting across the ring; real oceans and city lights, "
     "not PCB continents, not Tron.",
-    "SCENE: craft-forward — metal vehicle in the lower-right, Earth and rings receding; "
+    "SCENE: vehicle-forward in the lower-right, Earth and rings receding; "
     "cyan seam-light, magenta ring light, volumetric green exhaust, starfield depth.",
-    "SCENE: close 3/4 on the craft body (heat-tile / stainless) with Earth limb and a neon "
-    "ring behind it; light wrapping metal; no floating crystals, no clipart globe, no outlines.",
+    "SCENE: close 3/4 on the vehicle body with Earth limb and a neon ring behind it; "
+    "light wrapping metal; no floating crystals, no clipart globe, no outlines.",
     "SCENE: rings-forward — luminous cyan-magenta packet streams ellipse around Earth, "
-    "one metal craft riding the ring; planet still looks like a planet.",
+    "the hero vehicle riding the ring; the planet still looks like a planet.",
 )
 
-_DATA_SPACE_LAUNCH_SCENES = _DATA_SPACE_SCENES[:4]
+_VEHICLE_LEAD = {
+    "starship": (
+        "The hero is SpaceX Starship itself: the real stainless-steel ship with its body flaps, "
+        "recognizable as Starship. Neon light on that steel. Not a generic spacecraft, not Falcon 9, "
+        "not a glow-stick shuttle, not a press photo."
+    ),
+    "falcon": (
+        "The hero is the SpaceX Falcon 9 booster itself: the white stage, grid fins, landing legs, "
+        "and nine engines, recognizable as Falcon 9. Neon light on that booster. Not Starship, "
+        "not a generic rocket, not a glow-stick shuttle, not a press photo."
+    ),
+}
+
+_STARSHIP_RE = re.compile(r"\b(starship|super\s*heavy|raptor)\b", re.I)
+_FALCON_RE = re.compile(r"\bfalcon(?:\s*9|\s*heavy)?\b", re.I)
+_STARLINK_RE = re.compile(r"\bstarlink\b|direct[- ]to[- ]cell", re.I)
+_SPACE_RE = re.compile(
+    r"\b(spacex|starbase|orbital|satellite|constellation|booster|"
+    r"cape canaveral|vandenberg|slc-\d+)\b",
+    re.I,
+)
+_TECH_RE = re.compile(
+    r"\b(nvidia|geforce|gpu|gpus|blackwell|hopper|cuda|h100|h200|b100|b200|gb200|"
+    r"tsmc|semiconductor|tensor\s*core|datacenter|data center|chipmaker)\b",
+    re.I,
+)
+_AI_RE = re.compile(
+    r"\b(openai|anthropic|claude|chatgpt|gpt-?\d|gemini|grok|xai|x\.ai|"
+    r"llm|llms|large language|foundation model|open[- ]weights|"
+    r"optimus|dojo|robotaxi|full self[- ]driving|fsd|mistral|llama|deepmind)\b",
+    re.I,
+)
 
 # Per-run cityscape hints for rootkit-city — ONE neon hero on a PCB grid, not fog/space habitat.
 # Fed to the art director only (not dumped into the Imagine prompt).
@@ -102,13 +135,36 @@ def _camel(label: str) -> str:
     return "".join(p[:1].upper() + p[1:] for p in parts if p)
 
 
-def get_style(style_id: str | None = None) -> dict[str, Any]:
+def version_ids(style_id: str) -> list[str]:
+    """Core skin plus older skins stored under that style. The core id stays the name."""
+    data = _raw()
+    styles = data.get("styles") or {}
+    val = styles.get(style_id) or {}
+    extra = [k for k in (val.get("versions") or {}) if k and k != "core"]
+    return ["core", *extra]
+
+
+def pick_version(style_id: str, rng: random.Random | None = None) -> str:
+    ids = version_ids(style_id)
+    if rng is None:
+        return random.choice(ids)
+    return rng.choice(ids)
+
+
+def get_style(style_id: str | None = None, version: str | None = None) -> dict[str, Any]:
     data = _raw()
     styles = data.get("styles") or {}
     key = style_id or settings.DEFAULT_STYLE or data.get("default") or next(iter(styles), "")
     if key not in styles:
         raise ValueError(f"unknown style {key!r}; known: {list(styles)}")
     val = styles[key]
+    versions = val.get("versions") or {}
+    chosen = (version or "core").strip() or "core"
+    over = {}
+    if chosen != "core":
+        if chosen not in versions:
+            raise ValueError(f"unknown version {chosen!r} of {key!r}; known: {version_ids(key)}")
+        over = versions[chosen] or {}
     series = series_info()
     label = val.get("label", key)
     hashtag = val.get("hashtag") or _camel(label)
@@ -118,12 +174,66 @@ def get_style(style_id: str | None = None) -> dict[str, Any]:
         "description": val.get("description", ""),
         "hashtag": hashtag,
         "lane": (val.get("lane") or _LANE_DEFAULT).strip().lower(),
-        "art_director_notes": (val.get("art_director_notes") or "").strip(),
-        "prompt_seed": (val.get("prompt_seed") or "").strip(),
+        "version": chosen,
+        "version_scene": (over.get("scene") or "").strip(),
+        "art_director_notes": (over.get("art_director_notes") or val.get("art_director_notes") or "").strip(),
+        "prompt_seed": (over.get("prompt_seed") or val.get("prompt_seed") or "").strip(),
         "series_name": series["name"],
         "series_tagline": series["tagline"],
         "shared_lock": series["shared_lock"],
     }
+
+
+def vehicle_lead(kind: str | None) -> str:
+    return _VEHICLE_LEAD.get(kind or "") or ""
+
+
+def vehicle_kind(text: str) -> str | None:
+    """Starship or Falcon when the wire names that vehicle. Starship wins if both appear."""
+    if _STARSHIP_RE.search(text or ""):
+        return "starship"
+    if _FALCON_RE.search(text or ""):
+        return "falcon"
+    return None
+
+
+def core_for_story(text: str) -> str:
+    """Which of the five cores draws this story.
+
+    Starship and Falcon 9 are Data Space. Starlink and other space news are Planet Core.
+    Nvidia and chip news are Rootkit City. AI news is Data Tunnel. Anything else is
+    Signal Cathedral.
+    """
+    blob = text or ""
+    if vehicle_kind(blob):
+        return "data-space"
+    if _STARLINK_RE.search(blob) or _SPACE_RE.search(blob):
+        return "planet-core"
+    if _TECH_RE.search(blob):
+        return "rootkit-city"
+    if _AI_RE.search(blob):
+        return "data-tunnel"
+    return "signal-cathedral"
+
+
+def search_lane_for_core(core: str) -> str | None:
+    """X/RSS lane to consult for a core. None means take the story as it is."""
+    return {
+        "data-space": "space",
+        "planet-core": "space",
+        "data-tunnel": "ai",
+        "rootkit-city": "gpu",
+    }.get(core)
+
+
+def style_for_story(events: str, rng: random.Random | None = None) -> dict[str, Any]:
+    """Pick a core from the story, then one of that core's skins."""
+    core = core_for_story(events)
+    style = get_style(core, version=pick_version(core, rng))
+    kind = vehicle_kind(events) if core == "data-space" else None
+    if kind:
+        style["vehicle"] = kind
+    return style
 
 
 def _palette_steer(art_brief: str, style_id: str) -> str:
@@ -186,19 +296,27 @@ def _rootkit_city_scene(art_brief: str) -> str:
     return _scene_pick(art_brief, _ROOTKIT_CITY_SCENES, "rootkit-city")
 
 
-def scene_hint(style_id: str | None, salt: str) -> str:
+def scene_hint(
+    style_id: str | None,
+    salt: str,
+    version: str | None = None,
+    version_scene: str = "",
+) -> str:
     """Composition hint for the art director — not appended to the Imagine prompt."""
     sid = str(style_id or "")
     key = salt or sid
+    hint = ""
+    if version and version != "core" and version_scene:
+        hint = version_scene.strip()
+    elif sid in ("data-space", "data_space"):
+        hint = _scene_pick(key, _DATA_SPACE_SCENES, "data-space")
+    elif sid in ("rootkit-city", "rootkit_city"):
+        hint = _scene_pick(key, _ROOTKIT_CITY_SCENES, "rootkit-city")
     if sid in ("data-space", "data_space"):
-        pool = _DATA_SPACE_SCENES
-        blob = (salt or "").lower()
-        if any(w in blob for w in ("falcon", "starship", "starlink", "launch", "booster")):
-            pool = _DATA_SPACE_LAUNCH_SCENES
-        return _scene_pick(key, pool, "data-space")
-    if sid in ("rootkit-city", "rootkit_city"):
-        return _scene_pick(key, _ROOTKIT_CITY_SCENES, "rootkit-city")
-    return ""
+        lead = _VEHICLE_LEAD.get(vehicle_kind(salt) or "")
+        if lead:
+            hint = f"{lead} {hint}".strip()
+    return hint
 
 
 def _sanitize_rootkit_brief(brief: str) -> str:
@@ -252,7 +370,11 @@ def _extract_shot_paragraph(art_brief: str) -> str:
     return text
 
 
-def build_imagine_prompt(art_brief: str, style: dict[str, Any]) -> str:
+def build_imagine_prompt(
+    art_brief: str,
+    style: dict[str, Any],
+    source_text: str = "",
+) -> str:
     """Compose Imagine prompt: SHOT paragraph is the prompt.
 
     Best Grok Imagine stills win on ONE poetic architecture + materials + dual light.
@@ -270,13 +392,20 @@ def build_imagine_prompt(art_brief: str, style: dict[str, Any]) -> str:
         shot = _sanitize_rootkit_brief(shot)
 
     lead = shot or seed
+    kind = None
+    if style_id in ("data-space", "data_space"):
+        kind = style.get("vehicle") or vehicle_kind(source_text)
+        vehicle = _VEHICLE_LEAD.get(kind or "")
+        if vehicle:
+            lead = f"{vehicle}\n\n{lead}".strip()
     if style_id in ("data-space", "data_space"):
         lock = (
             "Wide 16:9 cinematic CGI. Real metal and planet surface; neon is LIGHT on "
-            "those materials and the rings. Craft has presence. Zero humans, no logos, "
+            "those materials and the rings. The named vehicle has presence and is that "
+            "vehicle, not a stand-in. Zero humans, no logos, "
             "no readable text. No Tron outlines, no glow-stick shuttle, no HUD reticle, "
             "no circuit-board globe, no floating crystals, no clipart Earth, no god-rays, "
-            "no press-photo Starship with no neon."
+            "no press photo with the neon stripped off."
         )
     else:
         lock = (

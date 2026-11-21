@@ -38,10 +38,13 @@ SERIES LOCK:
 - Metaphor the PRIMARY wire story only (SpaceX / GPU / AI / silicon / orbital).
 
 STYLE (one hero, not a packed catalog):
-- Data Space: cinematic CGI FROM orbit (July 28). 3/4 fly-by. A MACHINE-CRAFT with
-  real metal panels LARGE in frame; cyan signal light along seams; night-side Earth
-  with city lights; cyan-magenta data rings wrapping the planet; volumetric plume.
-  NEVER Tron outlines. NEVER a centered HUD globe. NEVER a circuit-board Earth.
+- Data Space: cinematic CGI FROM orbit (July 28). 3/4 fly-by. If the wire names
+  Starship, the hero is SpaceX Starship itself (stainless steel, body flaps). If the
+  wire names Falcon 9, the hero is that Falcon 9 booster (grid fins, landing legs,
+  nine engines). Never a generic ship and never the other vehicle. Cyan signal light
+  on that real hull; night-side Earth with city lights; cyan-magenta data rings;
+  volumetric plume. NEVER Tron outlines. NEVER a centered HUD globe. NEVER a
+  circuit-board Earth.
 - Planet Core: interior mainframe — jacked wireframe Earth in a neon lattice of
   real metal-glass. NEVER a washed globe in god-rays.
 - Data Tunnel: physical conduit (metal-glass ribs) packed with cyan/magenta packet
@@ -68,38 +71,48 @@ Rules:
 
 # Ledger line: source text only, no LLM invent. The X body is craft_tuna_post.
 STREAM_SLUG_MAX = 900
-POST_MIN_CHARS = 400
-POST_TARGET_MAX = 1200
+POST_MIN_CHARS = 160
+POST_TARGET_MAX = 480
 POST_HARD_MAX = 4000
 
 TUNA_POST_SYSTEM = """You write the X post for @tunastarlink (Tuna Starlink).
 Bio: I do stuff with AI and Data. Powered by Starlink.
 
-Voice — copy this energy, not the facts:
+Three beats. Then stop. The link is added for you. Do not write a URL.
+
+1) ARTICLE. First paragraph. Normal words. This is the part a person shares.
+   Use the wire's own words: the name, the verb, the number, and the quote.
+   Do not shorten "freezes at awkward Tesla Argentina launch: 'I don't know
+   what to say'" into "froze at the launch". Do not robot it. Do not add a
+   second news paragraph. A one-line restatement that drops the quote or the
+   figure is wrong. The publisher keeps the wire headline when the rewrite
+   drops those words.
+
+2) PLATE. Blank line, then broken robot speak. The plate is coming in through
+   the Starlink dish. Short lines. Dropped words. Name the style. The delivery
+   is not finished in this paragraph.
+
+3) DELIVERED. Blank line, then ONE robot line that finishes the delivery.
+   End on that line.
+
+Shape to copy (facts here are only an example):
 
 Falcon 9 B1103-5 just put Starlink Group 17-49 up from Vandenberg.
 
-Another couple dozen nodes on the mesh. From the dish it looks like weather.
-From the plate it's a data ring lighting up around the planet — neon, not
-a press photo. I make these on the same link the satellites just joined.
+Plate inbound. Dish open. Data Space coming through the Starlink link. Cyan on the hull. Magenta in the plume. Pixels still in the pipe. Dish holding. Render not seated. Link still open. Frame still empty. Not done.
 
-Starlink is why this studio is even on the air.
+Delivered. Plate on the glass.
 
 Rules:
-- Every fact (names, pads, group numbers, chip names, counts, places) MUST appear
-  in the WIRE block. If the wire doesn't say it, you don't say it. No invented
-  dates, orbits, outcomes, telemetry, or extra news.
-- Longer form: 500–1200 characters. Short paragraphs. Readable on a phone next to
-  a 16:9 still.
-- You may talk about the plate in one or two sentences (neon, not a press photo).
-  Do NOT recap the art-director SHOT. Do NOT write METAPHOR: or Wire: labels.
-- Identity: this studio runs over Starlink. You may say the dish / the link carries
-  the render. Do NOT invent a Starlink launch, satellite count, or other story
-  unless that fact is in the WIRE. Do not claim the subject of the wire uses
-  Starlink unless the wire says so.
-- No hashtags. No URLs. No @handles. No giveaway/contest voice. No news-ticker paste.
+- Every news fact MUST appear in the WIRE. No invented dates, orbits, outcomes,
+  counts, or extra news. The robot lines may only talk about the plate, the dish,
+  and this studio's Starlink link.
+- Do not claim the subject of the wire uses Starlink unless the wire says so.
+- The delivery line starts just after 280 characters, so Show more reveals
+  that line and then the link. Do not write anything after it.
+- Do NOT recap the art-director SHOT. No hashtags. No URLs. No @handles.
 - No grok slop ("this architecture is a metaphor for…").
-- Output ONLY the post body. No title, no quotes around it.
+- Output ONLY the post body.
 """
 
 
@@ -118,26 +131,37 @@ async def craft_art_brief(events: str, style: dict) -> str:
 
     from services import styles as styles_svc
 
-    hint = styles_svc.scene_hint(style.get("id"), events)
+    hint = styles_svc.scene_hint(
+        style.get("id"),
+        events,
+        version=style.get("version"),
+        version_scene=style.get("version_scene") or "",
+    )
     hint_block = ""
     if hint:
         hint_block = (
             f"\nThis run's composition hint (use as the ONE idea — do not stack extras):\n"
             f"{hint}\n"
         )
+    vehicle_block = ""
+    if style.get("vehicle") and style.get("id") in ("data-space", "data_space"):
+        lead = styles_svc.vehicle_lead(style.get("vehicle"))
+        if lead:
+            vehicle_block = f"\nVEHICLE LOCK (obey this noun): {lead}\n"
 
     user = f"""Shot type: {style.get('label')} — {style.get('description')}
 
 Shot notes:
 {style.get('art_director_notes')}
-{hint_block}
+{hint_block}{vehicle_block}
 Wire pack (PRIMARY = first bullet — metaphorize that one only; others are mood only):
 {events}
 
 Write SHOT/HERO/METAPHOR/LIGHT/MOOD/AVOID now.
 SHOT is 2–5 sentences of Imagine-ready prose: one neon impossible architecture,
 void black, cyan/magenta/acid-green as the scene color. ZERO people. No logos,
-no god-rays, no photoreal Earth/Starship postcard."""
+no god-rays, no press photo with the neon stripped off. If a vehicle lock is set,
+the hero is that exact ship."""
 
     model = (settings.XAI_ART_MODEL or settings.XAI_CHAT_MODEL).strip()
     if settings.EDGE_TEXT == "lemonade":
@@ -273,11 +297,9 @@ def _clean_post_body(text: str, limit: int = POST_HARD_MAX) -> str:
 
 
 _DRY_TUNA_POST = (
-    "Falcon 9 just stacked another Starlink group for the mesh.\n\n"
-    "From the dish it looks like weather. From the plate it's a data ring "
-    "lighting up around the planet — neon, not a press photo. I make these "
-    "on the same link the satellites just joined.\n\n"
-    "Starlink is why this studio is even on the air."
+    "SpaceX Starship stacks for the next flight test.\n\n"
+    "Plate inbound. Dish open. Data Space on the Starlink link. Steel hull. Not done.\n\n"
+    "Delivered. Plate on the glass."
 )
 
 
@@ -286,7 +308,7 @@ async def craft_tuna_post(
     style: dict | None = None,
     art_brief: str = "",
 ) -> str:
-    """Longer X body in the Tuna Starlink voice. Facts from the wire only."""
+    """X body: the wire headline, then the plate arriving in robot speak."""
     wire = _primary_wire(events)
     if not wire and settings.DRY_RUN:
         wire = "Dry-run: SpaceX Starship stacks for next flight test."
@@ -311,23 +333,73 @@ Write the X post now."""
 
     model = (settings.XAI_CHAT_MODEL or "").strip()
     if settings.EDGE_TEXT == "lemonade":
-        raw = await _lemonade_chat(TUNA_POST_SYSTEM, user, max_tokens=700)
+        raw = await _lemonade_chat(TUNA_POST_SYSTEM, user, max_tokens=400)
     else:
         raw = await _xai_chat(
             TUNA_POST_SYSTEM,
             user,
-            max_tokens=700,
+            max_tokens=400,
             temperature=0.55,
             model=model,
         )
     body = _clean_post_body(raw, POST_HARD_MAX)
-    if len(body) < 200:
-        # Too thin — keep sourced wire rather than ship a fragment.
-        fallback = pack_stream_slug([wire], max_chars=POST_TARGET_MAX)
-        return fallback or body
-    if len(body) > POST_TARGET_MAX:
-        body = _clean_post_body(body, POST_TARGET_MAX)
-    return body
+    return finish_robot_post(body, wire, style_label)
+
+
+_OUTLET_TAIL = re.compile(
+    r"\s+[-–|]\s+(?:[A-Z][\w.&'+-]*|\w+\.[A-Za-z]{2,})"
+    r"(?:\s+(?:[A-Z][\w.&'+-]*|\w+\.[A-Za-z]{2,})){0,3}\s*$"
+)
+def article_from_wire(wire: str) -> str:
+    """The share line, in the wire's words. Drop the outlet and a repeated title."""
+    text = html.unescape(wire or "").replace("\xa0", " ")
+    text = re.sub(r"\s+", " ", text).strip()
+    if " — " in text:
+        left, right = text.split(" — ", 1)
+        left_key = re.sub(r"\W+", "", left.lower())[:40]
+        right_key = re.sub(r"\W+", "", right.lower())[:40]
+        if left_key and right_key.startswith(left_key[:24]):
+            text = left.strip()
+    text = _OUTLET_TAIL.sub("", text).strip(" -–—|")
+    text = re.sub(r"\s+", " ", text).strip()
+    if text and text[-1] not in ".!?…":
+        text += "."
+    return text
+
+
+def _plate_paragraph(text: str, style_label: str) -> str:
+    label = (style_label or "Planet Hack").strip() or "Planet Hack"
+    fallback = f"Plate inbound. Dish open. {label} on the Starlink link. Not done."
+    for part in (text or "").split("\n\n"):
+        part = " ".join(part.split())
+        if not part or part.startswith("Delivered."):
+            continue
+        if "Plate inbound" in part or "Not done." in part:
+            return part
+    return fallback
+
+
+def finish_robot_post(body: str, wire: str, style_label: str = "") -> str:
+    """Headline in the wire's words, then the plate inbound, then one delivery line.
+
+    The model rewrite is not the share line. "Freezes" and a quoted phrase were
+    getting softened into a shorter sentence. The wire headline is the top bit.
+    """
+    head = article_from_wire(wire)
+    if not head:
+        head = pack_stream_slug([wire], max_chars=220) or "A live story from the wire."
+    middle = _plate_paragraph(body, style_label)
+    ending = "Delivered. Plate on the glass."
+    text = f"{head}\n\n{middle}\n\n{ending}"
+    if len(text) <= POST_TARGET_MAX:
+        return text
+    room = POST_TARGET_MAX - len(head) - len(ending) - 4
+    if room < 40:
+        if len(head) + 2 + len(ending) <= POST_TARGET_MAX:
+            return f"{head}\n\n{ending}"
+        return _clean_post_body(f"{head}\n\n{ending}", POST_TARGET_MAX)
+    kept = _fit_text(middle, room).removesuffix("…").rstrip()
+    return f"{head}\n\n{kept}\n\n{ending}"
 
 
 async def _xai_chat(

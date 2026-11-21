@@ -16,9 +16,16 @@ from services.wire_quality import (  # noqa: E402
     is_visualizable_event,
     length_bonus,
     longest_source_text,
+    viral_word_bonus,
     wire_accept,
 )
-from services.xai_chat import pack_stream_slug, _clean_post_body  # noqa: E402
+from services.xai_chat import (  # noqa: E402
+    _DRY_TUNA_POST,
+    _clean_post_body,
+    article_from_wire,
+    finish_robot_post,
+    pack_stream_slug,
+)
 
 
 class HandleExpansion(unittest.TestCase):
@@ -146,6 +153,15 @@ class CaptionSourceOnly(unittest.TestCase):
     def test_length_bonus_prefers_full_sentence(self):
         self.assertGreater(length_bonus(140), length_bonus(35))
 
+    def test_quote_beats_a_bare_price_line(self):
+        thin = "Musk Freezes at Tesla Argentina Launch: $40,990 Model 3"
+        viral = (
+            "Elon Musk freezes at awkward Tesla Argentina launch: "
+            "‘I don’t know what to say’"
+        )
+        self.assertGreater(viral_word_bonus(viral), viral_word_bonus(thin))
+        self.assertGreaterEqual(viral_word_bonus(thin), 12)
+
     def test_strips_rss_nbsp(self):
         slug = pack_stream_slug(
             [
@@ -196,15 +212,16 @@ class ImagineCompose(unittest.TestCase):
         self.assertNotIn("lots of night sky", a.lower())
         self.assertNotIn("lots of night sky", b.lower())
 
-    def test_data_space_hint_is_neon_not_postcard(self):
+    def test_data_space_hint_names_the_falcon_9(self):
         hint = scene_hint("data-space", "Falcon 9 Starlink launch from Vandenberg").lower()
         self.assertTrue(hint)
+        self.assertIn("falcon 9", hint)
+        self.assertIn("grid fins", hint)
+        self.assertNotIn("machine-craft", hint)
+        self.assertNotIn("inspired", hint)
         self.assertNotIn("circuit-board", hint)
         self.assertNotIn("holographic data-earth as hero", hint)
         self.assertNotIn("hud", hint)
-        self.assertTrue(
-            "craft" in hint or "machine" in hint or "ring" in hint
-        )
 
     def test_data_space_lock_bans_hud_globe(self):
         prompt = build_imagine_prompt(
@@ -238,6 +255,55 @@ class TunaPostClean(unittest.TestCase):
         self.assertNotIn("#", out)
         self.assertNotIn("http", out)
         self.assertIn("Vandenberg", out)
+
+
+class RobotPostShape(unittest.TestCase):
+    def test_dry_post_ends_on_the_delivery(self):
+        self.assertLess(len(_DRY_TUNA_POST), 480)
+        self.assertTrue(_DRY_TUNA_POST.endswith("Delivered. Plate on the glass."))
+        self.assertIn("Starship", _DRY_TUNA_POST.split("\n\n")[0])
+
+    def test_thin_body_keeps_the_headline_and_adds_the_robot(self):
+        out = finish_robot_post("Too short.", "Anthropic releases a new Claude model.", "Data Tunnel")
+        self.assertTrue(out.startswith("Anthropic"))
+        self.assertIn("Data Tunnel on the Starlink link", out)
+        self.assertTrue(out.endswith("Delivered. Plate on the glass."))
+
+    def test_article_keeps_the_wire_words(self):
+        thin = (
+            "Musk Freezes at Tesla Argentina Launch: $40,990 Model 3 - shattered.io "
+            "— Musk Freezes at Tesla Argentina Launch: $40,990 Model 3 shattered.io"
+        )
+        viral = (
+            "Elon Musk freezes at awkward Tesla Argentina launch: "
+            "‘I don’t know what to say’ - Electrek — Elon Musk freezes at awkward "
+            "Tesla Argentina launch: ‘I don’t know what to say’ Electrek"
+        )
+        self.assertEqual(
+            article_from_wire(thin),
+            "Musk Freezes at Tesla Argentina Launch: $40,990 Model 3.",
+        )
+        self.assertEqual(
+            article_from_wire(viral),
+            "Elon Musk freezes at awkward Tesla Argentina launch: ‘I don’t know what to say’.",
+        )
+        paraphrase = (
+            "Musk froze at the Tesla Argentina launch of the $40,990 Model 3.\n\n"
+            "Plate inbound. Dish open. Signal Cathedral on the Starlink link. Not done.\n\n"
+            "Delivered. Plate on the glass."
+        )
+        out = finish_robot_post(paraphrase, thin, "Signal Cathedral")
+        self.assertTrue(out.startswith("Musk Freezes at Tesla Argentina Launch: $40,990 Model 3."))
+        self.assertNotIn("froze at the", out)
+        self.assertNotIn("shattered.io", out.split("\n", 1)[0])
+        self.assertTrue(out.endswith("Delivered. Plate on the glass."))
+
+    def test_long_body_keeps_the_delivery_line(self):
+        essay = ("Wall Street and the labs disagree on the model. " * 30).strip()
+        raw = essay + "\n\nDelivered. Plate on the glass."
+        out = finish_robot_post(raw, "Anthropic releases a new Claude model.", "Data Tunnel")
+        self.assertLessEqual(len(out), 480)
+        self.assertTrue(out.endswith("Delivered. Plate on the glass."))
 
 
 if __name__ == "__main__":
