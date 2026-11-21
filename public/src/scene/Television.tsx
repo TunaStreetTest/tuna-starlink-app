@@ -17,7 +17,7 @@ import {
 } from "three";
 
 import { acquire } from "../acquire";
-import { createScreenMaterial, curvedScreenGeometry } from "./screen";
+import { blankTexture, createScreenMaterial, curvedScreenGeometry } from "./screen";
 import { makeGlow, makeGrille, makeWood } from "./textures";
 
 /** Right-ear aim point. Satellites read this; the set is the only writer. */
@@ -36,7 +36,55 @@ type Props = {
   trackDish?: boolean;
   /** Screen click opens the plate. Off on the plate view itself. */
   openable?: boolean;
+  /** Glass can be clicked even when it has no picture. */
+  interactive?: boolean;
+  /** CRT failure card instead of a plate. */
+  cardLines?: string[] | null;
 };
+
+/** Failure card for the glass. Cyan on a dark CRT, readable through the scan. */
+function cardTexture(lines: string[]): CanvasTexture {
+  const canvas = document.createElement("canvas");
+  canvas.width = 1280;
+  canvas.height = 720;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("failure card");
+  ctx.fillStyle = "#05070d";
+  ctx.fillRect(0, 0, 1280, 720);
+  ctx.strokeStyle = "rgba(126, 240, 255, 0.45)";
+  ctx.lineWidth = 3;
+  ctx.strokeRect(46, 36, 1188, 648);
+  ctx.fillStyle = "rgba(126, 240, 255, 0.05)";
+  for (let y = 52; y < 668; y += 4) ctx.fillRect(54, y, 1172, 1);
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  ctx.font = "600 22px ui-monospace, monospace";
+  ctx.fillStyle = "#7ef0ff";
+  ctx.fillText("STARLINK", 96, 68);
+  ctx.fillStyle = "#ff9ad6";
+  ctx.fillText("DOWNLINK FAIL", 280, 68);
+  for (let i = 0; i < 8; i += 1) {
+    ctx.fillStyle = i < 2 ? "#7ef0ff" : "rgba(126, 240, 255, 0.16)";
+    ctx.fillRect(980 + i * 26, 70, 16, 18);
+  }
+  ctx.strokeStyle = "rgba(126, 240, 255, 0.35)";
+  ctx.beginPath();
+  ctx.moveTo(96, 112);
+  ctx.lineTo(1184, 112);
+  ctx.stroke();
+  let y = 148;
+  lines.forEach((line, index) => {
+    const title = index === 0;
+    ctx.font = title ? "600 72px ui-monospace, monospace" : "34px ui-monospace, monospace";
+    ctx.fillStyle = title ? "#7ef0ff" : "#d7f7ff";
+    ctx.fillText(line, 96, y);
+    y += title ? 96 : line ? 48 : 26;
+  });
+  const tex = new CanvasTexture(canvas);
+  tex.colorSpace = SRGBColorSpace;
+  tex.needsUpdate = true;
+  return tex;
+}
 
 /** White chevron on a clear plate. Material color tints it. */
 function chevronMap(dir: -1 | 1): CanvasTexture {
@@ -137,6 +185,8 @@ export function Television({
   onForward,
   trackDish = true,
   openable = true,
+  interactive = false,
+  cardLines = null,
 }: Props) {
   const rightEar = useRef<Group>(null);
   const anchor = useRef<Mesh>(null);
@@ -167,8 +217,30 @@ export function Television({
     };
   }, [wood, grille, glowMap, backMark, forwardMark, screenGeo, screenMat]);
 
+  const cardKey = cardLines?.join("\n") ?? "";
+
   useEffect(() => {
-    if (!url) return;
+    if (!cardKey) return;
+    const tex = cardTexture(cardKey.split("\n"));
+    const prev = screenMat.uniforms.uMap.value as { dispose?: () => void };
+    screenMat.uniforms.uMap.value = tex;
+    screenMat.uniforms.uHasMap.value = 1;
+    if (prev && prev !== tex) prev.dispose?.();
+    return () => {
+      if (screenMat.uniforms.uMap.value === tex) {
+        screenMat.uniforms.uMap.value = blankTexture();
+        screenMat.uniforms.uHasMap.value = 0;
+      }
+      tex.dispose();
+    };
+  }, [cardKey, screenMat]);
+
+  useEffect(() => {
+    if (cardKey) return;
+    if (!url) {
+      screenMat.uniforms.uHasMap.value = 0;
+      return;
+    }
     let cancel = false;
     const loader = new TextureLoader();
     loader.load(url, (tex) => {
@@ -187,15 +259,21 @@ export function Television({
     return () => {
       cancel = true;
     };
-  }, [url, screenMat]);
+  }, [url, cardKey, screenMat]);
 
   useFrame((state) => {
     const sample = acquire.sample();
     const flicker = sample.snow > 0.35 ? 0.86 + 0.14 * Math.sin(state.clock.elapsedTime * 42) : 1;
     const uniforms = (screenMat as ShaderMaterial).uniforms;
-    uniforms.uSnow.value = sample.snow;
-    uniforms.uRoll.value = sample.roll;
-    uniforms.uPower.value = sample.power * flicker;
+    if (cardKey) {
+      uniforms.uSnow.value = 0.04;
+      uniforms.uRoll.value = 0;
+      uniforms.uPower.value = 1;
+    } else {
+      uniforms.uSnow.value = sample.snow;
+      uniforms.uRoll.value = sample.roll;
+      uniforms.uPower.value = sample.power * flicker;
+    }
     uniforms.uTime.value = state.clock.elapsedTime;
 
     if (rightEar.current) {
@@ -213,7 +291,7 @@ export function Television({
     }
     if (dishFace.current) dishFace.current.emissiveIntensity = 0.12 + sample.beam * 2.6;
     if (led.current) {
-      const locked = sample.caption > 0.6 && sample.snow < 0.25;
+      const locked = !cardKey && sample.caption > 0.6 && sample.snow < 0.25;
       led.current.color.set(locked ? "#8dffb0" : "#ffb15a");
       led.current.emissive.set(locked ? "#39ff86" : "#ff8a2a");
       led.current.emissiveIntensity = locked ? 1.4 : 0.7 + sample.snow;
@@ -241,10 +319,10 @@ export function Television({
         material={screenMat}
         onClick={(event) => {
           event.stopPropagation();
-          if (url && openable) onOpen();
+          if ((url || interactive) && openable) onOpen();
         }}
         onPointerOver={() => {
-          if (url && openable) document.body.style.cursor = "pointer";
+          if ((url || interactive) && openable) document.body.style.cursor = "pointer";
         }}
         onPointerOut={() => {
           document.body.style.cursor = "";

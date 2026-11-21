@@ -58,6 +58,14 @@ body {
   color: #7ef0ff;
 }
 
+.lower.fault .headline {
+  color: #e8fbff;
+}
+
+.lower.fault .caption {
+  color: #b7e7ea;
+}
+
 .headline {
   margin: 0.35rem 0 0.45rem;
   max-width: 38rem;
@@ -92,8 +100,19 @@ body {
   color: #ff9ad6;
 }
 
+.meta a.home {
+  position: relative;
+  z-index: 4;
+  color: #7ef0ff;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  text-decoration: underline;
+  text-underline-offset: 0.22em;
+}
+
 .pass {
   position: fixed;
+  z-index: 4;
   top: calc(0.9rem + env(safe-area-inset-top));
   left: 50%;
   transform: translateX(-50%);
@@ -105,6 +124,7 @@ body {
   font-size: 0.72rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
+  text-decoration: none;
   padding: 0.4rem 0.7rem;
   border-radius: 999px;
   cursor: pointer;

@@ -82,7 +82,7 @@ Beelink install: [`docs/BEELINK-INSTALL.md`](docs/BEELINK-INSTALL.md).
 
 ### Public television
 
-`public/` is the site visitors see: a tube set in space, tuned to finished plates. It does not generate or post. Prompts and keys stay on the studio machine. Click the picture and that same set fills the screen, satellites still linked, still floating and turning. Click the empty space and it snaps back to the original size. The knobs stay under the screen. `<` on the left steps back toward the newest plate. `>` on the right steps forward through the older plates. The text under the set is the whole post. A post links to `https://planethack.space/p/<code>`, seven letters and digits, and that address opens the same plate. The run id opens it too.
+`public/` is the site visitors see: a tube set in space, tuned to finished plates. It does not generate or post. Prompts and keys stay on the studio machine. Click the picture and that same set fills the screen, satellites still linked, still floating and turning. Click the empty space and it snaps back to the original size. The knobs stay under the screen. `<` on the left steps back toward the newest plate. `>` on the right steps forward through the older plates. The text under the set is the whole post. A plate the wire does not have, or a picture that never landed, stays snow on the glass and opens onto a carrier-lost card. A post links to `https://planethack.space/p/<code>`, seven letters and digits, and that address opens the same plate. The run id opens it too.
 
 ```bash
 make public-feed       # art/ → public/public/feed.json and media/*.jpg

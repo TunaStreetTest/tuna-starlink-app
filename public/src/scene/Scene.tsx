@@ -67,13 +67,26 @@ type StageProps = {
   canBack: boolean;
   canForward: boolean;
   open: boolean;
+  interactive?: boolean;
+  cardLines?: string[] | null;
   onOpen: () => void;
   onClose: () => void;
   onBack: () => void;
   onForward: () => void;
 };
 
-export function Stage({ url, canBack, canForward, open, onOpen, onClose, onBack, onForward }: StageProps) {
+export function Stage({
+  url,
+  canBack,
+  canForward,
+  open,
+  interactive = false,
+  cardLines = null,
+  onOpen,
+  onClose,
+  onBack,
+  onForward,
+}: StageProps) {
   const narrow = useNarrow();
   const reduced = acquire.reduced;
   const set = (
@@ -84,6 +97,8 @@ export function Stage({ url, canBack, canForward, open, onOpen, onClose, onBack,
       onOpen={onOpen}
       onBack={onBack}
       onForward={onForward}
+      interactive={interactive}
+      cardLines={cardLines}
     />
   );
 

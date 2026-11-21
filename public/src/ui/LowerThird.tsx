@@ -8,9 +8,14 @@ type Props = {
   emptyLabel: string;
   showHint: boolean;
   onLive: () => void;
+  hintLabel?: string;
   generation: number;
   /** Plate is open: keep the page text up while the channel changes. */
   hold?: boolean;
+  /** Replaces the Planet Hack mark on a dead channel. */
+  kicker?: string | null;
+  /** Real navigation off a missing plate. A button can leave the address stuck. */
+  homeHref?: string | null;
 };
 
 function when(iso: string): string {
@@ -25,8 +30,29 @@ function when(iso: string): string {
   });
 }
 
-export function LowerThird({ post, emptyLabel, showHint, onLive, generation, hold = false }: Props) {
+export function LowerThird({
+  post,
+  emptyLabel,
+  showHint,
+  onLive,
+  hintLabel = "new pass",
+  generation,
+  hold = false,
+  kicker = null,
+  homeHref = null,
+}: Props) {
   const [visible, setVisible] = useState(false);
+  const [faultIn, setFaultIn] = useState(false);
+
+  useEffect(() => {
+    if (!kicker) {
+      setFaultIn(false);
+      return;
+    }
+    setFaultIn(false);
+    const id = window.setTimeout(() => setFaultIn(true), 90);
+    return () => window.clearTimeout(id);
+  }, [kicker, post?.id, post?.headline]);
 
   useEffect(() => {
     setVisible(acquire.sample().caption > 0.55);
@@ -41,17 +67,21 @@ export function LowerThird({ post, emptyLabel, showHint, onLive, generation, hol
   }, [generation]);
 
   const stamp = post ? when(post.at) : "";
-  const shown = hold || (post ? visible : true);
+  const shown = kicker ? faultIn : hold || (post ? visible : true);
 
   return (
     <>
-      {showHint ? (
+      {homeHref ? (
+        <a className="pass" href={homeHref}>
+          live plates
+        </a>
+      ) : showHint ? (
         <button type="button" className="pass" onClick={onLive}>
-          new pass
+          {hintLabel}
         </button>
       ) : null}
-      <div className={shown ? "lower on" : "lower"}>
-        <div className="bug">Planet Hack</div>
+      <div className={shown ? (kicker ? "lower on fault" : "lower on") : kicker ? "lower fault" : "lower"}>
+        <div className="bug">{kicker ?? "Planet Hack"}</div>
         {post ? (
           <>
             <h1 className="headline">{post.headline}</h1>
@@ -61,6 +91,11 @@ export function LowerThird({ post, emptyLabel, showHint, onLive, generation, hol
               {post.x_url ? (
                 <a href={post.x_url} target="_blank" rel="noopener noreferrer">
                   on X
+                </a>
+              ) : null}
+              {homeHref ? (
+                <a className="home" href={homeHref}>
+                  The live picture is still on the set.
                 </a>
               ) : null}
             </p>

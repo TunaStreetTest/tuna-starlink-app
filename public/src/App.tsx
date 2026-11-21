@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { acquire } from "./acquire";
+import { faultCard, faultPage, type FaultKind } from "./fault";
 import { useFeed, type Post } from "./feed";
 import { Stage } from "./scene/Scene";
 import { LowerThird } from "./ui/LowerThird";
@@ -36,6 +37,8 @@ export default function App() {
   const [generation, setGeneration] = useState(0);
   const [hint, setHint] = useState(false);
   const [plateOpen, setPlateOpen] = useState(false);
+  const [path, setPath] = useState(() => window.location.pathname);
+  const [imageDead, setImageDead] = useState(false);
   const postsRef = useRef<Post[]>([]);
   const channelRef = useRef<string | null>(null);
   const newestRef = useRef<string | null>(null);
@@ -64,14 +67,31 @@ export default function App() {
     const state = { plate: id };
     if (mode === "replace") history.replaceState(state, "", path);
     else history.pushState(state, "", path);
+    setPath(path);
   }, []);
 
   useEffect(() => {
+    const sync = () => setPath(window.location.pathname);
+    window.addEventListener("popstate", sync);
+    return () => window.removeEventListener("popstate", sync);
+  }, []);
+
+  useEffect(() => {
+    if (!feed.loaded) return;
     const posts = feed.posts;
+    const wanted = currentPlate(path);
+    const home = (path.replace(/\/$/, "") || "/") === "/";
+    if ((wanted && !findPlate(posts, wanted)) || (!home && !wanted)) {
+      if (channelRef.current !== null) {
+        acquire.trigger();
+        setChannelId(null);
+        channelRef.current = null;
+      }
+      return;
+    }
     if (!posts.length) return;
     if (!tunedFromUrl.current) {
       tunedFromUrl.current = true;
-      const wanted = currentPlate();
       const match = wanted ? findPlate(posts, wanted) : undefined;
       if (match) {
         onLive.current = false;
@@ -82,11 +102,20 @@ export default function App() {
         return;
       }
     }
+    if (wanted) {
+      const match = findPlate(posts, wanted);
+      if (match && channelRef.current !== match.id) {
+        onLive.current = false;
+        setHint(false);
+        retune(match.id);
+      }
+      return;
+    }
     setChannelId((current) => {
       if (current && posts.some((post) => post.id === current)) return current;
       return posts[0].id;
     });
-  }, [feed.posts, writePlateUrl]);
+  }, [feed.loaded, feed.posts, path, retune, writePlateUrl]);
 
   useEffect(() => {
     const newest = feed.posts[0]?.id ?? null;
@@ -128,33 +157,14 @@ export default function App() {
     if (!posts.length) return;
     setHint(false);
     onLive.current = true;
-    if (currentPlate()) {
+    if ((window.location.pathname.replace(/\/$/, "") || "/") !== "/") {
       urlTouched.current = true;
       history.pushState({ plate: null }, "", "/");
+      setPath("/");
+      setPlateOpen(false);
     }
     if (channelRef.current === posts[0].id) return;
     retune(posts[0].id);
-  }, [retune]);
-
-  useEffect(() => {
-    function onPop() {
-      const posts = postsRef.current;
-      const wanted = currentPlate();
-      const match = wanted ? findPlate(posts, wanted) : undefined;
-      if (match) {
-        onLive.current = false;
-        setHint(false);
-        retune(match.id);
-        return;
-      }
-      if (!posts.length) return;
-      onLive.current = true;
-      setHint(false);
-      if (channelRef.current === posts[0].id) return;
-      retune(posts[0].id);
-    }
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
   }, [retune]);
 
   useEffect(() => {
@@ -181,30 +191,69 @@ export default function App() {
 
   const post = feed.posts.find((item) => item.id === channelId) ?? null;
   const index = feed.posts.findIndex((item) => item.id === channelId);
-  const canOlder = index >= 0 && index < feed.posts.length - 1;
-  const canNewer = index > 0;
+  const wanted = currentPlate(path);
+  const home = (path.replace(/\/$/, "") || "/") === "/";
+  const missing = feed.loaded && ((wanted != null && !findPlate(feed.posts, wanted)) || (!home && !wanted));
+  const canOlder = missing ? feed.posts.length > 1 : index >= 0 && index < feed.posts.length - 1;
+  const canNewer = missing ? feed.posts.length > 0 : index > 0;
+  const fault: FaultKind | null = missing ? "missing" : imageDead ? "dead" : null;
+  const faultToken = wanted ?? "";
+  const page = fault ? faultPage(fault, faultToken) : null;
+  const showCard = fault === "missing" || (fault === "dead" && plateOpen);
   const emptyLabel = feed.loaded ? "No signal" : "Acquiring";
+
+  useEffect(() => {
+    if (!post?.image || missing) {
+      setImageDead(false);
+      return;
+    }
+    let cancel = false;
+    const probe = new Image();
+    probe.onload = () => {
+      if (!cancel) setImageDead(false);
+    };
+    probe.onerror = () => {
+      if (cancel) return;
+      setImageDead(true);
+      acquire.trigger();
+    };
+    probe.src = post.image;
+    return () => {
+      cancel = true;
+    };
+  }, [post?.image, missing]);
 
   return (
     <div className="stage">
       <Stage
-        url={post?.image ?? null}
+        url={fault ? null : (post?.image ?? null)}
         canBack={canNewer}
         canForward={canOlder}
         open={plateOpen}
-        onOpen={() => post && setPlateOpen(true)}
+        interactive={Boolean(post) || Boolean(fault)}
+        cardLines={showCard && fault ? faultCard(fault, faultToken) : null}
+        onOpen={() => {
+          if (post || fault) setPlateOpen(true);
+        }}
         onClose={() => setPlateOpen(false)}
         onBack={() => go(-1)}
         onForward={() => go(1)}
       />
       <div className="vignette" />
       <LowerThird
-        post={post}
+        post={
+          page
+            ? { id: "fault", headline: page.headline, caption: page.caption, at: "", image: "" }
+            : post
+        }
         emptyLabel={emptyLabel}
-        showHint={hint}
+        showHint={hint || missing}
+        hintLabel="new pass"
         onLive={goLive}
         generation={generation}
-        hold={plateOpen}
+        hold={plateOpen || Boolean(fault)}
+        kicker={page?.kicker ?? null}
+        homeHref={missing ? "/" : null}
       />
     </div>
   );

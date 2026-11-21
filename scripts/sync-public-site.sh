@@ -64,9 +64,13 @@ case "$mode" in
       echo "missing feed or $jpg" >&2
       exit 1
     fi
+    media="$ROOT/public/public/media"
     ssh "$PUBLIC_SSH" "mkdir -p /root/planethack/site/media"
     rsync -a "$feed" "$PUBLIC_SSH:/root/planethack/site/feed.json"
     rsync -a "$jpg" "$PUBLIC_SSH:/root/planethack/site/media/${run_id}.jpg"
+    # The feed lists every local plate. One posted jpeg used to leave the
+    # others named on the site with no file. Send the whole media dir.
+    rsync -a "$media/" "$PUBLIC_SSH:/root/planethack/site/media/"
     ;;
   *)
     usage
