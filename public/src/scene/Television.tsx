@@ -5,12 +5,14 @@ import {
   AdditiveBlending,
   CanvasTexture,
   DoubleSide,
+  BufferGeometry,
   Group,
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
   PointLight,
   SRGBColorSpace,
+  Texture,
   TextureLoader,
   Vector3,
   type ShaderMaterial,
@@ -170,11 +172,82 @@ function ChannelKnob({
 }
 
 /**
- * Walnut portable, screen on local +z. The camera starts on +z, so the face
- * points at the lens and the right ear is world +x. Cabinet depth stays 0.46
- * so the back is still the wood box when the set turns.
- * The screen fills the face. One row under it: < steps back toward the newest
- * plate, > steps forward through the older plates.
+ * One face of the set: bezel, glass, glow, grille, channel knobs, power lamp.
+ * Built in +z. The back of the cabinet is this same face turned about Y.
+ */
+function SetFace({
+  screenGeo,
+  screenMat,
+  glowMat,
+  grille,
+  backMark,
+  forwardMark,
+  ledMat,
+  canBack,
+  canForward,
+  live,
+  onOpenGlass,
+  onBack,
+  onForward,
+}: {
+  screenGeo: BufferGeometry;
+  screenMat: ShaderMaterial;
+  glowMat: MeshBasicMaterial;
+  grille: Texture;
+  backMark: CanvasTexture;
+  forwardMark: CanvasTexture;
+  ledMat: MeshStandardMaterial;
+  canBack: boolean;
+  canForward: boolean;
+  live: boolean;
+  onOpenGlass: (event: ThreeEvent<MouseEvent>) => void;
+  onBack: () => void;
+  onForward: () => void;
+}) {
+  return (
+    <group>
+      <mesh position={[0, 0.12, 0.228]}>
+        <boxGeometry args={[1.3, 0.76, 0.02]} />
+        <meshStandardMaterial color="#120e0c" roughness={0.45} metalness={0.08} />
+      </mesh>
+
+      <mesh
+        position={[0, 0.12, 0.238]}
+        geometry={screenGeo}
+        material={screenMat}
+        onClick={onOpenGlass}
+        onPointerOver={() => {
+          if (live) document.body.style.cursor = "pointer";
+        }}
+        onPointerOut={() => {
+          document.body.style.cursor = "";
+        }}
+      />
+
+      <mesh position={[0, 0.12, 0.2]} material={glowMat} raycast={() => null}>
+        <planeGeometry args={[1.46, 0.92]} />
+      </mesh>
+
+      <mesh position={[0, -0.34, 0.238]}>
+        <planeGeometry args={[1.16, 0.08]} />
+        <meshStandardMaterial map={grille} roughness={0.85} metalness={0.05} />
+      </mesh>
+
+      <ChannelKnob position={[-0.22, -0.34, 0.27]} map={backMark} enabled={canBack} onPress={onBack} />
+      <ChannelKnob position={[0.22, -0.34, 0.27]} map={forwardMark} enabled={canForward} onPress={onForward} />
+      <mesh position={[0.56, -0.34, 0.25]} material={ledMat}>
+        <sphereGeometry args={[0.012, 12, 12]} />
+      </mesh>
+    </group>
+  );
+}
+
+/**
+ * Walnut portable. The camera starts on +z, so the front face points at the
+ * lens and the right ear is world +x. Cabinet depth stays 0.46. The back
+ * carries the same screen, turned about Y, so the picture and the knobs
+ * read the same way from behind. One row under the glass: < steps back
+ * toward the newest plate, > steps forward through the older plates.
  */
 export function Television({
   url,
@@ -191,8 +264,6 @@ export function Television({
   const rightEar = useRef<Group>(null);
   const anchor = useRef<Mesh>(null);
   const dishFace = useRef<MeshStandardMaterial>(null);
-  const led = useRef<MeshStandardMaterial>(null);
-  const glowMat = useRef<MeshBasicMaterial>(null);
   const checked = useRef(false);
 
   const wood = useMemo(() => makeWood(), []);
@@ -202,6 +273,27 @@ export function Television({
   const forwardMark = useMemo(() => chevronMap(1), []);
   const screenGeo = useMemo(() => curvedScreenGeometry(1.24, 0.7), []);
   const screenMat = useMemo(() => createScreenMaterial(), []);
+  const glowMat = useMemo(
+    () =>
+      new MeshBasicMaterial({
+        map: glowMap,
+        transparent: true,
+        depthWrite: false,
+        blending: AdditiveBlending,
+        toneMapped: false,
+        opacity: 0.2,
+      }),
+    [glowMap],
+  );
+  const ledMat = useMemo(
+    () =>
+      new MeshStandardMaterial({
+        color: "#ffb15a",
+        emissive: "#ff8a2a",
+        emissiveIntensity: 0.8,
+      }),
+    [],
+  );
 
   useEffect(() => {
     return () => {
@@ -211,11 +303,13 @@ export function Television({
       backMark.dispose();
       forwardMark.dispose();
       screenGeo.dispose();
+      glowMat.dispose();
+      ledMat.dispose();
       const map = screenMat.uniforms.uMap.value as { dispose?: () => void };
       map.dispose?.();
       screenMat.dispose();
     };
-  }, [wood, grille, glowMap, backMark, forwardMark, screenGeo, screenMat]);
+  }, [wood, grille, glowMap, backMark, forwardMark, screenGeo, screenMat, glowMat, ledMat]);
 
   const cardKey = cardLines?.join("\n") ?? "";
 
@@ -290,15 +384,11 @@ export function Television({
       }
     }
     if (dishFace.current) dishFace.current.emissiveIntensity = 0.12 + sample.beam * 2.6;
-    if (led.current) {
-      const locked = !cardKey && sample.caption > 0.6 && sample.snow < 0.25;
-      led.current.color.set(locked ? "#8dffb0" : "#ffb15a");
-      led.current.emissive.set(locked ? "#39ff86" : "#ff8a2a");
-      led.current.emissiveIntensity = locked ? 1.4 : 0.7 + sample.snow;
-    }
-    if (glowMat.current) {
-      glowMat.current.opacity = 0.15 + sample.power * (1 - sample.snow) * 0.75;
-    }
+    const locked = !cardKey && sample.caption > 0.6 && sample.snow < 0.25;
+    ledMat.color.set(locked ? "#8dffb0" : "#ffb15a");
+    ledMat.emissive.set(locked ? "#39ff86" : "#ff8a2a");
+    ledMat.emissiveIntensity = locked ? 1.4 : 0.7 + sample.snow;
+    glowMat.opacity = 0.15 + sample.power * (1 - sample.snow) * 0.75;
   });
 
   const openGlass = (event: ThreeEvent<MouseEvent>) => {
@@ -306,55 +396,33 @@ export function Television({
     if ((url || interactive) && openable) onOpen();
   };
 
+  const face = {
+    screenGeo,
+    screenMat,
+    glowMat,
+    grille,
+    backMark,
+    forwardMark,
+    ledMat,
+    canBack,
+    canForward,
+    live: Boolean((url || interactive) && openable),
+    onOpenGlass: openGlass,
+    onBack,
+    onForward,
+  };
+
   return (
     <group position={[0, 0.12, 0]} onClick={openGlass}>
-      {/* Depth stays 0.46. The back face is this same wood box. */}
+      {/* Depth stays 0.46. The back is the same face, turned about Y. */}
       <RoundedBox args={[1.42, 0.98, 0.46]} radius={0.055} smoothness={4} position={[0, 0.04, 0]}>
         <meshStandardMaterial map={wood} roughness={0.62} metalness={0.05} color="#ffffff" />
       </RoundedBox>
 
-      <mesh position={[0, 0.12, 0.228]}>
-        <boxGeometry args={[1.3, 0.76, 0.02]} />
-        <meshStandardMaterial color="#120e0c" roughness={0.45} metalness={0.08} />
-      </mesh>
-
-      <mesh
-        position={[0, 0.12, 0.238]}
-        geometry={screenGeo}
-        material={screenMat}
-        onClick={openGlass}
-        onPointerOver={() => {
-          if ((url || interactive) && openable) document.body.style.cursor = "pointer";
-        }}
-        onPointerOut={() => {
-          document.body.style.cursor = "";
-        }}
-      />
-
-      <mesh position={[0, 0.12, 0.2]} raycast={() => null}>
-        <planeGeometry args={[1.46, 0.92]} />
-        <meshBasicMaterial
-          ref={glowMat}
-          map={glowMap}
-          transparent
-          depthWrite={false}
-          blending={AdditiveBlending}
-          toneMapped={false}
-          opacity={0.2}
-        />
-      </mesh>
-
-      <mesh position={[0, -0.34, 0.238]}>
-        <planeGeometry args={[1.16, 0.08]} />
-        <meshStandardMaterial map={grille} roughness={0.85} metalness={0.05} />
-      </mesh>
-
-      <ChannelKnob position={[-0.22, -0.34, 0.27]} map={backMark} enabled={canBack} onPress={onBack} />
-      <ChannelKnob position={[0.22, -0.34, 0.27]} map={forwardMark} enabled={canForward} onPress={onForward} />
-      <mesh position={[0.56, -0.34, 0.25]}>
-        <sphereGeometry args={[0.012, 12, 12]} />
-        <meshStandardMaterial ref={led} color="#ffb15a" emissive="#ff8a2a" emissiveIntensity={0.8} />
-      </mesh>
+      <SetFace {...face} />
+      <group rotation={[0, Math.PI, 0]}>
+        <SetFace {...face} />
+      </group>
 
       <mesh position={[-0.48, -0.48, 0.08]}>
         <boxGeometry args={[0.18, 0.045, 0.12]} />
@@ -412,12 +480,19 @@ export function Television({
 }
 
 function ScreenLamp() {
-  const light = useRef<PointLight>(null);
+  const front = useRef<PointLight>(null);
+  const back = useRef<PointLight>(null);
   useFrame(() => {
     const sample = acquire.sample();
-    if (light.current) {
-      light.current.intensity = 0.15 + sample.power * (1 - sample.snow) * 6;
-    }
+    const intensity = 0.15 + sample.power * (1 - sample.snow) * 6;
+    if (front.current) front.current.intensity = intensity;
+    if (back.current) back.current.intensity = intensity;
   });
-  return <pointLight ref={light} position={[0, 0.24, 0.95]} color="#d8fbff" distance={4.5} decay={2} />;
+  return (
+    <>
+      <pointLight ref={front} position={[0, 0.24, 0.95]} color="#d8fbff" distance={4.5} decay={2} />
+      {/* Dies before the front face, so the signed-off front light stays put. */}
+      <pointLight ref={back} position={[0, 0.24, -0.95]} color="#d8fbff" distance={0.9} decay={2} />
+    </>
+  );
 }
