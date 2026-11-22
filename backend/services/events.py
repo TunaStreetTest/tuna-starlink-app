@@ -131,6 +131,12 @@ _USED_NAME = ".news_used.json"
 _STREAM_SCHEMA = "cool-tech-v2"
 _STREAM_MAX_ITEMS = 18  # few posts/day — tiny working set
 _ITEMS_PER_FEED = 5
+# Read past the first five hits. A Tesla feed opens on FSD, and the
+# Model Y / plant / approval stories sit further down.
+_SCAN_PER_FEED = 40
+# One core cannot take every slot. 2 of 5 in a feed, 4 of 18 in the stream.
+_PER_CORE_IN_FEED = 2
+_PER_CORE_IN_STREAM = 4
 _PACK_SIZE = 1  # single story only — full text drives stream + image
 _X_SLOTS = 4  # let ranker pick the longest visualizable official clip
 _X_MIN_SCORE = 40
@@ -693,9 +699,10 @@ def _parse_rss_items(
                 "consumed_by_run": None,
             }
         )
-        if len(items) >= limit:
+        if len(items) >= _SCAN_PER_FEED:
             break
-    # Newest first within this feed batch
+    # Newest first, then a per-core cap so five FSD hits cannot hide the rest.
+    items = _take_balanced(items, limit, _PER_CORE_IN_FEED)
     items.sort(key=_freshness_key, reverse=True)
     return items
 
@@ -764,6 +771,34 @@ def _prune_stale(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return kept
 
 
+def _story_core(item: dict[str, Any]) -> str:
+    from services.styles import core_for_story
+
+    return core_for_story(str(item.get("title") or item.get("line") or ""))
+
+
+def _take_balanced(items: list[dict[str, Any]], limit: int, per_core: int) -> list[dict[str, Any]]:
+    """Newest first, with a cap so one core cannot fill the wire."""
+    ranked = sorted(items, key=_freshness_key, reverse=True)
+    counts: dict[str, int] = {}
+    keep: list[dict[str, Any]] = []
+    later: list[dict[str, Any]] = []
+    for item in ranked:
+        core = _story_core(item)
+        if counts.get(core, 0) >= per_core:
+            later.append(item)
+            continue
+        counts[core] = counts.get(core, 0) + 1
+        keep.append(item)
+        if len(keep) >= limit:
+            return keep
+    for item in later:
+        keep.append(item)
+        if len(keep) >= limit:
+            break
+    return keep
+
+
 def _trim_stream(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     items = _prune_stale(items)
     if len(items) <= _STREAM_MAX_ITEMS:
@@ -772,12 +807,11 @@ def _trim_stream(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
         return items
     unconsumed = [i for i in items if not i.get("consumed_at")]
     consumed = [i for i in items if i.get("consumed_at")]
-    # Newest stories first — never keep the oldest just because they sat unconsumed
-    unconsumed.sort(key=_freshness_key, reverse=True)
-    consumed.sort(key=_freshness_key, reverse=True)
-    keep = unconsumed[:_STREAM_MAX_ITEMS]
+    keep = _take_balanced(unconsumed, _STREAM_MAX_ITEMS, _PER_CORE_IN_STREAM)
     if len(keep) < _STREAM_MAX_ITEMS:
-        keep.extend(consumed[: _STREAM_MAX_ITEMS - len(keep)])
+        room = _STREAM_MAX_ITEMS - len(keep)
+        consumed.sort(key=_freshness_key, reverse=True)
+        keep.extend(consumed[:room])
     keep.sort(key=_freshness_key, reverse=True)
     return keep
 
@@ -1193,31 +1227,41 @@ async def get_events(
         _save_stream(stream)
         items = stream["items"]
 
+    pinned_core: str | None = None
+    recent_cores: list[str] = []
     if any_lane:
-        # The freshest story chooses the lane. A general story is not replaced
-        # by an X post from another subject.
-        from services.styles import core_for_story, search_lane_for_core
+        # A fresh story from another core beats another hour of the core just used.
+        # The pack stays inside the chosen core, so a space-lane Falcon post cannot
+        # replace a Planet Core story, and an AI post cannot ride along.
+        from services.styles import (
+            choose_story_core,
+            core_for_story,
+            recent_looks,
+            search_lane_for_core,
+        )
 
-        peeked = _tap_unconsumed(items, 1, None)
-        preview = _pack_line(peeked[0]) if peeked else ""
-        lane = search_lane_for_core(core_for_story(preview) if preview else "signal-cathedral")
-        skip_x = lane is None
-
-    rss_pool = _tap_unconsumed(items, _PACK_SIZE + 4, lane)
-    if len(rss_pool) < _PACK_SIZE:
-        more = _tap_unconsumed(items, _PACK_SIZE + 4, None)
-        seen_ids = {r["id"] for r in rss_pool}
-        for m in more:
-            if m["id"] not in seen_ids:
-                rss_pool.append(m)
-                seen_ids.add(m["id"])
-
-    # Cache hit but no fresh stories → re-hit feeds once (don't post week-old wire)
-    if len(rss_pool) < _PACK_SIZE and stats.get("cached"):
-        log.info("no fresh unconsumed stories; forcing RSS re-ingest")
-        stats = await ingest_feeds(force=True)
-        stream = _load_stream()
-        items = stream.get("items") or []
+        peeked = _tap_unconsumed(items, 40, None)
+        texts = [_pack_line(p) for p in peeked]
+        recent_cores = [row["id"] for row in recent_looks()]
+        pinned_core = choose_story_core(texts, recent_cores) if texts else None
+        if pinned_core:
+            lane = search_lane_for_core(pinned_core)
+            skip_x = lane is None
+            rss_pool = [
+                p for p in peeked if core_for_story(_pack_line(p)) == pinned_core
+            ][: _PACK_SIZE + 4]
+            log.info(
+                "pinned story core=%s lane=%s candidates=%s recent=%s",
+                pinned_core,
+                lane,
+                len(rss_pool),
+                recent_cores[:4],
+            )
+        else:
+            lane = None
+            skip_x = True
+            rss_pool = []
+    else:
         rss_pool = _tap_unconsumed(items, _PACK_SIZE + 4, lane)
         if len(rss_pool) < _PACK_SIZE:
             more = _tap_unconsumed(items, _PACK_SIZE + 4, None)
@@ -1226,6 +1270,36 @@ async def get_events(
                 if m["id"] not in seen_ids:
                     rss_pool.append(m)
                     seen_ids.add(m["id"])
+
+    # Cache hit but no fresh stories → re-hit feeds once (don't post week-old wire)
+    pool_short = len(rss_pool) < (1 if pinned_core else _PACK_SIZE)
+    if pool_short and stats.get("cached"):
+        log.info("no fresh unconsumed stories; forcing RSS re-ingest")
+        stats = await ingest_feeds(force=True)
+        stream = _load_stream()
+        items = stream.get("items") or []
+        if pinned_core:
+            from services.styles import choose_story_core, core_for_story, search_lane_for_core
+
+            peeked = _tap_unconsumed(items, 40, None)
+            texts = [_pack_line(p) for p in peeked]
+            pinned_core = choose_story_core(texts, recent_cores) if texts else pinned_core
+            lane = search_lane_for_core(pinned_core) if pinned_core else None
+            skip_x = lane is None
+            rss_pool = [
+                p
+                for p in peeked
+                if pinned_core and core_for_story(_pack_line(p)) == pinned_core
+            ][: _PACK_SIZE + 4]
+        else:
+            rss_pool = _tap_unconsumed(items, _PACK_SIZE + 4, lane)
+            if len(rss_pool) < _PACK_SIZE:
+                more = _tap_unconsumed(items, _PACK_SIZE + 4, None)
+                seen_ids = {r["id"] for r in rss_pool}
+                for m in more:
+                    if m["id"] not in seen_ids:
+                        rss_pool.append(m)
+                        seen_ids.add(m["id"])
 
     # --- X search (paid; hard gated). Prefer primary brand posts over RSS rewrites. ---
     x_hits: list[dict[str, Any]] = []
@@ -1259,6 +1333,14 @@ async def get_events(
         except Exception as e:
             x_err = str(e)
             x_hits = []
+
+    if pinned_core and x_hits:
+        from services.styles import core_for_story
+
+        def _hit_text(hit: dict[str, Any]) -> str:
+            return str(hit.get("text") or hit.get("line") or hit.get("title") or "")
+
+        x_hits = [h for h in x_hits if core_for_story(_hit_text(h)) == pinned_core]
 
     recycled = False
     if not rss_pool and not x_hits:
@@ -1313,6 +1395,7 @@ async def get_events(
             "recycled": recycled,
             "lane": lane,
             "style_id": style_id,
+            "pinned_core": pinned_core,
             "primary_title": primary.get("title") or primary.get("line"),
             "primary_source": primary.get("source"),
             "headlines": [

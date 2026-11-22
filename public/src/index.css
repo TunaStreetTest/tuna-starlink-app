@@ -50,6 +50,39 @@ body {
   transform: none;
 }
 
+.lower.sheet {
+  max-height: 36vh;
+  overflow: auto;
+  pointer-events: auto;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 40%, rgba(0, 0, 0, 0.35) 100%);
+}
+
+.lower.sheet .headline {
+  font-size: 1.05rem;
+}
+
+.cc {
+  position: fixed;
+  z-index: 6;
+  right: 0.85rem;
+  bottom: calc(0.85rem + env(safe-area-inset-bottom));
+  pointer-events: auto;
+  border: 1px solid rgba(126, 240, 255, 0.7);
+  background: rgba(6, 12, 18, 0.78);
+  color: #d8fbff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  padding: 0.35rem 0.55rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.cc.on {
+  background: rgba(126, 240, 255, 0.2);
+  color: #ffffff;
+}
+
 .bug {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.68rem;

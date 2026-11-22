@@ -45,9 +45,23 @@ _VEHICLE_LEAD = {
         "not a glow-stick shuttle, not a press photo."
     ),
     "falcon": (
-        "The hero is the SpaceX Falcon 9 booster itself: the white stage, grid fins, landing legs, "
-        "and nine engines, recognizable as Falcon 9. Neon light on that booster. Not Starship, "
-        "not a generic rocket, not a glow-stick shuttle, not a press photo."
+        "The hero is a real SpaceX Falcon 9 first stage, the flight hardware, not a redesign. "
+        "A long white cylinder. A black interstage band at the TOP, and exactly four square "
+        "titanium grid fins mounted on that interstage, never on the middle of the body. "
+        "Four landing legs at the BASE only, folded against the engine skirt or just opened. "
+        "Exactly nine Merlin engines in an octaweb: one engine in the center and eight around it. "
+        "No tenth engine. No rounded nose cone on the booster. No payload fairing on the first stage. "
+        "No heat-shield tiles. No body flaps. No wings. The white paint stays white. "
+        "Cyan and magenta are rim light and plume light, not stripes painted down the fuselage. "
+        "Not Starship, not a concept rocket, not a glow-stick shuttle, not a press photo."
+    ),
+    "starlink": (
+        "The hero is a short train of real Starlink satellites. Each one is a flat rectangular "
+        "bus with one long solar wing, the same shape repeated in a line. Recognizable as "
+        "Starlink. Not a user dish on a pole, not a cubesat, not a generic satellite with "
+        "random antennas. Not Falcon 9, not Starship. If a scene line says vehicle, it means "
+        "this satellite train. Neon is rim light on the panels and the wings. "
+        "No engines, no plume, no nose cone. Not a press photo, not a glow-stick."
     ),
 }
 
@@ -151,6 +165,65 @@ def pick_version(style_id: str, rng: random.Random | None = None) -> str:
     return rng.choice(ids)
 
 
+def primary_line(events: str) -> str:
+    """First bullet. Later lines are mood and do not pick the object or the core."""
+    for line in (events or "").splitlines():
+        text = line.strip().lstrip("-").strip()
+        if text:
+            return text
+    return (events or "").strip()
+
+
+def next_version(style_id: str, last: str | None) -> str:
+    """The skin after `last`. Order is core, then each older skin, then core again."""
+    ids = version_ids(style_id)
+    if not ids:
+        return "core"
+    if not last or last not in ids:
+        return ids[0]
+    return ids[(ids.index(last) + 1) % len(ids)]
+
+
+def recent_looks(limit: int = 24) -> list[dict[str, str]]:
+    """Newest complete plates, as style id and version."""
+    from services import art_store
+
+    out: list[dict[str, str]] = []
+    for meta in art_store.list_runs(160):
+        if meta.get("status") != "complete":
+            continue
+        sid = str(meta.get("style_id") or "")
+        if not sid:
+            continue
+        out.append({"id": sid, "version": str(meta.get("style_version") or "core")})
+        if len(out) >= limit:
+            break
+    return out
+
+
+def choose_story_core(texts: list[str], recent_cores: list[str]) -> str:
+    """Core for the next plate.
+
+    The newest story wins, unless that core was just used and another fresh
+    story maps somewhere else. A wire that is all one subject stays on it.
+    """
+    if not texts:
+        return "signal-cathedral"
+    cores = [core_for_story(text) for text in texts]
+    last = recent_cores[0] if recent_cores else None
+    recent_n: dict[str, int] = {}
+    for core in recent_cores[:4]:
+        recent_n[core] = recent_n.get(core, 0) + 1
+    best_i = 0
+    best_key: tuple[int, int, int] | None = None
+    for i, core in enumerate(cores):
+        key = (1 if core == last else 0, recent_n.get(core, 0), i)
+        if best_key is None or key < best_key:
+            best_key = key
+            best_i = i
+    return cores[best_i]
+
+
 def get_style(style_id: str | None = None, version: str | None = None) -> dict[str, Any]:
     data = _raw()
     styles = data.get("styles") or {}
@@ -189,25 +262,27 @@ def vehicle_lead(kind: str | None) -> str:
 
 
 def vehicle_kind(text: str) -> str | None:
-    """Starship or Falcon when the wire names that vehicle. Starship wins if both appear."""
+    """Starship, Falcon, or Starlink satellites. Starship wins, then Falcon."""
     if _STARSHIP_RE.search(text or ""):
         return "starship"
     if _FALCON_RE.search(text or ""):
         return "falcon"
+    if _STARLINK_RE.search(text or ""):
+        return "starlink"
     return None
 
 
 def core_for_story(text: str) -> str:
     """Which of the five cores draws this story.
 
-    Starship and Falcon 9 are Data Space. Starlink and other space news are Planet Core.
-    Nvidia and chip news are Rootkit City. AI news is Data Tunnel. Anything else is
-    Signal Cathedral.
+    Starship, Falcon 9, and Starlink satellites are Data Space, and the plate
+    shows that object. Other space news is Planet Core. Nvidia and chip news
+    are Rootkit City. AI news is Data Tunnel. Anything else is Signal Cathedral.
     """
     blob = text or ""
     if vehicle_kind(blob):
         return "data-space"
-    if _STARLINK_RE.search(blob) or _SPACE_RE.search(blob):
+    if _SPACE_RE.search(blob):
         return "planet-core"
     if _TECH_RE.search(blob):
         return "rootkit-city"
@@ -226,11 +301,26 @@ def search_lane_for_core(core: str) -> str | None:
     }.get(core)
 
 
-def style_for_story(events: str, rng: random.Random | None = None) -> dict[str, Any]:
-    """Pick a core from the story, then one of that core's skins."""
-    core = core_for_story(events)
-    style = get_style(core, version=pick_version(core, rng))
-    kind = vehicle_kind(events) if core == "data-space" else None
+def style_for_story(
+    events: str,
+    rng: random.Random | None = None,
+    recent: list[dict[str, str]] | None = None,
+) -> dict[str, Any]:
+    """Pick a core from the primary story, then the next skin of that core.
+
+    A passed rng keeps the old random skin, for tests. The cron passes recent
+    looks, or none, and walks core then each older skin.
+    """
+    text = primary_line(events)
+    core = core_for_story(text)
+    if rng is not None:
+        version = pick_version(core, rng)
+    else:
+        looks = recent_looks() if recent is None else recent
+        last = next((row["version"] for row in looks if row.get("id") == core), None)
+        version = next_version(core, last)
+    style = get_style(core, version=version)
+    kind = vehicle_kind(text) if core == "data-space" else None
     if kind:
         style["vehicle"] = kind
     return style
@@ -301,6 +391,7 @@ def scene_hint(
     salt: str,
     version: str | None = None,
     version_scene: str = "",
+    vehicle: str | None = None,
 ) -> str:
     """Composition hint for the art director — not appended to the Imagine prompt."""
     sid = str(style_id or "")
@@ -313,7 +404,8 @@ def scene_hint(
     elif sid in ("rootkit-city", "rootkit_city"):
         hint = _scene_pick(key, _ROOTKIT_CITY_SCENES, "rootkit-city")
     if sid in ("data-space", "data_space"):
-        lead = _VEHICLE_LEAD.get(vehicle_kind(salt) or "")
+        kind = vehicle or vehicle_kind(primary_line(salt))
+        lead = _VEHICLE_LEAD.get(kind or "")
         if lead:
             hint = f"{lead} {hint}".strip()
     return hint
@@ -391,14 +483,36 @@ def build_imagine_prompt(
     if style_id in ("rootkit-city", "rootkit_city"):
         shot = _sanitize_rootkit_brief(shot)
 
-    lead = shot or seed
+    shot_or_seed = shot or seed
+    lead = shot_or_seed
     kind = None
+    scene = (style.get("version_scene") or "").strip()
+    version = str(style.get("version") or "core")
+    older_scene = scene if scene and version not in ("", "core") else ""
     if style_id in ("data-space", "data_space"):
-        kind = style.get("vehicle") or vehicle_kind(source_text)
+        kind = style.get("vehicle") or vehicle_kind(primary_line(source_text))
         vehicle = _VEHICLE_LEAD.get(kind or "")
-        if vehicle:
-            lead = f"{vehicle}\n\n{lead}".strip()
-    if style_id in ("data-space", "data_space"):
+        lead = "\n\n".join(part for part in (vehicle, older_scene, shot_or_seed) if part)
+    elif older_scene:
+        lead = "\n\n".join(part for part in (older_scene, shot_or_seed) if part)
+    if kind == "falcon":
+        lock = (
+            "Wide 16:9 cinematic CGI of a real Falcon 9 first stage. White cylinder. "
+            "Black interstage at the top. Exactly four grid fins, only on that interstage. "
+            "Four landing legs, only at the base. Exactly nine Merlin engines in an octaweb: "
+            "one center, eight around. No tenth engine. No nose cone. No heat-shield tiles. "
+            "No body flaps. No wings. The white paint stays white. Neon is rim light and the "
+            "plume, not stripes on the fuselage. Not Starship. Not a concept rocket. "
+            "Zero humans, no logos, no readable text."
+        )
+    elif kind == "starlink":
+        lock = (
+            "Wide 16:9 cinematic CGI of real Starlink satellites: flat rectangular buses, "
+            "each with one long solar wing, flying as a short train. Not a user dish, "
+            "not a cubesat, not Falcon 9, not Starship. Neon is rim light on the panels. "
+            "Earth or a starfield behind. Zero humans, no logos, no readable text."
+        )
+    elif style_id in ("data-space", "data_space"):
         lock = (
             "Wide 16:9 cinematic CGI. Real metal and planet surface; neon is LIGHT on "
             "those materials and the rings. The named vehicle has presence and is that "

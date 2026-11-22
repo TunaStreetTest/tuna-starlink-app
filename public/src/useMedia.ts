@@ -18,6 +18,11 @@ export function useNarrow(): boolean {
   return useMatch("(max-width: 720px)");
 }
 
+/** Phone, a short window, or the X in-app browser. The post stays behind CC. */
+export function useCompact(): boolean {
+  return useMatch("(max-width: 720px), (max-height: 640px)");
+}
+
 export function useReducedMotion(): boolean {
   return useMatch("(prefers-reduced-motion: reduce)");
 }

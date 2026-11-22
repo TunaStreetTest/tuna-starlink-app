@@ -8,7 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from services.styles import build_imagine_prompt, scene_hint  # noqa: E402
+from services.styles import build_imagine_prompt, core_for_story, scene_hint  # noqa: E402
 from services.xai_imagine import imagine_generate_kwargs  # noqa: E402
 from services.wire_quality import (  # noqa: E402
     expand_handles,
@@ -113,6 +113,22 @@ class FluffAndEvents(unittest.TestCase):
         )
         self.assertTrue(is_fluff(t))
         self.assertFalse(wire_accept(t))
+
+    def test_accepts_a_cathedral_story_that_is_not_a_launch(self):
+        model_y = "Tesla plans Model Y without a steering wheel or pedals - CarExpert"
+        plant = "Tesla pours $3.3 billion into a Berlin Cybercab plant as production starts"
+        italy = "Italy gives green light to Tesla self-driving system ahead of EU approval"
+        for text in (model_y, plant, italy):
+            self.assertTrue(wire_accept(text), text)
+            self.assertEqual(core_for_story(text), "signal-cathedral")
+
+    def test_rejects_a_crash_and_a_stock_page(self):
+        self.assertFalse(wire_accept(
+            "1 dead, 3 critically injured in a two-Tesla crash, DUI suspected, police say"
+        ))
+        self.assertFalse(wire_accept(
+            "Tesla Inc (TSLA.O) stock price and latest shareholders news today"
+        ))
 
     def test_rejects_risk_report(self):
         t = (

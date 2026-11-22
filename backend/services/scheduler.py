@@ -1,7 +1,8 @@
-"""Hourly scheduler — one plate at minute 0, all day, America/New_York.
+"""Plate scheduler — one plate every two hours, America/New_York.
 
 Cost: each fire = 1 Imagine image (+ 2 chat calls) + one X post.
-Peak window and the daily cap are not applied, even when the env still names them.
+Less than hourly. Peak window, SCHEDULE_CRON, and the daily cap are not applied,
+even when the env still names them.
 """
 
 from __future__ import annotations
@@ -127,9 +128,14 @@ def claim_hour(hour: str) -> bool:
     return True
 
 
+def plate_trigger(tz: ZoneInfo | None = None) -> CronTrigger:
+    """Minute 0 of every second hour. No peak window."""
+    return CronTrigger(minute=0, hour="*/2", second=0, timezone=tz or _tz())
+
+
 def hourly_trigger(tz: ZoneInfo | None = None) -> CronTrigger:
-    """Minute 0 of every hour. No peak window."""
-    return CronTrigger(minute=0, second=0, timezone=tz or _tz())
+    """Same trigger the job uses. The name stayed so older callers still find it."""
+    return plate_trigger(tz)
 
 
 def wire_has_nothing(exc: BaseException) -> bool:
@@ -216,11 +222,11 @@ def start_scheduler() -> AsyncIOScheduler | None:
 
     tz = _tz()
     sched = AsyncIOScheduler(timezone=tz)
-    # Top of every hour. A fire still running is skipped (max_instances=1).
-    # Peak hours and the daily cap in the env are not read.
+    # Minute 0 of every second hour. A fire still running is skipped.
+    # Peak hours, SCHEDULE_CRON, and the daily cap in the env are not read.
     sched.add_job(
         _job,
-        trigger=hourly_trigger(tz),
+        trigger=plate_trigger(tz),
         id="planethack-hourly",
         replace_existing=True,
         max_instances=1,
@@ -230,7 +236,7 @@ def start_scheduler() -> AsyncIOScheduler | None:
     sched.start()
     _scheduler = sched
     log.info(
-        "scheduler started hourly minute=0 tz=%s (peak window and daily cap ignored)",
+        "scheduler started every 2 hours minute=0 tz=%s (peak window and daily cap ignored)",
         settings.SCHEDULE_TIMEZONE,
     )
     return sched

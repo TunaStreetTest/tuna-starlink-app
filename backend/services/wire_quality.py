@@ -62,6 +62,8 @@ _FLUFF_RE = re.compile(
 
 # A real event the series can metaphorize — not "brand tweeted today".
 # Brands themselves are NOT events (NVIDIA posting a game ad still says NVIDIA).
+# The last group is the Signal Cathedral material: a car, a plant, an approval.
+# Those stories do not say launch, chip, or FSD, and the old pattern dropped them.
 _EVENT_RE = re.compile(
     r"\b("
     r"launch(?:es|ed|ing)?|landing|landed|splashdown|orbit(?:al|s)?|"
@@ -71,8 +73,25 @@ _EVENT_RE = re.compile(
     r"silicon|wafer|chip|cpu|compute\s+tray|tensor\s+core|ai\s+chip|"
     r"gpt-?\d|grok[- ]?\d|open[- ]?weights|"
     r"model\s+(release|launch|weights|checkpoint)|"
-    r"optimus|dojo|robotaxi|\bfsd\b|full\s+self[- ]?driving|"
-    r"unveils?|unveiled|now\s+available"
+    r"optimus|dojo|robo-?taxis?|\bfsd\b|full\s+self[- ]?driving|self[- ]driving|"
+    r"unveils?|unveiled|now\s+available|"
+    r"plans?|planned|plant|factory|gigafactory|"
+    r"cybercabs?|cybertrucks?|roadster|steering\s+wheel|"
+    r"model\s*[ysx3]\b|"
+    r"approv(?:e|es|ed|al)|green\s+light|"
+    r"orders?|deliver(?:y|ies|ed)|production|polysilicon|solar\s+roof"
+    r")\b",
+    re.I,
+)
+
+# Cool-tech words that are still not a plate: a crash, a quote page, a roundup.
+_OFF_PLATE_RE = re.compile(
+    r"\b("
+    r"duis?|crashes\s+into|killed|critically\s+(?:injured|hurt)|"
+    r"catches\s+fire|caught\s+fire|car\s+fire|"
+    r"stock\s+price|share\s+price|shareholders|institutions\s+held|"
+    r"buying\s+guide|top\s+stories|this\s+week\s+in|"
+    r"mergers?|\bipo\b"
     r")\b",
     re.I,
 )
@@ -109,7 +128,7 @@ def wire_accept(text: str) -> bool:
     t = (text or "").strip()
     if len(t) < 24:
         return False
-    if is_fluff(t):
+    if is_fluff(t) or _OFF_PLATE_RE.search(t):
         return False
     return is_visualizable_event(t)
 

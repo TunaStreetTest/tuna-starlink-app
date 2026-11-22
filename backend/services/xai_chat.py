@@ -38,13 +38,16 @@ SERIES LOCK:
 - Metaphor the PRIMARY wire story only (SpaceX / GPU / AI / silicon / orbital).
 
 STYLE (one hero, not a packed catalog):
-- Data Space: cinematic CGI FROM orbit (July 28). 3/4 fly-by. If the wire names
-  Starship, the hero is SpaceX Starship itself (stainless steel, body flaps). If the
-  wire names Falcon 9, the hero is that Falcon 9 booster (grid fins, landing legs,
-  nine engines). Never a generic ship and never the other vehicle. Cyan signal light
-  on that real hull; night-side Earth with city lights; cyan-magenta data rings;
-  volumetric plume. NEVER Tron outlines. NEVER a centered HUD globe. NEVER a
-  circuit-board Earth.
+- Data Space: cinematic CGI FROM orbit (July 28). 3/4 fly-by. The object pool is
+  Starship, Falcon 9, and Starlink satellites, and the lock names which one.
+  Starship is the stainless-steel ship with body flaps. Falcon 9 is the real first
+  stage: white cylinder, black interstage, four grid fins only at the top, four
+  landing legs only at the base, nine Merlin engines in an octaweb. No nose cone,
+  no heat tiles, no body flaps, no racing stripes on the white paint. Starlink is
+  a train of flat satellites, each with one solar wing. Never a generic ship and
+  never the other object. Cyan signal light on that real hull; night-side Earth
+  with city lights; cyan-magenta data rings; volumetric plume. NEVER Tron outlines.
+  NEVER a centered HUD globe. NEVER a circuit-board Earth.
 - Planet Core: interior mainframe — jacked wireframe Earth in a neon lattice of
   real metal-glass. NEVER a washed globe in god-rays.
 - Data Tunnel: physical conduit (metal-glass ribs) packed with cyan/magenta packet
@@ -136,6 +139,7 @@ async def craft_art_brief(events: str, style: dict) -> str:
         events,
         version=style.get("version"),
         version_scene=style.get("version_scene") or "",
+        vehicle=style.get("vehicle"),
     )
     hint_block = ""
     if hint:

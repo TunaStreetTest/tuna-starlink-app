@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { acquire } from "../acquire";
 import type { Post } from "../feed";
+import { useCompact } from "../useMedia";
 
 type Props = {
   post: Post | null;
@@ -17,6 +18,18 @@ type Props = {
   /** Real navigation off a missing plate. A button can leave the address stuck. */
   homeHref?: string | null;
 };
+
+function bodyAfterHeadline(headline: string, caption: string): string {
+  const parts = caption.split(/\n\s*\n/);
+  const first = (parts[0] || "").replace(/\s+/g, " ").trim();
+  const head = headline.replace(/\s+/g, " ").trim();
+  if (!head || !first) return caption;
+  const n = Math.min(40, head.length, first.length);
+  if (n >= 24 && (first.slice(0, n) === head.slice(0, n) || head.slice(0, n) === first.slice(0, n))) {
+    return parts.slice(1).join("\n\n").trim();
+  }
+  return caption;
+}
 
 function when(iso: string): string {
   if (!iso) return "";
@@ -41,8 +54,10 @@ export function LowerThird({
   kicker = null,
   homeHref = null,
 }: Props) {
+  const compact = useCompact();
   const [visible, setVisible] = useState(false);
   const [faultIn, setFaultIn] = useState(false);
+  const [captionsOn, setCaptionsOn] = useState(false);
 
   useEffect(() => {
     if (!kicker) {
@@ -66,11 +81,36 @@ export function LowerThird({
     return () => cancelAnimationFrame(frame);
   }, [generation]);
 
+  useEffect(() => {
+    setCaptionsOn(false);
+  }, [post?.id]);
+
   const stamp = post ? when(post.at) : "";
-  const shown = kicker ? faultIn : hold || (post ? visible : true);
+  const shown = kicker
+    ? faultIn
+    : compact
+      ? !post || captionsOn
+      : hold || (post ? visible : true);
+  const sheet = compact && captionsOn && !kicker;
+  const caption = post?.caption
+    ? sheet
+      ? bodyAfterHeadline(post.headline, post.caption)
+      : post.caption
+    : "";
 
   return (
     <>
+      {compact && post && !kicker ? (
+        <button
+          type="button"
+          className={captionsOn ? "cc on" : "cc"}
+          aria-pressed={captionsOn}
+          aria-label={captionsOn ? "Hide captions" : "Show captions"}
+          onClick={() => setCaptionsOn((open) => !open)}
+        >
+          CC
+        </button>
+      ) : null}
       {homeHref ? (
         <a className="pass" href={homeHref}>
           live plates
@@ -80,12 +120,17 @@ export function LowerThird({
           {hintLabel}
         </button>
       ) : null}
-      <div className={shown ? (kicker ? "lower on fault" : "lower on") : kicker ? "lower fault" : "lower"}>
+      <div
+        className={
+          (shown ? (kicker ? "lower on fault" : "lower on") : kicker ? "lower fault" : "lower") +
+          (sheet ? " sheet" : "")
+        }
+      >
         <div className="bug">{kicker ?? "Planet Hack"}</div>
         {post ? (
           <>
             <h1 className="headline">{post.headline}</h1>
-            {post.caption ? <p className="caption">{post.caption}</p> : null}
+            {caption ? <p className="caption">{caption}</p> : null}
             <p className="meta">
               {stamp ? <span>{stamp}</span> : null}
               {post.x_url ? (

@@ -1,4 +1,4 @@
-"""Plate URL on the X post, and an hourly trigger that is not the old peak window."""
+"""Plate URL on the X post, and a two-hour trigger that is not the old peak window."""
 
 from __future__ import annotations
 
@@ -75,19 +75,25 @@ class HourlySchedule(unittest.TestCase):
     def setUp(self) -> None:
         scheduler._fired_hour = None
 
-    def test_next_fire_is_the_next_clock_hour_outside_the_old_peak(self) -> None:
-        # 15:30 Eastern is outside the old 19:00–22:00 window.
+    def test_next_fire_is_the_next_even_hour_outside_the_old_peak(self) -> None:
+        # 15:30 Eastern is outside the old 19:00–22:00 window. Next plate is 16:00.
         now = datetime(2026, 11, 15, 15, 30, tzinfo=TZ)
-        nxt = scheduler.hourly_trigger(TZ).get_next_fire_time(None, now)
+        nxt = scheduler.plate_trigger(TZ).get_next_fire_time(None, now)
         self.assertIsNotNone(nxt)
         assert nxt is not None
         self.assertEqual(nxt.hour, 16)
         self.assertEqual(nxt.minute, 0)
         self.assertEqual(nxt.tzinfo, TZ)
 
+    def test_an_even_hour_does_not_fire_again_on_the_odd_hour(self) -> None:
+        now = datetime(2026, 11, 15, 16, 10, tzinfo=TZ)
+        nxt = scheduler.plate_trigger(TZ).get_next_fire_time(None, now)
+        assert nxt is not None
+        self.assertEqual((nxt.hour, nxt.minute), (18, 0))
+
     def test_overnight_hour_still_fires(self) -> None:
         now = datetime(2026, 11, 15, 3, 10, tzinfo=TZ)
-        nxt = scheduler.hourly_trigger(TZ).get_next_fire_time(None, now)
+        nxt = scheduler.plate_trigger(TZ).get_next_fire_time(None, now)
         assert nxt is not None
         self.assertEqual((nxt.hour, nxt.minute), (4, 0))
 

@@ -11,7 +11,8 @@ series:
     Neon-night matrix CGI, wide 16:9. Void black. Saturated cyan, magenta, and
     acid-green are the color of the scene. Zero humans. No logos, flags, readable
     text, lightning, lava, or god-ray cathedral haze. No press photo with the neon
-    stripped off. When the story names Starship or Falcon 9, that vehicle is the hero.
+    stripped off. When the story names Starship, Falcon 9, or Starlink satellites,
+    that object is the hero.
 
 default: data-tunnel
 
@@ -20,15 +21,21 @@ styles:
     label: Data Space
     hashtag: DataSpace
     lane: space
-    description: Cinematic neon space art — craft, planet, cyan-magenta data rings.
+    description: Cinematic neon space art — Starship, Falcon 9, or a Starlink satellite train.
     art_director_notes: >
-      Starship or Falcon 9 as cinematic digital art FROM orbit — the July 28 look:
-      that real vehicle LARGE in frame, flying past a planet wrapped in cyan-magenta data rings.
-      Starship means the stainless-steel ship with its body flaps. Falcon 9 means that white
-      booster with grid fins, landing legs, and nine engines. Never a generic ship, never
-      the other vehicle, never a "inspired" stand-in.
+      One object from the space pool, large in frame, the July 28 look: that real object
+      flying past a planet wrapped in cyan-magenta data rings.
+      Starship means the stainless-steel ship with its body flaps.
+      Falcon 9 means the real first stage. White cylinder. Black interstage at the top.
+      Four grid fins only on that interstage. Four landing legs only at the base.
+      Nine Merlin engines in an octaweb, one center and eight around. No nose cone,
+      no heat-shield tiles, no body flaps, no wings, no racing stripes on the white paint.
+      Starlink means a short train of flat rectangular satellites, each with one long
+      solar wing. Not a user dish. Never a generic ship, never the other object,
+      never a stand-in.
       Camera is 3/4, low, or fly-by. NEVER a centered product-shot globe. NEVER a HUD.
-      Real metal panels, cyan signal light along seams, volumetric magenta/green plume.
+      Real materials. On Falcon 9 the white paint stays white: cyan is rim light, not a
+      stripe down the body. Volumetric magenta/green plume.
       Earth may look like Earth from orbit (oceans, night-side city lights) with neon
       telemetry OVER it — do not replace continents with a circuit board. Rings are
       luminous packet streams, not UI. Hero is NEVER a person. No crew windows with faces.
@@ -36,23 +43,23 @@ styles:
       BAN: Tron tube-outlines, glow-stick shuttle, HUD reticles, circuit-board globe,
       floating crystals, clipart Earth, god-rays, a press photo with the neon stripped off.
     prompt_seed: >
-      Wide 16:9 cinematic CGI, 3/4 fly-by of the real vehicle large in frame, cyan signal
-      light along its panels, night-side Earth with city lights behind, thick cyan-magenta
-      data rings wrapping the planet, volumetric magenta-green engine plume, starfield and
-      nebula depth, finished still — the vehicle is the one named in the story, not a generic
-      ship, not Tron outlines, not a glow-stick shuttle, not a HUD globe, not a press photo,
-      no people, no logos
+      Wide 16:9 cinematic CGI, 3/4 fly-by of the object named in the vehicle lock, large
+      in frame, night-side Earth with city lights behind, thick cyan-magenta data rings
+      wrapping the planet, volumetric magenta-green plume, starfield and nebula depth —
+      that real object, not a generic ship, not Tron outlines, not a glow-stick shuttle,
+      not a HUD globe, not a press photo, no people, no logos
     versions:
       deep-field:
         scene: >
-          SCENE: deep space, not an Earth product shot. The hero vehicle is mid-field against
+          SCENE: deep space, not an Earth product shot. The hero object is mid-field against
           a dense starfield and a nebula shelf, a second planet small on the limb, one thin
-          cyan ring far behind. Vehicle still large enough to know which ship it is.
+          cyan ring far behind. Large enough to know which object it is. A Starlink train
+          stays flat buses with solar wings, and it has no plume.
         art_director_notes: >
-          Same franchise neon, different place: deep field. The named vehicle (Starship or
-          Falcon 9, exactly that ship) sits against stars and a nebula, with a planet on the
-          limb rather than filling the frame. One thin data ring, not the Earth-belt close-up.
-          Real materials, cyan light on the hull, magenta in the plume. No generic craft.
+          Same franchise neon, different place: deep field. The named object sits against
+          stars and a nebula, with a planet on the limb rather than filling the frame.
+          One thin data ring, not the Earth-belt close-up. Obey the vehicle lock for the
+          shape. Starlink satellites have no engines and no plume. No generic craft.
         prompt_seed: >
           Wide 16:9 cinematic CGI, the real named vehicle in deep space, large enough to
           recognize, dense starfield, nebula shelf, a planet only on the limb, one thin cyan
@@ -60,12 +67,13 @@ styles:
           not an Earth close-up, not a generic ship, no people, no logos
       limb-climb:
         scene: >
-          SCENE: low angle, the hero vehicle climbing along the bright limb of Earth, plume
-          down, data rings seen edge-on as a thin ellipse. Hull fills the left third.
+          SCENE: low angle, the hero object climbing along the bright limb of Earth, data
+          rings edge-on as a thin ellipse. A rocket shows its plume downward. A Starlink
+          train shows solar wings and no plume. The object fills the left third.
         art_director_notes: >
-          Climbing shot. The named vehicle rises along Earth's limb, engines toward the
-          bottom of the frame, rings edge-on. Starship is the steel ship with flaps. Falcon 9
-          is the white booster with grid fins and landing legs. Cyan limb-light, magenta plume.
+          Climbing shot. The named object rises along Earth's limb, rings edge-on. Obey
+          the vehicle lock for the shape. A rocket's engines point toward the bottom of
+          the frame. Starlink satellites have no engines and no plume. Cyan limb-light.
           Not a centered globe. Not a generic rocket.
         prompt_seed: >
           Wide 16:9 cinematic CGI, low angle of the real named vehicle climbing Earth's bright

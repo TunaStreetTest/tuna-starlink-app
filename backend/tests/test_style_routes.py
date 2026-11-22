@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from services import styles  # noqa: E402
 from services.styles import (  # noqa: E402
     build_imagine_prompt,
+    choose_story_core,
     core_for_story,
     search_lane_for_core,
     style_for_story,
@@ -32,6 +33,14 @@ class StoryRoutes(unittest.TestCase):
     def test_other_subjects(self) -> None:
         self.assertEqual(
             core_for_story("Starlink direct to cell adds another satellite pass."),
+            "data-space",
+        )
+        self.assertEqual(
+            vehicle_kind("Starlink direct to cell adds another satellite pass."),
+            "starlink",
+        )
+        self.assertEqual(
+            core_for_story("SpaceX Dragon cargo ship splashes down off the coast."),
             "planet-core",
         )
         self.assertEqual(
@@ -90,6 +99,68 @@ class StoryRoutes(unittest.TestCase):
         self.assertIn("stainless-steel", prompt)
         self.assertNotIn("machine-craft", prompt)
         self.assertIn("not a generic spacecraft", prompt)
+
+    def test_falcon_prompt_is_the_real_first_stage(self) -> None:
+        story = "Falcon 9 launches Starlink Group 10-17 from Vandenberg."
+        got = style_for_story(story, random.Random(1))
+        self.assertEqual(got["vehicle"], "falcon")
+        prompt = build_imagine_prompt("SHOT: A neon rocket climbs past Earth.\n", got, story).lower()
+        self.assertTrue(prompt.startswith("the hero is a real spacex falcon 9"))
+        self.assertIn("octaweb", prompt)
+        self.assertIn("nine merlin", prompt)
+        self.assertIn("interstage", prompt)
+        self.assertIn("no rounded nose cone", prompt)
+        self.assertIn("no heat-shield tiles", prompt)
+        self.assertIn("white paint stays white", prompt)
+
+    def test_starlink_satellites_lead_the_data_space_plate(self) -> None:
+        story = "Starlink direct to cell adds another satellite pass."
+        got = style_for_story(story, recent=[])
+        self.assertEqual(got["id"], "data-space")
+        self.assertEqual(got["vehicle"], "starlink")
+        prompt = build_imagine_prompt("SHOT: Objects over the night side of Earth.\n", got, story).lower()
+        self.assertIn("starlink satellites", prompt)
+        self.assertIn("solar wing", prompt)
+        self.assertIn("not a user dish", prompt)
+        self.assertNotIn("falcon 9 first stage", prompt)
+
+    def test_version_walks_the_older_skins(self) -> None:
+        story = "Anthropic drops a new model checkpoint."
+        first = style_for_story(story, recent=[])
+        self.assertEqual(first["version"], "core")
+        second = style_for_story(story, recent=[{"id": "data-tunnel", "version": "core"}])
+        self.assertEqual(second["version"], "pixel-run")
+        third = style_for_story(story, recent=[{"id": "data-tunnel", "version": "pixel-run"}])
+        self.assertEqual(third["version"], "weight-stream")
+        fourth = style_for_story(story, recent=[{"id": "data-tunnel", "version": "weight-stream"}])
+        self.assertEqual(fourth["version"], "core")
+        prompt = build_imagine_prompt("SHOT: A ribbed metal tunnel.\n", second)
+        self.assertIn("pixel", prompt.lower())
+
+    def test_one_core_cannot_fill_the_wire(self) -> None:
+        from services.events import _take_balanced
+
+        rows = []
+        for n in range(8):
+            rows.append({"title": f"Tesla FSD v15 rollout note {n}", "published_at": f"2026-11-22T1{n}:00:00+00:00"})
+        rows.append({
+            "title": "Tesla plans Model Y without a steering wheel or pedals",
+            "published_at": "2026-11-22T09:00:00+00:00",
+        })
+        kept = _take_balanced(rows, limit=5, per_core=2)
+        cores = [core_for_story(row["title"]) for row in kept]
+        self.assertEqual(len(kept), 5)
+        self.assertIn("signal-cathedral", cores)
+
+    def test_next_story_leaves_a_core_that_just_ran(self) -> None:
+        texts = [
+            "Tesla FSD v15 starts rolling out to early testers.",
+            "NVIDIA releases a hotfix driver for Blackwell cards.",
+            "SpaceX Dragon cargo ship splashes down off the coast.",
+        ]
+        self.assertEqual(choose_story_core(texts, ["data-tunnel", "data-tunnel"]), "rootkit-city")
+        self.assertEqual(choose_story_core(texts[:1], ["data-tunnel"]), "data-tunnel")
+        self.assertEqual(choose_story_core(texts, []), "data-tunnel")
 
 
 if __name__ == "__main__":
