@@ -7,7 +7,7 @@ router = APIRouter(prefix="/gallery")
 
 
 @router.get("")
-async def list_gallery(limit: int = 100):
+async def list_gallery(limit: int = 0):
     runs = art_store.list_runs(limit=limit)
     # Client-friendly shape
     out = []
@@ -18,7 +18,9 @@ async def list_gallery(limit: int = 100):
                 "status": m.get("status"),
                 "style_id": m.get("style_id"),
                 "style_label": m.get("style_label"),
+                "style_version": m.get("style_version"),
                 "style_hashtag": m.get("style_hashtag"),
+                "shape": m.get("shape") or "",
                 "news_lane": m.get("news_lane"),
                 "caption": m.get("caption"),
                 "stream_slug": m.get("stream_slug"),

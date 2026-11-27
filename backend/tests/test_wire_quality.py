@@ -120,7 +120,9 @@ class FluffAndEvents(unittest.TestCase):
         italy = "Italy gives green light to Tesla self-driving system ahead of EU approval"
         for text in (model_y, plant, italy):
             self.assertTrue(wire_accept(text), text)
-            self.assertEqual(core_for_story(text), "signal-cathedral")
+        self.assertEqual(core_for_story(model_y), "signal-cathedral")
+        self.assertEqual(core_for_story(italy), "signal-cathedral")
+        self.assertEqual(core_for_story(plant), "tesla-shape")
 
     def test_rejects_a_crash_and_a_stock_page(self):
         self.assertFalse(wire_accept(

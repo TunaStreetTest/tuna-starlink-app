@@ -38,7 +38,9 @@ export type GalleryRun = {
   status: string;
   style_id?: string;
   style_label?: string;
+  style_version?: string;
   style_hashtag?: string;
+  shape?: string;
   news_lane?: string;
   caption?: string;
   stream_slug?: string;
@@ -106,7 +108,7 @@ async function post<T>(path: string, body?: unknown): Promise<T> {
 export const api = {
   health: () => get<Health>("/api/health"),
   styles: () => get<{ styles: Style[] }>("/api/styles"),
-  gallery: (limit = 50) => get<{ runs: GalleryRun[]; count: number }>(`/api/gallery?limit=${limit}`),
+  gallery: (limit = 5000) => get<{ runs: GalleryRun[]; count: number }>(`/api/gallery?limit=${limit}`),
   run: (id: string) => get<Record<string, unknown>>(`/api/gallery/${id}`),
   pipeline: () => get<PipelineStatus>("/api/pipeline"),
   generate: (style?: string, force = false) =>

@@ -52,10 +52,21 @@ STYLE (one hero, not a packed catalog):
   real metal-glass. NEVER a washed globe in god-rays.
 - Data Tunnel: physical conduit (metal-glass ribs) packed with cyan/magenta packet
   torrents. Far glow is NEON, not a white sun. NOT a vector tunnel template.
-- Signal Cathedral: neon signal-glass nave, not church light shafts through fog.
+- Signal Cathedral: a whole readable building. Camera pulled back so the nave, hall,
+  or dish tower is obvious as one structure, floor and vault together. NOT a low angle
+  gazing up into one rib. NOT a blown-up crop of one joint or window. Neon signal-glass,
+  not church light shafts through fog.
+- Space DataCenter: Starlink satellites are the computer. A field or train of flat
+  buses with one solar wing each, or one satellite large and close. Earth is a real
+  planet in the background. NOT a server building, NOT racks, NOT Falcon 9, NOT Starship.
 - Rootkit City: luminous digital city INSIDE the computer on a PCB grid. One neon-lit
   megastructure of glass and silicon. Green = building lights or code-rain.
   NOT a packed server farm. NOT Tron wireframe cubes.
+- Tesla shape on a clear plate: the hero is the named object, large. Cybertruck is the
+  stainless wedge. Cybercab is the low robotaxi pod with no steering wheel. Cabin is
+  the empty in-car view through the windshield. Optimus robots are working, no humans.
+  The place stays the clear plate (light hall, realistic space, glass tunnel). Not
+  void-black neon-night.
 
 OUTPUT ONLY this structure (no markdown fences):
 
@@ -140,6 +151,7 @@ async def craft_art_brief(events: str, style: dict) -> str:
         version=style.get("version"),
         version_scene=style.get("version_scene") or "",
         vehicle=style.get("vehicle"),
+        shape=style.get("shape"),
     )
     hint_block = ""
     if hint:
@@ -152,20 +164,49 @@ async def craft_art_brief(events: str, style: dict) -> str:
         lead = styles_svc.vehicle_lead(style.get("vehicle"))
         if lead:
             vehicle_block = f"\nVEHICLE LOCK (obey this noun): {lead}\n"
+    shape_block = ""
+    if style.get("shape"):
+        lead = styles_svc.shape_lead(style.get("shape"))
+        if lead:
+            shape_block = f"\nSHAPE LOCK (this object is the hero): {lead}\n"
+    sid = str(style.get("id") or "")
+    version = str(style.get("version") or "core")
+    if style.get("shape"):
+        closer = (
+            "SHOT must show the SHAPE LOCK object, large, inside the clear plate. "
+            "Photoreal, light, dual warm and cool. Not void-black neon-night. "
+            "Zero humans, no driver, no faces. No logos."
+        )
+    elif sid == "space-datacenter":
+        closer = (
+            "SHOT hero is Starlink satellites with Earth behind them. An array, a train, "
+            "or one satellite large and close. Flat buses, one solar wing each. Not a "
+            "server building, not racks, not Falcon 9, not Starship. Zero humans."
+        )
+    elif sid == "signal-cathedral" and version != "clear":
+        closer = (
+            "SHOT must show the whole cathedral, camera pulled back, the building obvious "
+            "in one glance. Do not write a low angle gazing up into one rib, joint, or "
+            "window. Neon on real materials, void black, no god-rays. Zero humans."
+        )
+    else:
+        closer = (
+            "SHOT is 2–5 sentences of Imagine-ready prose: one neon impossible architecture, "
+            "void black, cyan/magenta/acid-green as the scene color. ZERO people. No logos, "
+            "no god-rays, no press photo with the neon stripped off. If a vehicle lock is set, "
+            "the hero is that exact ship."
+        )
 
     user = f"""Shot type: {style.get('label')} — {style.get('description')}
 
 Shot notes:
 {style.get('art_director_notes')}
-{hint_block}{vehicle_block}
+{hint_block}{vehicle_block}{shape_block}
 Wire pack (PRIMARY = first bullet — metaphorize that one only; others are mood only):
 {events}
 
 Write SHOT/HERO/METAPHOR/LIGHT/MOOD/AVOID now.
-SHOT is 2–5 sentences of Imagine-ready prose: one neon impossible architecture,
-void black, cyan/magenta/acid-green as the scene color. ZERO people. No logos,
-no god-rays, no press photo with the neon stripped off. If a vehicle lock is set,
-the hero is that exact ship."""
+{closer}"""
 
     model = (settings.XAI_ART_MODEL or settings.XAI_CHAT_MODEL).strip()
     if settings.EDGE_TEXT == "lemonade":

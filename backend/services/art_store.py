@@ -112,7 +112,7 @@ def list_runs(limit: int = 100) -> list[dict[str, Any]]:
         meta = load_run(child.name)
         if meta:
             runs.append(meta)
-        if len(runs) >= limit:
+        if limit > 0 and len(runs) >= limit:
             break
     return runs
 

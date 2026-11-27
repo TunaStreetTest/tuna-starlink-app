@@ -27,10 +27,13 @@ Downloads: `planethack_<run_id>.png`.
 | id | Lane | Shot |
 |---|---|---|
 | `data-space` | space | Deep space — Starship, Falcon 9, or a Starlink satellite train |
+| `space-datacenter` | space | Data center in space — Starlink arrays, one satellite close, Earth behind |
 | `planet-core` | space | Planetary mainframe / orbital compute |
 | `data-tunnel` | ai | Speed data tunnel (classic vanishing-point) |
 | `signal-cathedral` | space | Starlink / RF signal cathedral |
 | `rootkit-city` | gpu | Luminous digital city inside the computer — one neon-etched hero |
+
+A Cybertruck, Cybercab, FSD cabin, or Optimus story uses the clear plate of Signal Cathedral, Data Space, Data Tunnel, or Rootkit City, and the object is in the frame. The walk is those four clear plates.
 
 Studio dropdown for manual runs (schedule **off** by default).  
 Share new styles: [`docs/STYLE-SEEDS.md`](docs/STYLE-SEEDS.md).

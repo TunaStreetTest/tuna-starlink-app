@@ -104,6 +104,8 @@ def _stamp_style(meta: dict[str, Any], style: dict[str, Any]) -> None:
     meta["style_version"] = style.get("version") or "core"
     meta["news_lane"] = style.get("lane")
     meta["series"] = style.get("series_name")
+    meta["shape"] = style.get("shape") or ""
+    meta["story_core"] = style.get("story_core") or style.get("id") or ""
 
 
 async def run_generate(

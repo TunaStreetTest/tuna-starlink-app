@@ -12,7 +12,9 @@ series:
     acid-green are the color of the scene. Zero humans. No logos, flags, readable
     text, lightning, lava, or god-ray cathedral haze. No press photo with the neon
     stripped off. When the story names Starship, Falcon 9, or Starlink satellites,
-    that object is the hero.
+    that object is the hero. A Cybertruck, Cybercab, Optimus, or an in-car Tesla
+    view is that shape, on a clear plate. A data center in space is Starlink
+    satellites with Earth behind them.
 
 default: data-tunnel
 
@@ -81,6 +83,78 @@ styles:
           data rings edge-on, city lights on the night side, recognizable ship, not a generic
           rocket, not a HUD, no people, no logos
 
+
+      clear:
+        scene: >
+          SCENE: A photoreal vehicle in a blue-black starfield,
+          warm sunlight on real metal, one small planet far away, thin cyan light only
+          as an accent. Clear air.
+        art_director_notes: >
+          Finished VFX still. Photoreal materials, dual warm and cool light, blue-clear
+          air. Neon is a small accent, not the color of the frame. The named vehicle
+          keeps its real shape. Do not restage the night-side city-light plate.
+        prompt_seed: >
+          Wide 16:9 finished VFX still, photoreal vehicle in a blue-black starfield,
+          warm sunlight on the metal, one small planet far away, thin cyan accent,
+          clear air, neon subordinate to the vehicle, no people, no logos
+  space-datacenter:
+    label: Space DataCenter
+    hashtag: SpaceDataCenter
+    lane: space
+    description: Data center in space — Starlink arrays, one satellite close, Earth behind.
+    art_director_notes: >
+      The story is a data center in space. The picture is Starlink hardware, not a
+      building and not a rack room. Flat rectangular satellites, each with one long
+      solar wing. Either a field of them, a train, or one satellite large and close.
+      Earth is a real planet in the background, oceans and clouds or night-side city
+      lights. The constellation is the computer. Neon is rim light on the panels.
+      BAN: server racks, a glass data hall, a user dish, Falcon 9, Starship, a space
+      station, a circuit-board Earth, a HUD.
+    prompt_seed: >
+      Wide 16:9 cinematic CGI, Starlink satellites as a data center in space, flat
+      rectangular buses each with one long solar wing, a field of them or one
+      satellite large and close, Earth a real planet in the background, sun and rim
+      light on the panels, not a building, not server racks, not a user dish, not
+      Falcon 9, not Starship, no people, no logos
+    versions:
+      array:
+        scene: >
+          SCENE: a wide field of identical Starlink satellites over Earth, each a flat
+          bus with one solar wing. The array fills the upper frame. Earth is large
+          below, a real planet. The array is the data center. Not a building.
+        art_director_notes: >
+          Orbital data center as a Starlink array. Many of the same flat satellites,
+          Earth large behind or below. One satellite may sit closer. Not racks, not
+          a station, not a rocket.
+        prompt_seed: >
+          Wide 16:9 cinematic CGI, a field of Starlink satellites over a real Earth,
+          flat buses, one solar wing each, the array is the data center, sun on the
+          panels, not a building, not racks, no people, no logos
+      close-pass:
+        scene: >
+          SCENE: one Starlink satellite large in the foreground, flat rectangular bus,
+          one long solar wing, panels readable. Earth fills the background. No second
+          craft. The satellite is the data center.
+        art_director_notes: >
+          One Starlink satellite, close, Earth behind it. The bus and the single solar
+          wing are obvious. Not a dish, not a cubesat, not a rocket, not a building.
+        prompt_seed: >
+          Wide 16:9 cinematic CGI, one Starlink satellite large and close, flat
+          rectangular bus, one long solar wing, Earth filling the background, the
+          satellite is the data center, not a building, not a dish, no people, no logos
+      clear:
+        scene: >
+          SCENE: photoreal Starlink satellites in blue-black space, warm sunlight on
+          the panels, Earth large behind them, thin cyan rim light only. An array, or
+          one satellite close. Clear air.
+        art_director_notes: >
+          Finished VFX still. Photoreal Starlink satellites and a real Earth. Blue-clear
+          space. Neon is a thin accent. The satellites stay flat buses with one solar
+          wing. Not a server building.
+        prompt_seed: >
+          Wide 16:9 finished VFX still, photoreal Starlink satellites in blue-black
+          space, warm sunlight, Earth large behind, one satellite close or a small
+          array, thin cyan accent, clear air, not a building, no people, no logos
   planet-core:
     label: Planet Core
     hashtag: PlanetCore
@@ -130,6 +204,20 @@ styles:
           root spike rising from it, tight layered cyan and magenta data rings, otherwise empty
           space, sharp and quiet, not an interior, not a ship, not god-rays, no people, no logos
 
+
+      clear:
+        scene: >
+          SCENE: One large photoreal planet with clouds and oceans
+          and one solid moon, in blue-black space, sunlight on the limb. Solid worlds,
+          not a wireframe.
+        art_director_notes: >
+          Finished VFX still of solid planets. Photoreal clouds, oceans, or a solar
+          system of several solid worlds. Blue-clear space. Neon is a small accent.
+          The wireframe Earth skins stay available on their own versions.
+        prompt_seed: >
+          Wide 16:9 finished VFX still, one large photoreal planet with clouds and a
+          solid moon, blue-black space, sunlight on the limb, clear air, neon
+          subordinate, no wireframe, no people, no logos
   data-tunnel:
     label: Data Tunnel
     hashtag: DataTunnel
@@ -176,51 +264,82 @@ styles:
           on collision, low camera in the flow, motion blur, void between the bricks, not a
           ribbed tunnel, not an After Effects preset, no people, no readable text
 
+
+      clear:
+        scene: >
+          SCENE: Inside a photoreal glass conduit, one vanishing
+          point, pale blue light, a few thin cyan streaks, clear air.
+        art_director_notes: >
+          Finished VFX still. Photoreal glass tunnel, blue-clear air, dual warm and
+          cool light. Neon is a thin accent. The packed neon tunnels stay on their
+          own versions.
+        prompt_seed: >
+          Wide 16:9 finished VFX still, photoreal glass conduit, one vanishing point,
+          pale blue light, thin cyan streaks, clear air, neon subordinate, no people,
+          no logos
   signal-cathedral:
     label: Signal Cathedral
     hashtag: SignalCathedral
     lane: general
     description: Signal megastructure — RF cathedral of neon glass, not church light.
     art_director_notes: >
-      Starlink / RF / space-comms story as metaphor. Colossal cathedral interior: soaring
-      beams, dish geometry, stained-glass panels of PURE SIGNAL in cyan/magenta/green
-      (no people in pews). Dense neon, not empty air. Vertical architecture in horizontal frame.
+      Starlink / RF / space-comms story as metaphor. A signal cathedral you can name
+      at a glance: the whole nave, floor and vault together, camera pulled back, room
+      around the building. Dish geometry and stained-glass panels of pure signal in
+      cyan, magenta, and acid-green. Dense neon, clear air, horizontal frame.
       Palette: electric cyan + magenta-amethyst + acid-green on charcoal/void —
       stained-glass NEON, not gold shafts through fog.
-      BAN: volumetric god-ray church haze, empty nave, pale wash, photoreal stone.
+      BAN: a low angle gazing up into one rib, a blown-up crop of one joint or window,
+      a macro, a worm's-eye texture, god-ray church haze, empty nave, pale wash, stone.
     prompt_seed: >
-      Wide 16:9 neon-night matrix CGI, colossal digital signal cathedral interior,
-      soaring engineered beams and parabolic dish geometry, cyan magenta acid-green
-      signal-glass panels (stained neon, not church windows), charcoal void depths,
-      monumental scale, sharp architectural grid, full-bleed horizontal — luminous neon
-      spectrum, no god-rays, no empty nave fog, no people
+      Wide 16:9 neon-night matrix CGI, the whole signal cathedral in frame and obvious,
+      camera pulled back so floor, walls, and vault read as one building, engineered
+      beams and parabolic dish geometry, cyan magenta acid-green signal-glass panels,
+      room around the structure, not a blown-up crop of one rib, no god-rays, no people
     versions:
       dish-tower:
         scene: >
-          SCENE: exterior. One vertical megastructure of beams and pure-form radio dishes
-          stacked up a tower, wide landscape, the tower off-center, void sky, no interior nave.
+          SCENE: exterior. The entire dish tower, from the ground to the tip, off-center
+          in a wide landscape, void sky around it. Beams and radio dishes readable as one
+          tower. Not a close-up of a single dish. No interior nave.
         art_director_notes: >
-          The early Signal Cathedral, outside. A tower of parabolic dishes and engineered
-          beams, off-center in a wide frame, cyan and magenta signal between the dishes,
-          acid-green rim light. Not a church interior, not god-rays, not a rocket, not a city.
+          The early Signal Cathedral, outside. The whole tower of parabolic dishes and
+          engineered beams, base to tip, off-center, sky around it. Cyan and magenta
+          signal between the dishes, acid-green rim light. You can tell it is a tower.
+          Not a crop of one dish, not a church interior, not god-rays, not a rocket.
         prompt_seed: >
-          Wide 16:9 neon CGI, exterior of one vertical tower built from parabolic dishes and
-          engineered beams, off-center, cyan and magenta signal between the dishes, acid-green
-          rim light, void black sky, monumental, not an interior nave, not church windows,
-          not god-rays, no people, no logos
+          Wide 16:9 neon CGI, the entire exterior dish tower from base to tip, off-center
+          with sky around it, parabolic dishes and engineered beams readable as one tower,
+          cyan and magenta signal between the dishes, acid-green rim light, not a close-up
+          of one dish, not an interior, not god-rays, no people, no logos
       array-hall:
         scene: >
-          SCENE: a long hall of repeating dish-arches receding in one point, stained neon
-          panels between the arches, floor is a dark grating, no pews, no fog shafts.
+          SCENE: the whole hall in one glance. Repeating dish-arches recede to one point,
+          small enough to count, stained neon panels between them, dark grating floor.
+          Camera pulled back. No pews, no fog shafts, not a crop of one arch.
         art_director_notes: >
-          A signal hall, not a church. Repeating dish-arches, stained neon panels of cyan
-          magenta and acid-green, dark grating floor, one vanishing point. Dense structure,
-          clear air. No god-rays, no stone, no people, no ship.
+          A signal hall, not a church. The full run of dish-arches is visible, stained
+          neon panels of cyan magenta and acid-green, dark grating floor, one vanishing
+          point. You can tell it is a hall. Camera pulled back. No god-rays, no stone,
+          no macro of one joint, no people, no ship.
         prompt_seed: >
-          Wide 16:9 neon CGI, a long hall of repeating parabolic dish-arches to one vanishing
-          point, stained cyan magenta acid-green panels between the arches, dark metal grating
-          floor, clear air, no fog shafts, no pews, no stone church, no people, no logos
+          Wide 16:9 neon CGI, the whole hall of repeating parabolic dish-arches in one
+          glance, arches small enough to count, stained cyan magenta acid-green panels,
+          dark metal grating floor, camera pulled back, clear air, not a crop of one arch,
+          no fog shafts, no pews, no people, no logos
 
+
+      clear:
+        scene: >
+          SCENE: A photoreal tall glass signal hall, blue air,
+          thin cyan traces in the glass, one warm lamp.
+        art_director_notes: >
+          Finished VFX still. Photoreal glass hall, blue-clear air, one warm lamp.
+          Neon is a thin accent in the glass. The neon cathedral skins stay on their
+          own versions.
+        prompt_seed: >
+          Wide 16:9 finished VFX still, photoreal glass signal hall, blue air, thin
+          cyan traces, one warm lamp, neon subordinate, no people, no logos
   rootkit-city:
     label: Rootkit City
     hashtag: RootkitCity
@@ -269,3 +388,17 @@ styles:
           avenues between them, frame full of silicon architecture, cyan district, magenta
           district, acid-green windows, void black above, not a server-rack room, not a single
           tower, not an orbital habitat, no people, no lightning
+
+      clear:
+        scene: >
+          SCENE: A photoreal glass megatower
+          in a blue circuit canyon, warm light inside the tower, thin cyan traces on
+          the floor, clear air.
+        art_director_notes: >
+          Finished VFX still. Photoreal glass and metal, blue-clear air, warm interior
+          light, neon only as a few small points and thin traces. This is the clear
+          canyon. The neon city skins stay on their own versions.
+        prompt_seed: >
+          Wide 16:9 finished VFX still, photoreal glass megatower in a blue circuit
+          canyon, warm light inside, thin cyan traces on the floor, clear air, neon
+          subordinate to the tower, no people, no logos

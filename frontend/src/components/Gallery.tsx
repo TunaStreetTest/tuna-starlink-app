@@ -51,9 +51,25 @@ export function Gallery({ refreshKey = 0 }: { refreshKey?: number }) {
   const [xBusy, setXBusy] = useState(false);
   const [xMsg, setXMsg] = useState<string | null>(null);
   const [xReady, setXReady] = useState(false);
+  const [styleFilter, setStyleFilter] = useState<string>("all");
   const stageRef = useRef<HTMLDivElement>(null);
 
-  const stack = useMemo(() => runs.filter((r) => r.has_image), [runs]);
+  const styleCounts = useMemo(() => {
+    const counts = new Map<string, { id: string; label: string; n: number }>();
+    for (const run of runs) {
+      const id = run.style_id || "unknown";
+      const row = counts.get(id);
+      if (row) row.n += 1;
+      else counts.set(id, { id, label: run.style_label || id, n: 1 });
+    }
+    return [...counts.values()].sort((a, b) => b.n - a.n);
+  }, [runs]);
+  const visible = useMemo(
+    () => (styleFilter === "all" ? runs : runs.filter((r) => r.style_id === styleFilter)),
+    [runs, styleFilter],
+  );
+
+  const stack = useMemo(() => visible.filter((r) => r.has_image), [visible]);
   const stackIdx = useMemo(
     () => (modalId ? stack.findIndex((r) => r.run_id === modalId) : -1),
     [stack, modalId],
@@ -92,7 +108,7 @@ export function Gallery({ refreshKey = 0 }: { refreshKey?: number }) {
     const load = async () => {
       try {
         const [data, pub] = await Promise.all([
-          api.gallery(60),
+          api.gallery(5000),
           api.publishStatus().catch(() => null),
         ]);
         if (!alive) return;
@@ -223,19 +239,47 @@ export function Gallery({ refreshKey = 0 }: { refreshKey?: number }) {
     <>
       <Card>
         <div className="flex items-center justify-between gap-2 mb-3">
-          <CardTitle className="mb-0">Gallery ({runs.length})</CardTitle>
+          <CardTitle className="mb-0">
+            Gallery ({visible.length}
+            {visible.length !== runs.length ? ` of ${runs.length}` : ""})
+          </CardTitle>
           {err && <p className="text-xs text-bad">{err}</p>}
         </div>
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          <button
+            type="button"
+            onClick={() => setStyleFilter("all")}
+            className={cn(
+              "text-[10px] font-mono px-2 py-1 rounded border",
+              styleFilter === "all" ? "border-hot text-white" : "border-accent/30 text-muted",
+            )}
+          >
+            All {runs.length}
+          </button>
+          {styleCounts.map((row) => (
+            <button
+              key={row.id}
+              type="button"
+              onClick={() => setStyleFilter(row.id)}
+              className={cn(
+                "text-[10px] font-mono px-2 py-1 rounded border",
+                styleFilter === row.id ? "border-hot text-white" : "border-accent/30 text-muted",
+              )}
+            >
+              {row.label} {row.n}
+            </button>
+          ))}
+        </div>
         <p className="text-xs font-mono text-muted mb-3">
-          Click a tile for the plate. Fullscreen takes the monitor — ← → walk the stack.
+          Every plate is on this page. Scroll the grid. Click a tile. Fullscreen ← → walks the filter.
         </p>
 
-        {runs.length === 0 && (
+        {visible.length === 0 && (
           <p className="text-xs font-mono text-muted">No plates yet. Generate above.</p>
         )}
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3">
-          {runs.map((r) => (
+          {visible.map((r) => (
             <button
               key={r.run_id}
               type="button"
@@ -261,6 +305,8 @@ export function Gallery({ refreshKey = 0 }: { refreshKey?: number }) {
                 <div className="flex items-center justify-between gap-1">
                   <span className="text-[10px] text-white/90 truncate">
                     {r.style_label ?? r.style_id}
+                    {r.style_version ? ` · ${r.style_version}` : ""}
+                    {r.shape ? ` · ${r.shape}` : ""}
                   </span>
                   {r.dry_run && <Badge tone="warn">dry</Badge>}
                 </div>

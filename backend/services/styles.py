@@ -84,6 +84,35 @@ _AI_RE = re.compile(
     r"optimus|dojo|robotaxi|full self[- ]driving|fsd|mistral|llama|deepmind)\b",
     re.I,
 )
+# Tesla hardware that should appear as itself. Checked before the AI lane,
+# which also names Optimus, robotaxi, and FSD.
+_CYBERTRUCK_RE = re.compile(r"\bcyber[\s-]*trucks?\b", re.I)
+_CYBERCAB_RE = re.compile(r"\bcyber[\s-]*cabs?\b|\brobotaxis?\b", re.I)
+_ROBOT_RE = re.compile(
+    r"\b(optimus|tesla\s*bots?|tesla\s*robots?|humanoid\s*robots?)\b",
+    re.I,
+)
+_CABIN_RE = re.compile(
+    r"\b(in[- ]?car|inside the (?:car|cabin|truck|cab)|cabin view|from the cabin|"
+    r"driver'?s view|windshield|cabin)\b",
+    re.I,
+)
+_FSD_RE = re.compile(r"\bfsd\b|full self[- ]?driving", re.I)
+_TESLA_CONTEXT_RE = re.compile(
+    r"\b(tesla|cyber(?:truck|cab)?s?|fsd|robotaxis?|optimus)\b",
+    re.I,
+)
+# "data centers in space" / "SpaceX data centers", not a terrestrial server order.
+_SPACE_DC_RE = re.compile(
+    r"(?:"
+    r"\b(?:data\s*cent(?:re|er)s?|datacent(?:re|er)s?|orbital\s+compute)\b"
+    r".{0,80}\b(?:space|orbit|orbital|starlink|satellite|spacex)\b"
+    r"|"
+    r"\b(?:space|orbit|orbital|starlink|satellite|spacex)\b"
+    r".{0,80}\b(?:data\s*cent(?:re|er)s?|datacent(?:re|er)s?|orbital\s+compute)\b"
+    r")",
+    re.I | re.S,
+)
 
 # Per-run cityscape hints for rootkit-city — ONE neon hero on a PCB grid, not fog/space habitat.
 # Fed to the art director only (not dumped into the Imagine prompt).
@@ -102,6 +131,93 @@ _ROOTKIT_CITY_SCENES = (
     "cyan etch in the depths, magenta nodes, acid-green building lights, void black sky.",
     "Circuit-grid city at night: stacked neon towers on a cyan PCB street grid, "
     "magenta window clusters, optional code-rain, no people, no packed server racks, no heaven haze.",
+)
+
+# Clear plates only. The dark neon skins stay for their own stories.
+# Order is the walk: the 8kdxk7g hall, realistic space, the light tunnel, light architecture.
+_SHAPE_PLATES = (
+    "signal-cathedral",
+    "data-space",
+    "data-tunnel",
+    "rootkit-city",
+)
+
+_SHAPE_LEAD = {
+    "cybertruck": (
+        "The hero is a real Tesla Cybertruck, large in the frame. Stainless polygonal "
+        "exoskeleton, sharp wedge body, flat triangular glass, no grille, no round panels. "
+        "It sits in the place described next. Not a pickup, not a sedan, not a concept car, "
+        "not a rocket."
+    ),
+    "cybercab": (
+        "The hero is a real Tesla Cybercab, large in the frame. A low two-seat robotaxi "
+        "pod, smooth body, butterfly doors, no steering wheel, silver or warm metal. Empty. "
+        "It sits in the place described next. Not a Model 3, not a van, not a Cybertruck, "
+        "not a rocket."
+    ),
+    "cabin": (
+        "The hero is an in-car view from the empty front seats of a Tesla. No driver, no "
+        "passenger, no face, no hands on the wheel. A wide windshield looks out into the "
+        "place described next. Minimal dash, one screen, a yoke or no wheel. You are inside "
+        "the car. Not an exterior product shot."
+    ),
+    "robot": (
+        "The hero is Tesla Optimus robots doing work in the place described next. Angular "
+        "white-and-black humanoids, visible joints, real hands. One carries a crate, one "
+        "walks, one works a station. No humans beside them. Not a statue, not a toy, not a "
+        "generic android, not a rocket."
+    ),
+}
+
+_SHAPE_LOCK = (
+    "Wide 16:9 finished VFX still. Photoreal materials, dual warm/cool light, clear air. "
+    "The Tesla shape named above is large and recognizable, and it is the only subject. "
+    "No second craft, no rocket, no satellite. Zero humans, no "
+    "driver, no passengers, no faces. No logos, no readable text. Light architecture or "
+    "realistic space, not a dark neon void, not a blown-up crop."
+)
+
+_SPACE_DC_LEAD = (
+    "The hero is Starlink hardware as a data center in space. Flat rectangular satellite "
+    "buses, each with one long solar wing. A field of them, or one satellite large and close. "
+    "Earth is a real planet in the background. Not a building, not a server rack, not a user "
+    "dish, not Falcon 9, not Starship."
+)
+
+_SPACE_DC_LOCK = (
+    "Wide 16:9 cinematic CGI. Starlink satellites are the data center: flat rectangular "
+    "buses, one long solar wing each. Earth is a real planet behind them. Neon is rim light "
+    "on the panels. Not a server building, not racks, not a space station, not a user dish, "
+    "not Falcon 9, not Starship. Zero humans, no logos, no readable text."
+)
+
+_SPACE_DC_SCENES = (
+    "SCENE: a field of Starlink satellites, each a flat bus with one solar wing, spread as "
+    "an orbital array. Earth large and real behind them. The array is the data center.",
+    "SCENE: one Starlink satellite large and close, flat rectangular bus, one long solar "
+    "wing, Earth filling the background. No second vehicle.",
+    "SCENE: a train of identical Starlink satellites crossing the frame, Earth limb and "
+    "clouds below, sun on the panels. Not a space station.",
+    "SCENE: many Starlink satellites in a loose grid over the night side of Earth, city "
+    "lights below, one satellite nearer and sharper. The constellation is the data center.",
+)
+
+# The failure mode on dBwghZT: a worm's-eye crop of one rib crossing, so the
+# cathedral does not read as a building.
+_CATHEDRAL_FRAME = (
+    "The whole signal cathedral is in the frame and obvious. Floor, walls, and vault "
+    "together, or the full dish tower from base to tip. Camera pulled back, with room "
+    "around the building. You can tell what it is. Not a blown-up crop of one rib, joint, "
+    "or window. Not a worm's-eye texture. Not a low angle gazing up into a single crossing."
+)
+
+_SIGNAL_CATHEDRAL_SCENES = (
+    "SCENE: wide interior. The whole nave is visible, floor grating to the far vault, "
+    "dish-arches readable as one cathedral. Camera pulled back. Not a crop of one rib.",
+    "SCENE: the full hall in one glance, repeating arches small enough to count, stained "
+    "neon panels, clear air. You can tell it is a signal hall. Not a macro.",
+    "SCENE: exterior, the entire dish tower from the ground to the tip, off-center, sky "
+    "around it. The tower is the subject. Not one dish filling the frame.",
 )
 
 
@@ -195,7 +311,12 @@ def recent_looks(limit: int = 24) -> list[dict[str, str]]:
         sid = str(meta.get("style_id") or "")
         if not sid:
             continue
-        out.append({"id": sid, "version": str(meta.get("style_version") or "core")})
+        # A Tesla shape plate wears a clear backdrop. Count it as its own core
+        # so it does not advance that backdrop's skin walk.
+        if str(meta.get("story_core") or "") == "tesla-shape":
+            out.append({"id": "tesla-shape", "version": sid})
+        else:
+            out.append({"id": sid, "version": str(meta.get("style_version") or "core")})
         if len(out) >= limit:
             break
     return out
@@ -272,14 +393,56 @@ def vehicle_kind(text: str) -> str | None:
     return None
 
 
-def core_for_story(text: str) -> str:
-    """Which of the five cores draws this story.
+def shape_kind(text: str) -> str | None:
+    """Cybertruck, Cybercab, an empty Tesla cabin, or Optimus at work.
 
-    Starship, Falcon 9, and Starlink satellites are Data Space, and the plate
-    shows that object. Other space news is Planet Core. Nvidia and chip news
-    are Rootkit City. AI news is Data Tunnel. Anything else is Signal Cathedral.
+    An explicit in-car phrase wins, then the named vehicle, then FSD as the cabin.
     """
     blob = text or ""
+    if _CABIN_RE.search(blob) and _TESLA_CONTEXT_RE.search(blob):
+        return "cabin"
+    if _CYBERTRUCK_RE.search(blob):
+        return "cybertruck"
+    if _CYBERCAB_RE.search(blob):
+        return "cybercab"
+    if _ROBOT_RE.search(blob):
+        return "robot"
+    if _FSD_RE.search(blob):
+        return "cabin"
+    return None
+
+
+def shape_lead(kind: str | None) -> str:
+    return _SHAPE_LEAD.get(kind or "") or ""
+
+
+def is_space_datacenter(text: str) -> bool:
+    """Orbital compute and data centers in space. A ground data center is not this."""
+    return bool(_SPACE_DC_RE.search(text or ""))
+
+
+def _next_in(ids: tuple[str, ...] | list[str], last: str | None) -> str:
+    if not ids:
+        return ""
+    if not last or last not in ids:
+        return ids[0]
+    return ids[(ids.index(last) + 1) % len(ids)]
+
+
+def core_for_story(text: str) -> str:
+    """Which core draws this story.
+
+    Cybertruck, Cybercab, Optimus, and FSD cabins are the Tesla shape plates.
+    A data center in space is Space DataCenter. Starship, Falcon 9, and
+    Starlink satellites are Data Space, and the plate shows that object.
+    Other space news is Planet Core. Nvidia and chip news are Rootkit City.
+    AI news is Data Tunnel. Anything else is Signal Cathedral.
+    """
+    blob = text or ""
+    if shape_kind(blob):
+        return "tesla-shape"
+    if is_space_datacenter(blob):
+        return "space-datacenter"
     if vehicle_kind(blob):
         return "data-space"
     if _SPACE_RE.search(blob):
@@ -295,8 +458,10 @@ def search_lane_for_core(core: str) -> str | None:
     """X/RSS lane to consult for a core. None means take the story as it is."""
     return {
         "data-space": "space",
+        "space-datacenter": "space",
         "planet-core": "space",
         "data-tunnel": "ai",
+        "tesla-shape": "ai",
         "rootkit-city": "gpu",
     }.get(core)
 
@@ -313,6 +478,17 @@ def style_for_story(
     """
     text = primary_line(events)
     core = core_for_story(text)
+    if core == "tesla-shape":
+        if rng is not None:
+            plate = rng.choice(_SHAPE_PLATES)
+        else:
+            looks = recent_looks() if recent is None else recent
+            last = next((row["version"] for row in looks if row.get("id") == "tesla-shape"), None)
+            plate = _next_in(_SHAPE_PLATES, last)
+        style = get_style(plate, version="clear")
+        style["shape"] = shape_kind(text)
+        style["story_core"] = "tesla-shape"
+        return style
     if rng is not None:
         version = pick_version(core, rng)
     else:
@@ -392,22 +568,34 @@ def scene_hint(
     version: str | None = None,
     version_scene: str = "",
     vehicle: str | None = None,
+    shape: str | None = None,
 ) -> str:
     """Composition hint for the art director — not appended to the Imagine prompt."""
     sid = str(style_id or "")
     key = salt or sid
+    if shape and shape in _SHAPE_LEAD:
+        plate = (version_scene or "").strip()
+        return f"{_SHAPE_LEAD[shape]} {plate}".strip()
     hint = ""
     if version and version != "core" and version_scene:
         hint = version_scene.strip()
     elif sid in ("data-space", "data_space"):
         hint = _scene_pick(key, _DATA_SPACE_SCENES, "data-space")
+    elif sid in ("space-datacenter", "space_datacenter"):
+        hint = _scene_pick(key, _SPACE_DC_SCENES, "space-datacenter")
     elif sid in ("rootkit-city", "rootkit_city"):
         hint = _scene_pick(key, _ROOTKIT_CITY_SCENES, "rootkit-city")
+    elif sid in ("signal-cathedral", "signal_cathedral"):
+        hint = _scene_pick(key, _SIGNAL_CATHEDRAL_SCENES, "signal-cathedral")
     if sid in ("data-space", "data_space"):
         kind = vehicle or vehicle_kind(primary_line(salt))
         lead = _VEHICLE_LEAD.get(kind or "")
         if lead:
             hint = f"{lead} {hint}".strip()
+    if sid in ("space-datacenter", "space_datacenter"):
+        hint = f"{_SPACE_DC_LEAD} {hint}".strip()
+    if sid in ("signal-cathedral", "signal_cathedral") and version != "clear":
+        hint = f"{_CATHEDRAL_FRAME} {hint}".strip()
     return hint
 
 
@@ -436,6 +624,32 @@ def _sanitize_rootkit_brief(brief: str) -> str:
         (r"\bdigital\s+river\b", "green-lit district"),
         (r"\bgreen\s+river\b", "green-lit block"),
         (r"\bcentral boulevard\b", "central district"),
+    )
+    out = brief
+    for pat, rep in replacements:
+        out = re.sub(pat, rep, out, flags=re.I)
+    return out
+
+
+
+# Added skin only. The closer from the blue clear plates. Other versions do not use it.
+_VFX_LOCK = (
+    "Wide 16:9 finished VFX still. Photoreal materials, dual warm/cool light, "
+    "atmospheric depth, epic scale. Zero humans. No logos or readable text. "
+    "Neon accents subordinate to one hero structure. No lightning-bolt weather, "
+    "no lava, no dark packed server-rack farm."
+)
+
+def _sanitize_cathedral_brief(brief: str) -> str:
+    """A low angle into one joint is how the cathedral stops reading as a building."""
+    if not brief:
+        return brief
+    replacements = (
+        (r"\blow angle gazes up\b", "wide view shows"),
+        (r"\bgazes up\b", "shows"),
+        (r"\blooking up into\b", "looking across"),
+        (r"\bworm'?s-?eye\b", "wide"),
+        (r"\b(extreme|tight|macro)\s+close-?ups?\b", "wide view"),
     )
     out = brief
     for pat, rep in replacements:
@@ -482,12 +696,16 @@ def build_imagine_prompt(
     shot = _extract_shot_paragraph(brief)
     if style_id in ("rootkit-city", "rootkit_city"):
         shot = _sanitize_rootkit_brief(shot)
+    version = str(style.get("version") or "core")
+    if style_id in ("signal-cathedral", "signal_cathedral") and version != "clear":
+        shot = _sanitize_cathedral_brief(shot)
 
     shot_or_seed = shot or seed
     lead = shot_or_seed
     kind = None
+    vehicle = ""
+    shape = str(style.get("shape") or "")
     scene = (style.get("version_scene") or "").strip()
-    version = str(style.get("version") or "core")
     older_scene = scene if scene and version not in ("", "core") else ""
     if style_id in ("data-space", "data_space"):
         kind = style.get("vehicle") or vehicle_kind(primary_line(source_text))
@@ -495,6 +713,28 @@ def build_imagine_prompt(
         lead = "\n\n".join(part for part in (vehicle, older_scene, shot_or_seed) if part)
     elif older_scene:
         lead = "\n\n".join(part for part in (older_scene, shot_or_seed) if part)
+    if version == "clear":
+        # Added skin. Every other version keeps the lead and the lock below.
+        plate = older_scene or seed
+        shape_text = _SHAPE_LEAD.get(shape)
+        if shape_text:
+            lead = "\n\n".join(part for part in (shape_text, plate) if part)
+            return "\n\n".join(part for part in (lead, _SHAPE_LOCK) if part)
+        if style_id in ("space-datacenter", "space_datacenter"):
+            lead = "\n\n".join(part for part in (_SPACE_DC_LEAD, plate) if part)
+            return "\n\n".join(part for part in (lead, _VFX_LOCK) if part)
+        if vehicle:
+            lead = "\n\n".join(part for part in (vehicle, plate) if part)
+        else:
+            lead = plate
+        return "\n\n".join(part for part in (lead, _VFX_LOCK) if part)
+    if style_id in ("space-datacenter", "space_datacenter"):
+        lead = "\n\n".join(part for part in (_SPACE_DC_LEAD, older_scene, shot_or_seed) if part)
+        return "\n\n".join(part for part in (lead, _SPACE_DC_LOCK) if part)
+    if style_id in ("signal-cathedral", "signal_cathedral"):
+        lead = "\n\n".join(
+            part for part in (_CATHEDRAL_FRAME, older_scene, shot_or_seed) if part
+        )
     if kind == "falcon":
         lock = (
             "Wide 16:9 cinematic CGI of a real Falcon 9 first stage. White cylinder. "
@@ -529,4 +769,6 @@ def build_imagine_prompt(
             "no god-rays, no church haze, no National Geographic postcard, no lightning, "
             "no lava, no packed server-rack farm."
         )
+        if style_id in ("signal-cathedral", "signal_cathedral"):
+            lock += " The whole building stays in frame and stays obvious."
     return "\n\n".join(p for p in (lead, lock) if p)
