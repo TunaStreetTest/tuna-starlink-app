@@ -169,6 +169,22 @@ _SHAPE_LEAD = {
     ),
 }
 
+# Held out of version_ids. A test plate can ask for it. The hourly walk cannot,
+# until Steven says this skin joins the rotation.
+# seed by @Brewdreamery — 2026-11-26 — thin-film chrome, not the silk or the nebula.
+_IRIDESCENT_NOTES = (
+    "Surface only. Polished metal and thick glass. Cyan, magenta, violet, and amber "
+    "are thin-film reflections sliding across that surface. The hero stays the hero "
+    "and stays recognizable. Not neon tubes, not a silk sheet, not a painted nebula, "
+    "not an abstract gem or a folded blob on a black field."
+)
+_IRIDESCENT_LOCK = (
+    "MATERIAL: the subject named first stays large and recognizable. Polished metal "
+    "and thick glass. Cyan, magenta, violet, and amber only as thin-film reflections "
+    "on that surface. Not neon tubes, not a silk sheet, not a painted nebula, not an "
+    "abstract blob."
+)
+
 _SHAPE_LOCK = (
     "Wide 16:9 finished VFX still. Photoreal materials, dual warm/cool light, clear air. "
     "The Tesla shape named above is large and recognizable, and it is the only subject. "
@@ -266,11 +282,18 @@ def _camel(label: str) -> str:
 
 
 def version_ids(style_id: str) -> list[str]:
-    """Core skin plus older skins stored under that style. The core id stays the name."""
+    """Core skin plus older skins stored under that style. The core id stays the name.
+
+    `iridescent` is a held material. It is not in this list, so the walk cannot pick it.
+    """
     data = _raw()
     styles = data.get("styles") or {}
     val = styles.get(style_id) or {}
-    extra = [k for k in (val.get("versions") or {}) if k and k != "core"]
+    extra = [
+        k
+        for k in (val.get("versions") or {})
+        if k and k not in ("core", "iridescent")
+    ]
     return ["core", *extra]
 
 
@@ -355,13 +378,20 @@ def get_style(style_id: str | None = None, version: str | None = None) -> dict[s
     versions = val.get("versions") or {}
     chosen = (version or "core").strip() or "core"
     over = {}
-    if chosen != "core":
+    if chosen == "iridescent":
+        over = {}
+    elif chosen != "core":
         if chosen not in versions:
             raise ValueError(f"unknown version {chosen!r} of {key!r}; known: {version_ids(key)}")
         over = versions[chosen] or {}
     series = series_info()
     label = val.get("label", key)
     hashtag = val.get("hashtag") or _camel(label)
+    notes = (over.get("art_director_notes") or val.get("art_director_notes") or "").strip()
+    seed = (over.get("prompt_seed") or val.get("prompt_seed") or "").strip()
+    if chosen == "iridescent":
+        notes = f"{notes}\n{_IRIDESCENT_NOTES}".strip()
+        seed = f"{seed} {_IRIDESCENT_LOCK}".strip()
     return {
         "id": key,
         "label": label,
@@ -370,8 +400,8 @@ def get_style(style_id: str | None = None, version: str | None = None) -> dict[s
         "lane": (val.get("lane") or _LANE_DEFAULT).strip().lower(),
         "version": chosen,
         "version_scene": (over.get("scene") or "").strip(),
-        "art_director_notes": (over.get("art_director_notes") or val.get("art_director_notes") or "").strip(),
-        "prompt_seed": (over.get("prompt_seed") or val.get("prompt_seed") or "").strip(),
+        "art_director_notes": notes,
+        "prompt_seed": seed,
         "series_name": series["name"],
         "series_tagline": series["tagline"],
         "shared_lock": series["shared_lock"],
@@ -596,6 +626,8 @@ def scene_hint(
         hint = f"{_SPACE_DC_LEAD} {hint}".strip()
     if sid in ("signal-cathedral", "signal_cathedral") and version != "clear":
         hint = f"{_CATHEDRAL_FRAME} {hint}".strip()
+    if version == "iridescent":
+        hint = f"{hint} {_IRIDESCENT_NOTES}".strip()
     return hint
 
 
@@ -771,4 +803,6 @@ def build_imagine_prompt(
         )
         if style_id in ("signal-cathedral", "signal_cathedral"):
             lock += " The whole building stays in frame and stays obvious."
+    if version == "iridescent":
+        lock = f"{lock}\n\n{_IRIDESCENT_LOCK}"
     return "\n\n".join(p for p in (lead, lock) if p)

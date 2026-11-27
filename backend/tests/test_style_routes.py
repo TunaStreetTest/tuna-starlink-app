@@ -285,6 +285,29 @@ class StoryRoutes(unittest.TestCase):
         self.assertIn("whole building stays in frame", prompt)
         self.assertIn("wide view shows", prompt)
 
+    def test_iridescent_is_a_held_material(self) -> None:
+        styles.reload_styles()
+        for sid in ("data-space", "signal-cathedral", "rootkit-city", "space-datacenter"):
+            self.assertNotIn("iridescent", styles.version_ids(sid))
+            self.assertNotEqual(styles.next_version(sid, "clear"), "iridescent")
+            got = styles.get_style(sid, version="iridescent")
+            self.assertEqual(got["version"], "iridescent")
+            self.assertIn("thin-film", got["art_director_notes"].lower())
+        falcon = styles.get_style("data-space", version="iridescent")
+        falcon["vehicle"] = "falcon"
+        prompt = build_imagine_prompt(
+            "SHOT: A white Falcon 9 climbs past Earth.\n",
+            falcon,
+            "Falcon 9 launches Starlink Group 10-17 from Vandenberg.",
+        ).lower()
+        self.assertIn("falcon 9", prompt)
+        self.assertIn("white cylinder", prompt)
+        self.assertIn("thin-film", prompt)
+        self.assertIn("polished metal", prompt)
+        self.assertIn("not a silk sheet", prompt)
+        self.assertIn("not a painted nebula", prompt)
+        self.assertIn("not an abstract blob", prompt)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -196,6 +196,12 @@ async def craft_art_brief(events: str, style: dict) -> str:
             "no god-rays, no press photo with the neon stripped off. If a vehicle lock is set, "
             "the hero is that exact ship."
         )
+    if version == "iridescent":
+        closer += (
+            " Surface only: polished metal and thick glass. Cyan, magenta, violet, and "
+            "amber are thin-film reflections on that surface. Keep the hero recognizable. "
+            "Not a silk sheet, not a painted nebula, not an abstract gem."
+        )
 
     user = f"""Shot type: {style.get('label')} — {style.get('description')}
 

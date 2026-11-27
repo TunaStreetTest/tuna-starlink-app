@@ -3,6 +3,9 @@
 # Visual DNA: neon-night matrix CGI — cyan / magenta / acid-green ON void black.
 # Heaven filter is banned: no god-rays, no photoreal Earth postcards, no silver VFX.
 
+# Iridescent is a held material on every core (`version=iridescent`). It is not
+# in the skin walk. seed by @Brewdreamery — 2026-11-26 — thin-film chrome on the
+# hero, not the silk sheet and not the painted nebula.
 series:
   name: Planet Hack
   tagline: Cool tech from the wire, remixed as neon matrix CGI — digital art from Starlink.

@@ -112,6 +112,7 @@ async def run_generate(
     style_id: str | None = None,
     force: bool = False,
     match_story: bool = False,
+    version: str | None = None,
 ) -> dict[str, Any]:
     global _current
 
@@ -123,7 +124,7 @@ async def run_generate(
             )
         run_id = art_store.new_run_id()
         styles.reload_styles()
-        style = None if match_story else styles.get_style(style_id)
+        style = None if match_story else styles.get_style(style_id, version=version)
         started = datetime.now(timezone.utc)
         meta: dict[str, Any] = {
             "run_id": run_id,
@@ -164,8 +165,19 @@ async def run_generate(
                 any_lane=True,
             )
             style = styles.style_for_story(events)
+            if version:
+                kept_vehicle = style.get("vehicle")
+                kept_shape = style.get("shape")
+                kept_core = style.get("story_core")
+                style = styles.get_style(style["id"], version=version)
+                if kept_vehicle:
+                    style["vehicle"] = kept_vehicle
+                if kept_shape:
+                    style["shape"] = kept_shape
+                if kept_core:
+                    style["story_core"] = kept_core
         else:
-            style = styles.get_style(style_id)
+            style = styles.get_style(style_id, version=version)
             events, events_source, events_tap = await events_svc.get_events(
                 run_id=run_id,
                 lane=style.get("lane"),
